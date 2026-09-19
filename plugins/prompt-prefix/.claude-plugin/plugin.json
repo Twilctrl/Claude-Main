@@ -1,0 +1,8 @@
+{
+  "name": "prompt-prefix",
+  "description": "Put a phrase of your choosing at the start of every prompt you send.",
+  "version": "0.1.0",
+  "keywords": ["prompt", "hook", "prefix", "preamble"],
+  "commands": "./commands",
+  "hooks": "./hooks/hooks.json"
+}
