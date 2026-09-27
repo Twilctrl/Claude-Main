@@ -5,7 +5,7 @@ output from the Pi over UART and types it into a laptop as a normal USB keyboard
 The laptop needs no drivers or software.
 
 ```
- Raspberry Pi (Ollama + llm_bridge.py) --UART--> Feather RP2350 --USB HID--> Laptop
+ Raspberry Pi (hailo-ollama + llm_bridge.py) --UART--> Feather RP2350 --USB HID--> Laptop
 ```
 
 ## Wiring
@@ -54,17 +54,66 @@ pushbutton between **D5** and **GND**.
 
 ## Pi setup
 
-1. Enable the UART: `sudo raspi-config` → Interface Options → Serial Port →
-   login shell over serial: **No**, serial port hardware: **Yes**. Then reboot.
-2. Install and start [Ollama](https://ollama.com), then pull a small model, e.g.
-   `ollama pull llama3.2:3b`.
-3. `pip install pyserial` (or `sudo apt install python3-serial`).
-4. Run the bridge:
+The bridge works with any server that speaks the Ollama API. By default it
+connects to [hailo-ollama](https://github.com/hailo-ai/hailo_model_zoo_genai)
+on port 8000, running `llama3.2:3b` on a Hailo accelerator. It talks to the
+API directly, so no web UI is needed. For stock Ollama, pass
+`--llm-url http://localhost:11434`.
+
+### Start at power-on (no display needed)
+
+Copy this repo to the Pi, then run:
 
 ```sh
-python3 pi/llm_bridge.py                          # interactive prompt loop
+cd projects/feather-llm-keyboard/pi
+sudo ./install.sh
+sudo reboot
+```
+
+`install.sh` does four things:
+
+- Turns the Pi's UART on and the serial login console off.
+- Starts `hailo-ollama` at boot. If there's no service for it yet, it creates
+  one that runs as your user.
+- Installs the bridge to `/opt/llm-keyboard` as the `llm-keyboard` service.
+- Gives the Pi's first console (tty1) to the bridge instead of a login prompt,
+  so a USB keyboard plugged into the Pi types prompts straight into the bridge.
+
+From then on, power up the Pi and wait for its green LED:
+
+| Pi green LED    | Meaning                                                   |
+| --------------- | --------------------------------------------------------- |
+| Heartbeat blink | Starting up: waiting for the LLM server or the Feather    |
+| Solid on        | Ready: type a prompt on the Pi's keyboard and press Enter |
+| Fast blink      | Generating a reply and typing it on the laptop            |
+
+Loading the model at boot can take a while, so wait for the solid LED before
+typing. If the Feather is disarmed when you press Enter, the bridge waits
+30 seconds for you to press the arm button. You type blind, so:
+
+- **Ctrl-C** on the Pi's keyboard stops a reply partway through. So does the
+  Feather's arm button.
+- Lines starting with `/` are commands instead of prompts. `/speed 80` changes
+  the typing speed. `/enter` toggles pressing Enter after each reply.
+- Pi OS defaults to a **UK keyboard layout**. On a US keyboard, set the layout
+  in `sudo raspi-config` → Localisation Options → Keyboard, or characters like
+  `"` and `@` will come out swapped.
+
+Change the model, URL or typing speed in `/etc/default/llm-keyboard`, then run
+`sudo systemctl restart llm-keyboard`. Check the exact model name with
+`curl -s localhost:8000/api/tags`. See the logs with
+`journalctl -u llm-keyboard -f` over SSH. To remove it all, run
+`sudo ./uninstall.sh`.
+
+### Run it by hand
+
+Useful for testing over SSH. Stop the service first with
+`sudo systemctl stop llm-keyboard`.
+
+```sh
+python3 pi/llm_bridge.py                            # interactive prompt loop
 python3 pi/llm_bridge.py "Write a haiku about USB"  # one-shot
-python3 pi/llm_bridge.py --cps 80 --enter --model qwen2.5:1.5b
+python3 pi/llm_bridge.py --cps 80 --enter --model qwen2:1.5b
 ```
 
 Press the arm button on the Feather, click into a text field on the laptop, and

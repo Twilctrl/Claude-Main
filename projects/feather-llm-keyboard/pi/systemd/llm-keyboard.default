@@ -1,0 +1,6 @@
+# Options for the llm-keyboard service (see: llm_bridge.py --help).
+# After editing: sudo systemctl restart llm-keyboard
+#
+# hailo-ollama serves on port 8000; stock Ollama uses http://localhost:11434.
+# Check the exact model name with: curl -s localhost:8000/api/tags
+LLM_KEYBOARD_ARGS="--llm-url http://localhost:8000 --model llama3.2:3b --cps 40"
