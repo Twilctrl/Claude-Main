@@ -1,0 +1,14 @@
+[Unit]
+Description=hailo-ollama LLM server (Ollama-compatible API on port 8000)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=@USER@
+ExecStart=@HAILO_OLLAMA@
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

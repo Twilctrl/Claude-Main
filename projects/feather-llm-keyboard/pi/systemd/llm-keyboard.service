@@ -1,0 +1,24 @@
+[Unit]
+Description=LLM keyboard bridge (Pi keyboard -> local LLM -> Feather RP2350)
+# Takes over the Pi's first text console (tty1) so a USB keyboard plugged into
+# the Pi types prompts straight into the bridge -- no display or login needed.
+Wants=network-online.target
+After=network-online.target systemd-user-sessions.service getty@tty1.service hailo-ollama.service
+Conflicts=getty@tty1.service
+
+[Service]
+Type=simple
+EnvironmentFile=-/etc/default/llm-keyboard
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/usr/bin/python3 /opt/llm-keyboard/llm_bridge.py --headless $LLM_KEYBOARD_ARGS
+StandardInput=tty-force
+StandardOutput=journal
+StandardError=journal
+TTYPath=/dev/tty1
+TTYReset=yes
+TTYVHangup=yes
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
