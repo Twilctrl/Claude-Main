@@ -1,0 +1,182 @@
+#!/bin/bash
+# hc - hailcore control. Run `hc help` for commands.
+set -uo pipefail
+
+CONF=/etc/hailcore/hailcore.conf
+# shellcheck source=/dev/null
+[ -r "$CONF" ] && . "$CONF"
+URL=${HAILCORE_LLM_URL:-http://127.0.0.1:8000}
+MODEL=${HAILCORE_MODEL:-qwen2.5-instruct:1.5b}
+LIB=/usr/local/lib/hailcore
+
+if [ -t 1 ]; then
+    C=$'\e[96m' M=$'\e[95m' G=$'\e[92m' Y=$'\e[93m' R=$'\e[91m' D=$'\e[2m' B=$'\e[1m' N=$'\e[0m'
+else
+    C='' M='' G='' Y='' R='' D='' B='' N=''
+fi
+ok()   { printf '  %s[ OK ]%s %s\n' "$G" "$N" "$*"; }
+warn() { printf '  %s[WARN]%s %s\n' "$Y" "$N" "$*"; }
+bad()  { printf '  %s[FAIL]%s %s\n' "$R" "$N" "$*"; }
+kv()   { printf '  %s%-10s%s %s\n' "$M" "$1" "$N" "$2"; }
+api()  { curl -fsS -m "${2:-3}" "$URL$1"; }
+
+need_root() {
+    if [ "$(id -u)" -ne 0 ]; then exec sudo "$0" "$@"; fi
+}
+
+npu_state() {
+    if [ ! -e /dev/hailo0 ]; then echo "${R}offline${N} (no /dev/hailo0)"; return; fi
+    echo "${G}online${N} /dev/hailo0"
+}
+
+server_state() {
+    if api /api/tags 1 >/dev/null 2>&1; then echo "${G}up${N} $URL"; else echo "${R}down${N} $URL"; fi
+}
+
+temp() {
+    local t
+    t=$(vcgencmd measure_temp 2>/dev/null | cut -d= -f2) || true
+    [ -z "$t" ] && t=$(awk '{printf "%.1f'"'"'C", $1/1000}' /sys/class/thermal/thermal_zone0/temp 2>/dev/null)
+    echo "${t:-?}"
+}
+
+throttle() {
+    local v
+    v=$(vcgencmd get_throttled 2>/dev/null | cut -d= -f2) || true
+    case $v in
+        "") echo "?" ;;
+        0x0) echo "${G}none${N}" ;;
+        *) local n=$((v)); local msg=""
+           (( n & 0x1 )) && msg+="under-voltage! "
+           (( n & 0x4 )) && msg+="throttled "
+           (( n & 0x8 )) && msg+="soft-temp-limit "
+           (( n & 0x50000 )) && msg+="(has happened since boot)"
+           echo "${Y}$v${N} $msg" ;;
+    esac
+}
+
+cmd_status() {
+    local brief=0; [ "${1:-}" = "--brief" ] && brief=1
+    kv "npu" "$(npu_state)"
+    kv "llm" "$(server_state)"
+    kv "model" "${C}$MODEL${N}"
+    kv "temp" "$(temp)"
+    [ $brief = 1 ] && { kv "ip" "$(hostname -I 2>/dev/null | awk '{print $1}')"; return; }
+    kv "throttle" "$(throttle)"
+    kv "governor" "$(cat /sys/devices/system/cpu/cpufreq/policy0/scaling_governor 2>/dev/null || echo ?)"
+    kv "cpu" "$(awk '{printf "load %s %s %s", $1, $2, $3}' /proc/loadavg)"
+    kv "memory" "$(free -h | awk '/^Mem:/ {print $3 " used / " $2}')"
+    kv "disk" "$(df -h / | awk 'NR==2 {print $3 " used / " $2 " (" $5 ")"}')"
+    kv "ip" "$(hostname -I 2>/dev/null)"
+    kv "uptime" "$(uptime -p)"
+    if command -v hailortcli >/dev/null && [ -e /dev/hailo0 ]; then
+        local fw
+        fw=$(timeout 5 hailortcli fw-control identify 2>/dev/null | awk -F': ' '/Firmware Version|Device Architecture/ {printf "%s ", $2}')
+        [ -n "$fw" ] && kv "firmware" "$fw"
+    fi
+    if api /api/tags 1 >/dev/null 2>&1; then
+        printf '\n  %sinstalled models%s\n' "$B" "$N"
+        api /api/tags | jq -r '.models[]? | "    " + .name' 2>/dev/null
+    fi
+}
+
+cmd_models() {
+    if [ "${1:-}" = "--available" ]; then
+        api /hailo/v1/list 10 | jq -r '(.models // .)[]? | if type == "string" then . else .name end' 2>/dev/null \
+            || api /hailo/v1/list 10
+    else
+        api /api/tags | jq -r '.models[]? | .name'
+    fi
+}
+
+cmd_pull() {
+    local m=${1:-$MODEL}
+    printf '%s>> pulling %s%s\n' "$C" "$m" "$N"
+    curl -fsS -N "$URL/api/pull" -H 'Content-Type: application/json' \
+        -d "$(jq -nc --arg m "$m" '{model: $m, stream: true}')" |
+    while IFS= read -r line; do
+        st=$(jq -r '.status // empty' <<<"$line" 2>/dev/null)
+        done_=$(jq -r '.completed // empty' <<<"$line" 2>/dev/null)
+        tot=$(jq -r '.total // empty' <<<"$line" 2>/dev/null)
+        if [ -n "$tot" ] && [ -n "$done_" ] && [ "$tot" -gt 0 ] 2>/dev/null; then
+            printf '\r  %s%-30s%s %3d%%' "$M" "$st" "$N" $((done_ * 100 / tot))
+        elif [ -n "$st" ]; then
+            printf '\r  %s%-40s%s' "$M" "$st" "$N"
+        fi
+    done
+    echo
+}
+
+cmd_use() {
+    [ -n "${1:-}" ] || { echo "usage: hc use <model>"; exit 2; }
+    need_root use "$@"
+    sed -i "s|^HAILCORE_MODEL=.*|HAILCORE_MODEL=$1|" "$CONF"
+    echo "default model is now ${C}$1${N}"
+    if ! api /api/tags | jq -e --arg m "$1" '.models[]? | select(.name == $m)' >/dev/null 2>&1; then
+        echo "not installed yet; pulling it"
+        cmd_pull "$1"
+    fi
+}
+
+cmd_doctor() {
+    printf '%s%s// hailcore diagnostics%s\n' "$B" "$M" "$N"
+    local board
+    board=$(tr -d '\0' 2>/dev/null </proc/device-tree/model)
+    kv "board" "${board:-unknown}"
+    case $board in
+        *"Pi 5"*|*"Compute Module 5"*) ok "Pi 5 family board" ;;
+        *) warn "the AI HAT+ 2 needs a Raspberry Pi 5" ;;
+    esac
+    if lspci 2>/dev/null | grep -qi hailo; then ok "Hailo device on PCIe"; else bad "no Hailo device on PCIe: reseat the HAT and its ribbon cable"; fi
+    if [ -e /dev/hailo0 ]; then ok "driver loaded (/dev/hailo0)"
+    else bad "driver not loaded: sudo dkms autoinstall -k \$(uname -r) && sudo reboot"; fi
+    if command -v hailo-ollama >/dev/null; then ok "hailo-ollama installed"
+    else bad "hailo-ollama missing: install the Hailo GenAI Model Zoo .deb (see README), then: sudo systemctl restart hailo-ollama"; fi
+    if systemctl is-active --quiet hailo-ollama 2>/dev/null; then ok "hailo-ollama service running"
+    else warn "hailo-ollama service not running: hc logs"; fi
+    if api /api/tags 2 >/dev/null 2>&1; then ok "API answering at $URL"; else bad "API not answering at $URL"; fi
+    if api /api/tags 2 2>/dev/null | jq -e --arg m "$MODEL" '.models[]? | select(.name == $m)' >/dev/null 2>&1; then
+        ok "default model $MODEL installed"
+    else warn "default model $MODEL not installed: hc pull"; fi
+    local th; th=$(vcgencmd get_throttled 2>/dev/null | cut -d= -f2)
+    if [ -z "$th" ]; then warn "can't read throttle state (vcgencmd missing)"
+    elif [ "$th" = "0x0" ]; then ok "no throttling or under-voltage"
+    else warn "throttle flags $th: use the official 27W PSU and a cooler"; fi
+    if [ -f /var/lib/hailcore/firstboot.done ]; then ok "first-boot setup complete"
+    else warn "first-boot setup not finished: journalctl -u hailcore-firstboot"; fi
+}
+
+cmd_help() {
+    cat <<H
+${B}${C}hc${N} - hailcore control
+
+  ${C}hc status${N}              full system + NPU readout
+  ${C}hc chat${N} [model]        interactive neon chat with the local LLM
+  ${C}hc ask${N} "prompt"        one-shot answer (reads stdin too: cat f | hc ask "summarise")
+  ${C}hc bench${N} [model]       measure tokens per second
+  ${C}hc models${N} [--available] installed models, or ones the server can pull
+  ${C}hc pull${N} [model]        download a model
+  ${C}hc use${N} <model>         make a model the default (pulls it if needed)
+  ${C}hc logs${N}                follow the LLM server log
+  ${C}hc restart${N}             restart the LLM server
+  ${C}hc doctor${N}              diagnose the HAT, driver, server and power
+
+${D}settings: $CONF${N}
+H
+}
+
+sub=${1:-status}; shift || true
+case $sub in
+    status)  cmd_status "$@" ;;
+    chat)    exec python3 "$LIB/hc_chat.py" chat "$@" ;;
+    ask)     exec python3 "$LIB/hc_chat.py" ask "$@" ;;
+    bench)   exec python3 "$LIB/hc_chat.py" bench "$@" ;;
+    models)  cmd_models "$@" ;;
+    pull)    cmd_pull "$@" ;;
+    use)     cmd_use "$@" ;;
+    logs)    exec journalctl -u hailo-ollama -u hailcore-firstboot -f ;;
+    restart) need_root restart; systemctl restart hailo-ollama && echo "restarted" ;;
+    doctor)  cmd_doctor ;;
+    help|-h|--help) cmd_help ;;
+    *) echo "hc: unknown command '$sub'"; cmd_help; exit 2 ;;
+esac

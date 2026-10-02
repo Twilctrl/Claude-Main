@@ -1,0 +1,15 @@
+{
+  "logo": {
+    "source": "/usr/local/lib/hailcore/banner.txt",
+    "type": "file",
+    "position": "top",
+    "color": { "1": "cyan" }
+  },
+  "display": { "color": { "keys": "magenta", "title": "cyan" }, "separator": " // " },
+  "modules": [
+    "title", "separator", "os", "kernel", "uptime", "cpu",
+    { "type": "command", "key": "NPU", "text": "test -e /dev/hailo0 && echo 'Hailo-10H online' || echo offline" },
+    { "type": "command", "key": "Model", "text": ". /etc/hailcore/hailcore.conf; echo $HAILCORE_MODEL" },
+    "memory", "disk", "localip", "colors"
+  ]
+}

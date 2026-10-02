@@ -1,0 +1,3 @@
+work/
+deploy/
+stage-hailcore/00-hailo/files/*.deb
