@@ -1,0 +1,28 @@
+[Unit]
+Description=hailo-ollama LLM server on the Hailo-10H (Ollama-compatible API, port 8000)
+Documentation=https://github.com/hailo-ai/hailo_model_zoo_genai
+Wants=network-online.target
+After=network-online.target hailcore-perf.service
+
+[Service]
+Type=simple
+User=hailo
+Group=hailo
+SupplementaryGroups=video
+EnvironmentFile=-/etc/hailcore/hailcore.conf
+Environment=HOME=/var/lib/hailo-ollama
+WorkingDirectory=/var/lib/hailo-ollama
+ExecStart=/usr/local/lib/hailcore/run-hailo-ollama.sh
+Restart=on-failure
+RestartSec=5
+# Keep the model server responsive when the CPU is busy with other work.
+Nice=-5
+IOSchedulingClass=best-effort
+IOSchedulingPriority=0
+LimitMEMLOCK=infinity
+NoNewPrivileges=yes
+ProtectHome=yes
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target

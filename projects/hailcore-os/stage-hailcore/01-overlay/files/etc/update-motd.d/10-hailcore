@@ -1,0 +1,12 @@
+#!/bin/sh
+# hailcore login banner: shown on SSH and console logins.
+B=/usr/local/lib/hailcore/banner.txt
+i=0
+while IFS= read -r line; do
+    case $i in 0|1) c=96 ;; 2|3) c=36 ;; *) c=95 ;; esac
+    printf '\033[1;%sm%s\033[0m\n' "$c" "$line"
+    i=$((i + 1))
+done < "$B"
+printf '\033[2;35m  // neural edge node :: raspberry pi 5 + hailo-10h\033[0m\n\n'
+/usr/local/bin/hc status --brief 2>/dev/null || true
+printf '\n\033[2;36m  hc chat\033[0m start talking   \033[2;36mhc status\033[0m full readout   \033[2;36mhc help\033[0m commands\n\n'

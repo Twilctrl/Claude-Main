@@ -1,0 +1,12 @@
+[Unit]
+Description=hailcore performance tuning (CPU governor, Wi-Fi power save)
+After=sysinit.target network-pre.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=-/etc/hailcore/hailcore.conf
+ExecStart=/usr/local/lib/hailcore/perf.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
