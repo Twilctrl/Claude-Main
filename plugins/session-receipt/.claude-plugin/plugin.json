@@ -1,0 +1,8 @@
+{
+  "name": "session-receipt",
+  "description": "Print an itemised, till-style receipt of a session: time spent, prompts, every tool call, files read and changed.",
+  "version": "0.1.0",
+  "keywords": ["stats", "summary", "hook", "logging", "receipt"],
+  "commands": "./commands",
+  "hooks": "./hooks/hooks.json"
+}

@@ -1,0 +1,8 @@
+{
+  "name": "breadcrumbs",
+  "description": "Pin notes to file paths so Claude sees them the moment it touches those files, and seal time-capsule notes that open on a future date.",
+  "version": "0.1.0",
+  "keywords": ["notes", "hook", "context", "reminders", "time-capsule"],
+  "commands": "./commands",
+  "hooks": "./hooks/hooks.json"
+}

@@ -13,6 +13,24 @@
       "source": "./plugins/prompt-prefix",
       "description": "Put a phrase of your choosing at the start of every prompt you send.",
       "category": "workflow"
+    },
+    {
+      "name": "breadcrumbs",
+      "source": "./plugins/breadcrumbs",
+      "description": "Pin notes to file paths so Claude sees them the moment it touches those files, and seal time-capsule notes that open on a future date.",
+      "category": "productivity"
+    },
+    {
+      "name": "scope-fence",
+      "source": "./plugins/scope-fence",
+      "description": "Fence Claude's edits to the paths a task is about, and cap how many files it may change per session.",
+      "category": "security"
+    },
+    {
+      "name": "session-receipt",
+      "source": "./plugins/session-receipt",
+      "description": "Print an itemised, till-style receipt of a session: time spent, prompts, every tool call, files read and changed.",
+      "category": "productivity"
     }
   ]
 }
