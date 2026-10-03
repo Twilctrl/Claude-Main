@@ -1,0 +1,8 @@
+{
+  "name": "scope-fence",
+  "description": "Fence Claude's edits to the paths a task is about, and cap how many files it may change per session.",
+  "version": "0.1.0",
+  "keywords": ["scope", "guardrail", "hook", "permissions", "budget"],
+  "commands": "./commands",
+  "hooks": "./hooks/hooks.json"
+}
