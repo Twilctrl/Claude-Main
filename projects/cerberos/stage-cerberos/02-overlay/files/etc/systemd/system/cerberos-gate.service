@@ -1,0 +1,21 @@
+[Unit]
+Description=CerberOS gate: one Ollama/OpenAI-compatible API for every head (port 11434)
+After=network-online.target hailo-ollama.service ollama.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=cerberos
+Group=cerberos
+Environment=PYTHONPATH=/usr/local/lib/cerberos
+ExecStart=/usr/bin/python3 -m cerberos gate --serve
+Restart=always
+RestartSec=2
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+StateDirectory=cerberos-gate
+
+[Install]
+WantedBy=multi-user.target

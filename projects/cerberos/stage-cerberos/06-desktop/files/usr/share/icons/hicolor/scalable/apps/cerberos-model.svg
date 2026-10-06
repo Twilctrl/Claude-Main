@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+<defs>
+  <radialGradient id="pit" cx="50%" cy="40%" r="75%">
+    <stop offset="0" stop-color="#2e0909"/><stop offset="0.45" stop-color="#120505"/><stop offset="1" stop-color="#030202"/>
+  </radialGradient>
+  <radialGradient id="vignette" cx="50%" cy="45%" r="70%">
+    <stop offset="0.55" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity="0.85"/>
+  </radialGradient>
+  <linearGradient id="hide" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#1e1414"/><stop offset="0.6" stop-color="#0e0909"/><stop offset="1" stop-color="#060404"/>
+  </linearGradient>
+  <linearGradient id="ironV" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0" stop-color="#040303"/><stop offset="0.32" stop-color="#2a2421"/><stop offset="0.48" stop-color="#4c423c"/>
+    <stop offset="0.66" stop-color="#1d1816"/><stop offset="1" stop-color="#020101"/>
+  </linearGradient>
+  <linearGradient id="ironH" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#040303"/><stop offset="0.35" stop-color="#2a2421"/><stop offset="0.5" stop-color="#4c423c"/>
+    <stop offset="0.7" stop-color="#1d1816"/><stop offset="1" stop-color="#020101"/>
+  </linearGradient>
+  <linearGradient id="blood" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#3d0505"/><stop offset="0.6" stop-color="#7a0c10"/><stop offset="1" stop-color="#a3121b"/>
+  </linearGradient>
+  <linearGradient id="boneG" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#e6dcc8"/><stop offset="0.7" stop-color="#b3a68f"/><stop offset="1" stop-color="#6e5f4c"/>
+  </linearGradient>
+  <linearGradient id="textG" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#d8cdb8"/><stop offset="0.55" stop-color="#a39782"/><stop offset="1" stop-color="#5a1010"/>
+  </linearGradient>
+  <filter id="grime" x="0" y="0" width="100%" height="100%">
+    <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" seed="3"/>
+    <feColorMatrix values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -1.4 0.95"/>
+  </filter>
+  <filter id="stains" x="0" y="0" width="100%" height="100%">
+    <feTurbulence type="fractalNoise" baseFrequency="0.0045" numOctaves="4" seed="21"/>
+    <feColorMatrix values="0 0 0 0 0.24  0 0 0 0 0.02  0 0 0 0 0.02  -2.2 0 0 0 1.25"/>
+  </filter>
+  <filter id="rust" x="0" y="0" width="100%" height="100%">
+    <feTurbulence type="fractalNoise" baseFrequency="0.02 0.004" numOctaves="4" seed="9" result="n"/>
+    <feColorMatrix in="n" values="0 0 0 0 0.30  0 0 0 0 0.11  0 0 0 0 0.05  2.6 0 0 0 -1.35" result="r"/>
+    <feComposite in="r" in2="SourceAlpha" operator="in" result="rr"/>
+    <feMerge><feMergeNode in="SourceGraphic"/><feMergeNode in="rr"/></feMerge>
+  </filter>
+  <filter id="ragged" x="-10%" y="-10%" width="120%" height="120%">
+    <feTurbulence type="fractalNoise" baseFrequency="0.06" numOctaves="2" seed="5" result="t"/>
+    <feDisplacementMap in="SourceGraphic" in2="t" scale="7" xChannelSelector="R" yChannelSelector="G"/>
+  </filter>
+  <filter id="eyeglow" x="-150%" y="-150%" width="400%" height="400%">
+    <feGaussianBlur stdDeviation="7" result="b"/>
+    <feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
+  <filter id="shadow" x="-10%" y="-30%" width="120%" height="160%">
+    <feGaussianBlur stdDeviation="10"/>
+  </filter>
+</defs>
+<rect x="4" y="4" width="120" height="120" rx="18" fill="#0a0707" stroke="#3a0a0a" stroke-width="4"/>
+<path d="M64,18 C64,18 30,62 30,82 A34,34 0 0,0 98,82 C98,62 64,18 64,18 Z" fill="url(#blood)"/>
+<ellipse cx="52" cy="78" rx="6" ry="11" fill="#d4202c" opacity="0.5"/>
+<path d="M64,104 V90 H78 V76" fill="none" stroke="#6f8a8f" stroke-width="3" opacity="0.8"/><circle cx="78" cy="74" r="4" fill="#6f8a8f"/>
+<rect x="33" y="10" width="6" height="108" fill="url(#ironV)" opacity="0.9"/>
+<rect x="61" y="10" width="6" height="108" fill="url(#ironV)" opacity="0.9"/>
+<rect x="89" y="10" width="6" height="108" fill="url(#ironV)" opacity="0.9"/>
+</svg>

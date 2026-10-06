@@ -1,0 +1,12 @@
+[Unit]
+Description=CerberOS tuning: CPU governor, PCIe and Wi-Fi power saving
+After=sysinit.target network-pre.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=-/etc/cerberos/cerberos.conf
+ExecStart=/usr/local/lib/cerberos/perf.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,12 @@
+# Drop extra catalog files here (*.toml, same format as ../catalog.toml),
+# then run: sudo cerb sync
+#
+# [[model]]
+# category = "chatbots"
+# slug = "olmo"
+# name = "OLMo 2 7B"
+# head = "cpu"
+# model = "olmo2:7b"
+# ram_gb = 6
+# strengths = ["fully open", "research"]
+# blurb = "Example of a model you added yourself."

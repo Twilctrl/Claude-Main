@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<channel name="xfce4-terminal" version="1.0">
+  <property name="font-use-system" type="bool" value="false"/>
+  <property name="font-name" type="string" value="JetBrains Mono 11"/>
+  <property name="color-foreground" type="string" value="#cfc4b4"/>
+  <property name="color-background" type="string" value="#0a0707"/>
+  <property name="color-cursor" type="string" value="#a3121b"/>
+  <property name="color-bold-is-bright" type="bool" value="true"/>
+  <property name="color-palette" type="string" value="#0a0707;#a3121b;#7d8a3a;#b5651d;#4a3a6b;#7a1f3d;#6f8a8f;#cfc4b4;#4a3b3b;#d4202c;#a8b85a;#d9b26a;#7d6aa8;#b0405e;#9fb8bc;#efe6d8"/>
+  <property name="background-mode" type="string" value="TERMINAL_BACKGROUND_TRANSPARENT"/>
+  <property name="background-darkness" type="double" value="0.92"/>
+  <property name="misc-cursor-shape" type="string" value="TERMINAL_CURSOR_SHAPE_BLOCK"/>
+  <property name="misc-cursor-blinks" type="bool" value="true"/>
+  <property name="scrolling-lines" type="uint" value="20000"/>
+  <property name="title-initial" type="string" value="CerberOS"/>
+</channel>

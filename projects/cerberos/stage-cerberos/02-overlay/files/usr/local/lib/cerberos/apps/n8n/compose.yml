@@ -1,0 +1,16 @@
+# n8n workflow automation. Use its "Ollama" nodes with base URL
+# http://127.0.0.1:11434 and any CerberOS model name, e.g. chatbots/gemma.
+services:
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:latest
+    container_name: cerberos-n8n
+    network_mode: host
+    restart: unless-stopped
+    environment:
+      N8N_PORT: "5678"
+      N8N_SECURE_COOKIE: "false"
+      N8N_DIAGNOSTICS_ENABLED: "false"
+    volumes:
+      - n8n:/home/node/.n8n
+volumes:
+  n8n:

@@ -1,0 +1,17 @@
+xserver-xorg
+xinit
+dbus-x11
+lightdm
+lightdm-gtk-greeter
+xfce4
+xfce4-terminal
+xfce4-whiskermenu-plugin
+xfce4-notifyd
+thunar
+mousepad
+papirus-icon-theme
+gnome-themes-extra
+fonts-jetbrains-mono
+librsvg2-bin
+librsvg2-common
+chromium

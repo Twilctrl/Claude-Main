@@ -1,0 +1,23 @@
+# Open WebUI, wired to the CerberOS gate. Host networking lets it reach the
+# gate on 127.0.0.1:11434 without opening the gate to the LAN.
+services:
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: cerberos-open-webui
+    network_mode: host
+    restart: unless-stopped
+    environment:
+      PORT: "3000"
+      WEBUI_NAME: "CerberOS"
+      OLLAMA_BASE_URL: "http://127.0.0.1:11434"
+      ENABLE_OPENAI_API: "false"
+      RAG_EMBEDDING_ENGINE: "ollama"
+      RAG_EMBEDDING_MODEL: "agents/nomic-embed"
+      DEFAULT_MODELS: "chatbots/gemma"
+      ANONYMIZED_TELEMETRY: "false"
+      SCARF_NO_ANALYTICS: "true"
+      DO_NOT_TRACK: "true"
+    volumes:
+      - open-webui:/app/backend/data
+volumes:
+  open-webui:

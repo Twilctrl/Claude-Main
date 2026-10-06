@@ -1,0 +1,27 @@
+[Unit]
+Description=CerberOS NPU head: hailo-ollama on the Hailo-10H (port 8000)
+Documentation=https://github.com/hailo-ai/hailo_model_zoo_genai
+After=network-online.target cerberos-perf.service
+Wants=network-online.target
+ConditionPathExists=/usr/bin/hailo-ollama
+
+[Service]
+Type=simple
+User=hailo
+Group=hailo
+SupplementaryGroups=video
+Environment=HOME=/var/lib/hailo-ollama
+WorkingDirectory=/var/lib/hailo-ollama
+ExecStart=/usr/bin/hailo-ollama
+Restart=on-failure
+RestartSec=5
+Nice=-5
+IOSchedulingClass=best-effort
+IOSchedulingPriority=0
+LimitMEMLOCK=infinity
+NoNewPrivileges=yes
+ProtectHome=yes
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target

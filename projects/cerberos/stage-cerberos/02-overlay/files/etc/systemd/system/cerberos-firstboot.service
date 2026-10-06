@@ -1,0 +1,15 @@
+[Unit]
+Description=CerberOS first boot: Hailo driver check, model and app downloads
+Wants=network-online.target cerberos-gate.service
+After=network-online.target cerberos-gate.service hailo-ollama.service ollama.service docker.service
+ConditionPathExists=!/var/lib/cerberos/firstboot.done
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/lib/cerberos/firstboot.sh
+Environment=CERBEROS_NO_FX=1
+TimeoutStartSec=2h
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
