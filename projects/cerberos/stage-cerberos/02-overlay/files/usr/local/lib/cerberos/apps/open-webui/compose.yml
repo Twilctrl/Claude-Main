@@ -13,7 +13,7 @@ services:
       ENABLE_OPENAI_API: "false"
       RAG_EMBEDDING_ENGINE: "ollama"
       RAG_EMBEDDING_MODEL: "agents/nomic-embed"
-      DEFAULT_MODELS: "chatbots/qwen-npu"
+      DEFAULT_MODELS: "chatbots/gemma"
       ANONYMIZED_TELEMETRY: "false"
       SCARF_NO_ANALYTICS: "true"
       DO_NOT_TRACK: "true"

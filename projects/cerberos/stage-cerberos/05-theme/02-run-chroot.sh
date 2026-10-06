@@ -8,12 +8,12 @@ sed -i \
 	-e 's/^FONTSIZE=.*/FONTSIZE="16x32"/' \
 	/etc/default/console-setup
 
-# Pre-login screen: the banner in hellfire, plus where to reach this box.
+# Pre-login screen: the bleeding banner, plus where to reach this box.
 {
 	printf '\033[2J\033[H'
 	i=0
 	while IFS= read -r line; do
-		case $i in 0) c="1;93" ;; 1) c="1;33" ;; 2) c="1;91" ;; 3) c="1;31" ;; 4) c="31" ;; *) c="35" ;; esac
+		case $i in 0) c="1;97" ;; 1) c="37" ;; 2) c="1;91" ;; 3) c="91" ;; [4-7]) c="31" ;; *) c="35" ;; esac
 		printf '\033[%sm%s\033[0m\n' "$c" "$line"
 		i=$((i + 1))
 	done < /usr/local/lib/cerberos/banner.txt

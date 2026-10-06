@@ -1,5 +1,5 @@
 #!/bin/bash -e
-# Desktop flavor: XFCE with the CerberOS hellfire theme and categorized start menu.
+# Desktop flavor: XFCE with the CerberOS theme (dried blood, iron, bone) and categorized start menu.
 
 rsvg-convert -w 1920 -h 1080 /usr/share/backgrounds/cerberos/cerberos.svg \
 	-o /usr/share/backgrounds/cerberos/cerberos.png

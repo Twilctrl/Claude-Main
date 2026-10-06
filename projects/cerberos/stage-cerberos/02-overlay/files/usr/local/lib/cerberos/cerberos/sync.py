@@ -38,6 +38,7 @@ def model_card(m, cat):
         "| | |",
         "| --- | --- |",
         f"| Call it | `{m.alias}` |",
+        f"| Made by | {m.maker or '?'}{f' ({m.origin})' if m.origin else ''} |",
         f"| Runs on | {HEAD_TEXT.get(m.head, m.head)} |",
         f"| Upstream name | `{m.model}` |",
         f"| Strengths | {', '.join(m.strengths)} |",
@@ -88,7 +89,8 @@ def sync_models_tree(cat_by_id, catalog, root=MODELS_DIR):
         if not ms:
             continue
         index += [f"## {c.label}: {c.tagline}", ""]
-        index += [f"- `{m.alias}`: {m.name} ({m.head}). {', '.join(m.strengths)}" for m in ms]
+        index += [f"- `{m.alias}`: {m.name}, {m.maker or '?'} {m.origin} ({m.head}). "
+                  f"{', '.join(m.strengths)}" for m in ms]
         index.append("")
     write(os.path.join(root, "README.md"), "\n".join(index))
 

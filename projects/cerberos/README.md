@@ -6,8 +6,9 @@ CerberOS is a Raspberry Pi OS–based distribution for running local AI on a
 **Raspberry Pi 5 with the AI HAT+ 2 (Hailo-10H, 40 TOPS, 8 GB on-module RAM)**.
 It takes its ease of use from Kali and Parrot: every model and tool sits in a
 numbered category in a start menu, and everything installs itself the first
-time you pick it. It looks like cyber-hell: blood red, ember and hellfire, from
-the first boot message to the desktop.
+time you pick it. The look is grim and oppressive: dried blood, rusted iron and
+bone, three hounds caged behind bars. A little of the machine shows through in
+the terminal UI and stencilled text.
 
 ![The CerberOS start menu](docs/menu.png)
 
@@ -30,13 +31,14 @@ the first boot message to the desktop.
               the Hailo-10H            CPU, any GGUF model     compatible box on your LAN
 ```
 
-- **NPU head.** Hailo's `hailo-ollama` runs Hailo-compiled models (Qwen 2.5,
-  Qwen Coder, DeepSeek R1 distill, Llama 3.2) on the accelerator, which leaves
-  the CPU free.
+- **NPU head.** Hailo's `hailo-ollama` runs Hailo-compiled models on the
+  accelerator, which leaves the CPU free. Only Hailo can compile them, so the
+  choice is short: Meta's Llama 3.2 1B, plus Qwen and DeepSeek.
 - **CPU head.** Stock Ollama runs anything from the Ollama library that fits in
-  the Pi's RAM: Gemma 3, Qwen 3, SmolLM2, Moondream, embedding models, and so on.
+  the Pi's RAM: Gemma, Llama, Phi, Granite, Hermes, Moondream, embedding
+  models, and so on.
 - **Remote head.** Point it at a bigger machine to use models a Pi can't hold,
-  such as Poolside's 33B Laguna XS.2.
+  such as Poolside's 33B Laguna XS.2 or OpenAI's gpt-oss 20B.
 - **The gate** sits on Ollama's standard port, 11434, so **any app that
   supports Ollama finds every head with no setup**. It also serves the
   OpenAI API at `/v1`, for tools that only speak OpenAI. It merges the model
@@ -61,32 +63,57 @@ the model by its path:
 
 ```
 local-models/
-├── chatbots/   qwen-npu ★  gemma ◆  llama  smollm ◆
-├── coding/     qwen-coder-npu ★  qwen-coder  poolside (remote)
-├── reasoning/  deepseek-r1-npu  qwen3
-├── vision/     gemma-vision  moondream
-└── agents/     nomic-embed ◆
+├── chatbots/   llama-npu ★  gemma ◆  llama  hermes  granite  gemma-tiny ◆  qwen-npu ★
+├── coding/     phi  granite-code  poolside (remote)  qwen-coder-npu ★
+├── reasoning/  phi-reasoning  gpt-oss (remote)  deepseek-r1-npu
+├── vision/     gemma-vision  granite-vision  moondream
+└── agents/     granite-agent  nemotron  nomic-embed ◆  embeddinggemma
                 ◆ baked into the image   ★ downloaded at first boot   others: on first use
 ```
 
-| Model | Head | Good at |
-| --- | --- | --- |
-| `chatbots/qwen-npu` | NPU | Default. Fast general chat with the CPU left free |
-| `chatbots/gemma` | CPU | Gemma 3 1B, the quickest CPU chat model (~20 tok/s) |
-| `chatbots/llama` | NPU | Llama 3.2 3B, better prose |
-| `chatbots/smollm` | CPU | SmolLM2 360M, for shell pipelines and classification |
-| `coding/qwen-coder-npu` | NPU | Code completion and shell one-liners |
-| `coding/qwen-coder` | CPU | Qwen 2.5 Coder 3B, better code but slower |
-| `coding/poolside` | Remote | Poolside Laguna XS.2: 33B MoE agentic coder, needs about 24 GB RAM |
-| `reasoning/deepseek-r1-npu` | NPU | Step-by-step reasoning and maths |
-| `reasoning/qwen3` | CPU | Qwen 3 1.7B with switchable thinking mode |
-| `vision/gemma-vision` | CPU | Gemma 3 4B: reads images (8 GB Pi) |
-| `vision/moondream` | CPU | Small image captioner |
-| `agents/nomic-embed` | CPU | Embeddings for RAG in Open WebUI and AnythingLLM |
+**American-made first.** 18 of the 21 models come from US companies (Meta,
+Google, Microsoft, IBM, OpenAI, NVIDIA, Nous Research, Poolside, Nomic,
+Moondream). They're listed first in every category and used as defaults.
+`cerb models --us` shows only those. The three Chinese models (Qwen and
+DeepSeek) are kept only on the NPU, because there they're most of what Hailo
+has compiled.
+
+| Model | Maker | Head | Good at |
+| --- | --- | --- | --- |
+| `chatbots/llama-npu` | Meta | NPU | Default. Fast chat with the CPU left free (needs Hailo GenAI 5.2+, see below) |
+| `chatbots/gemma` | Google | CPU | Gemma 3 1B, the quickest CPU chat model (~20 tok/s). The fallback default |
+| `chatbots/llama` | Meta | CPU | Llama 3.2 3B, better prose |
+| `chatbots/hermes` | Nous Research | CPU | Hermes 3 3B: steerable, holds a persona, fewer refusals |
+| `chatbots/granite` | IBM | CPU | Granite 4.0 Micro: summaries, business writing, tool use |
+| `chatbots/gemma-tiny` | Google | CPU | Gemma 3 270M, for shell pipelines and classification |
+| `chatbots/qwen-npu` | Alibaba | NPU | NPU fallback for Hailo GenAI 5.1.1 |
+| `coding/phi` | Microsoft | CPU | Phi-4 Mini: code, maths, function calling. aider's default |
+| `coding/granite-code` | IBM | CPU | Code trained only on permissively licensed sources |
+| `coding/poolside` | Poolside | Remote | Laguna XS.2: 33B MoE agentic coder, needs about 24 GB RAM |
+| `coding/qwen-coder-npu` | Alibaba | NPU | The only NPU coder. Fast enough for IDE autocomplete |
+| `reasoning/phi-reasoning` | Microsoft | CPU | Phi-4 Mini Reasoning: step-by-step maths and logic |
+| `reasoning/gpt-oss` | OpenAI | Remote | gpt-oss 20B, adjustable reasoning effort |
+| `reasoning/deepseek-r1-npu` | DeepSeek | NPU | The only NPU reasoner |
+| `vision/gemma-vision` | Google | CPU | Gemma 3 4B: reads images (8 GB Pi) |
+| `vision/granite-vision` | IBM | CPU | Documents, charts, tables |
+| `vision/moondream` | Moondream | CPU | Small image captioner |
+| `agents/granite-agent` | IBM | CPU | Granite 4.0 Tiny: 7B MoE with 1B active, built for tool calling |
+| `agents/nemotron` | NVIDIA | CPU | Nemotron Mini 4B: function calling and RAG |
+| `agents/nomic-embed` | Nomic AI | CPU | Embeddings for RAG in Open WebUI and AnythingLLM |
+| `agents/embeddinggemma` | Google | CPU | Multilingual embeddings |
+
+**Llama on the NPU needs a newer Hailo package.** Hailo's GenAI Model Zoo
+added Llama 3.2 1B in release 5.2.0. The build downloads 5.1.1 by default,
+because that's the release with a public download link. Get 5.2 or newer from
+the [Hailo Developer Zone](https://hailo.ai/developer-zone/) and build with
+`HAILO_GENAI_DEB=/path/to/hailo_gen_ai_model_zoo_<version>_arm64.deb`.
+Without it, first boot skips `chatbots/llama-npu` and the default falls back to
+`chatbots/gemma` on the CPU. Once it's installed, `cerb models` and
+`curl localhost:8000/hailo/v1/list` show what the NPU can pull.
 
 `cerb pull` checks the Pi's RAM before downloading a CPU model, and won't pull a
 remote-head model until a remote head is configured. Any other Ollama model
-works by its raw name (`cerb pull phi4-mini`). To add your own entry to the
+works by its raw name (`cerb pull olmo2`). To add your own entry to the
 catalog, put it in `/etc/cerberos/catalog.d/*.toml` and run `sudo cerb sync`.
 
 ## Apps, by category
@@ -116,7 +143,7 @@ Enter launches, `i` installs, `x` removes. Or use it directly:
 | --- | --- | --- |
 | `cerb chat [model]` | `summon` | Streaming chat. `/model`, `/system`, `/clear`, `/save` |
 | `cerb ask [-m model] "…"` | | One-shot answer. Piped input is appended: `dmesg \| cerb ask "anything wrong?"` |
-| `cerb models` | `ls` | Every model by category, installed or not |
+| `cerb models [--us]` | `ls` | Every model by category, installed or not. `--us`: American-made only |
 | `cerb pull <model>` | `devour` | Download, with a progress bar |
 | `cerb rm <model>` | `banish` | Delete |
 | `cerb use <model>` | | Set the default model |
@@ -129,13 +156,13 @@ Enter launches, `i` installs, `x` removes. Or use it directly:
 
 ## Two editions
 
-- **lite** (default): console only. Boots to a hellfire login screen, and
-  `cerb` is the start menu. Leaves the most RAM for models.
-- **desktop**: XFCE with the cyber-hell theme. The Whisker start menu gets
-  Kali-style numbered categories that hold every app and model. There's a
-  three-hound wallpaper and login screen, a hellfire terminal, and the
-  workspaces are named NPU, CPU and REMOTE. On first login, the menu opens in a
-  terminal.
+- **lite** (default): console only. Boots to a login screen with a bleeding
+  banner, and `cerb` is the start menu. Leaves the most RAM for models.
+- **desktop**: XFCE in the same grim theme. The Whisker start menu gets
+  Kali-style numbered categories that hold every app and model. The wallpaper
+  and login screen show three hounds caged behind rusted bars. The terminal
+  uses the dried-blood palette, and the workspaces are named NPU, CPU and
+  REMOTE. On first login, the menu opens in a terminal.
 
 ![Desktop wallpaper](docs/wallpaper.jpg)
 
@@ -195,10 +222,13 @@ set `CERBEROS_GATE_KEY` to require a bearer token from other machines.
   Background apt and man-db jobs are off.
 - Root is locked; pi-gen would otherwise leave it as `root`/`root`. The gate
   runs as its own unprivileged, sandboxed user.
-- The hellfire palette loads from the kernel command line, so it's there from
-  the first boot message. The console uses a Terminus font, with banners on the
-  login screen and at login, a neon prompt that shows failed exit codes, and
-  matching tmux and fastfetch themes.
+- The dried-blood palette loads from the kernel command line, so it's there
+  from the first boot message. The palette is arterial and fresh-blood reds,
+  rust, tallow, bone, bruise, bile and cold iron. The console uses a Terminus
+  font, with a bleeding banner on the login screen and at login, a prompt that
+  shows failed exit codes, and matching tmux and fastfetch themes.
+- The wallpaper and icons come from `tools/make-art.py`; edit it and re-run it
+  to change them.
 
 Security trade-offs to know about: the first user is in the `docker` group,
 which is equivalent to root, so web apps can start without sudo. The web apps
@@ -219,6 +249,7 @@ stage-cerberos/
   04-system/                config.txt / cmdline.txt, services, zram, lockdown
   05-theme/                 console font, login screen, dotfiles, os-release
   06-desktop/               desktop edition only: XFCE, LightDM, wallpaper, Whisker menu
+tools/make-art.py           regenerates the wallpaper and icons (SVG)
 ```
 
 The `cerberos` package uses only the Python standard library.

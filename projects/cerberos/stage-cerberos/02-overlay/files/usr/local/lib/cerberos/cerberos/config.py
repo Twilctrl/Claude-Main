@@ -11,7 +11,7 @@ STATE = os.environ.get("CERBEROS_STATE", "/var/lib/cerberos")
 MODELS_DIR = os.environ.get("CERBEROS_MODELS_DIR", "/srv/local-models")
 
 DEFAULTS = {
-    "CERBEROS_DEFAULT_MODEL": "chatbots/qwen-npu",
+    "CERBEROS_DEFAULT_MODEL": "chatbots/llama-npu",
     "CERBEROS_NPU_URL": "http://127.0.0.1:8000",
     "CERBEROS_CPU_URL": "http://127.0.0.1:11436",
     "CERBEROS_REMOTE_URL": "",
@@ -86,6 +86,8 @@ class Model:
     strengths: list = field(default_factory=list)
     blurb: str = ""
     embedding: bool = False
+    maker: str = ""
+    origin: str = ""
 
     @property
     def alias(self):
@@ -107,6 +109,7 @@ class App:
     plugins: list = field(default_factory=list)
     bin: str = ""
     env: dict = field(default_factory=dict)
+    needs: list = field(default_factory=list)  # models to pull before launching
 
 
 class Catalog:

@@ -13,6 +13,7 @@
 #            firstboot = downloaded on first boot
 #            ondemand  = downloaded the first time you pick it
 #   ram_gb   memory it needs on the Pi (cpu head); the menu warns if you're short
+#   maker, origin   who made it and where (origin "US" is shown as a flag)
 #
 # App kinds
 #   builtin  part of cerb      pipx     Python CLI installed with pipx
@@ -23,126 +24,186 @@
 [[category]]
 id = "chatbots"
 name = "Chatbots"
-tagline = "the voices in the dark"
+tagline = "voices from the pit"
 icon = "internet-chat"
 
 [[category]]
 id = "coding"
 name = "Coding"
-tagline = "code forged in hellfire"
+tagline = "code carved into bone"
 icon = "applications-development"
 
 [[category]]
 id = "reasoning"
 name = "Reasoning"
-tagline = "minds that think before they bite"
+tagline = "minds that chew before they swallow"
 icon = "applications-science"
 
 [[category]]
 id = "vision"
 name = "Vision"
-tagline = "eyes of the hound"
+tagline = "eyes that never close"
 icon = "camera-photo"
 
 [[category]]
 id = "voice"
 name = "Voice"
-tagline = "howls and whispers"
+tagline = "screams in, whispers out"
 icon = "audio-input-microphone"
 
 [[category]]
 id = "agents"
 name = "Agents & RAG"
-tagline = "familiars that fetch and remember"
+tagline = "servants that fetch and never forget"
 icon = "system-run"
 
 [[category]]
 id = "arsenal"
 name = "Model Arsenal"
-tagline = "devour, banish and bind models"
+tagline = "devour, banish and chain models"
 icon = "folder-download"
 
 [[category]]
 id = "underworld"
 name = "Underworld"
-tagline = "the machine beneath: NPU, gate, system"
+tagline = "the machinery beneath the floor"
 icon = "utilities-system-monitor"
 
 # --- models -------------------------------------------------------------------
+# American-made models come first in every category and are preferred as
+# defaults. On the NPU the choice is whatever Hailo has compiled: Meta's Llama
+# is the only American one so far, so Qwen stays there as the fallback.
 
 [[model]]
 category = "chatbots"
-slug = "qwen-npu"
-name = "Qwen 2.5 Instruct 1.5B (NPU)"
+slug = "llama-npu"
+name = "Llama 3.2 1B (NPU)"
+maker = "Meta"
+origin = "US"
 head = "npu"
-model = "qwen2.5-instruct:1.5b"
+model = "llama3.2:1b"
 preload = "firstboot"
-size_gb = 1.6
+size_gb = 1.8
 strengths = ["fast", "general chat", "runs on the NPU"]
-blurb = "Default companion. Runs entirely on the Hailo-10H, so the CPU stays free."
+blurb = "Meta's Llama on the Hailo-10H, so the CPU stays free. Needs Hailo GenAI Model Zoo 5.2 or newer."
 
 [[model]]
 category = "chatbots"
 slug = "gemma"
 name = "Gemma 3 1B"
+maker = "Google"
+origin = "US"
 head = "cpu"
 model = "gemma3:1b"
 preload = "build"
 size_gb = 0.8
 ram_gb = 2
 strengths = ["fast", "general chat", "140 languages"]
-blurb = "Google's small Gemma: the quickest CPU chat model, about 20 tokens/s on a Pi 5."
+blurb = "Google's small Gemma: the quickest CPU chat model, about 20 tokens/s on a Pi 5. Always installed."
 
 [[model]]
 category = "chatbots"
 slug = "llama"
-name = "Llama 3.2 3B (NPU)"
-head = "npu"
+name = "Llama 3.2 3B"
+maker = "Meta"
+origin = "US"
+head = "cpu"
 model = "llama3.2:3b"
 preload = "ondemand"
-size_gb = 3.0
+size_gb = 2.0
+ram_gb = 4
 strengths = ["all-rounder", "writing"]
-blurb = "Meta's Llama 3.2 3B compiled for the Hailo-10H. Better prose than the 1.5B models."
+blurb = "The bigger Llama 3.2 on the CPU. Slower, but better prose and instruction following."
 
 [[model]]
 category = "chatbots"
-slug = "smollm"
-name = "SmolLM2 360M"
+slug = "hermes"
+name = "Hermes 3 3B"
+maker = "Nous Research"
+origin = "US"
 head = "cpu"
-model = "smollm2:360m"
+model = "hermes3:3b"
+preload = "ondemand"
+size_gb = 2.0
+ram_gb = 4
+strengths = ["roleplay", "follows system prompts", "fewer refusals"]
+blurb = "Nous Research's Llama fine-tune: steerable, characterful, sticks to the persona you give it."
+
+[[model]]
+category = "chatbots"
+slug = "granite"
+name = "Granite 4.0 Micro 3B"
+maker = "IBM"
+origin = "US"
+head = "cpu"
+model = "granite4:micro"
+preload = "ondemand"
+size_gb = 2.1
+ram_gb = 4
+strengths = ["business writing", "summaries", "tool use"]
+blurb = "IBM's compact Granite: dry, precise and good at summarising documents and following formats."
+
+[[model]]
+category = "chatbots"
+slug = "gemma-tiny"
+name = "Gemma 3 270M"
+maker = "Google"
+origin = "US"
+head = "cpu"
+model = "gemma3:270m"
 preload = "build"
-size_gb = 0.7
+size_gb = 0.3
 ram_gb = 1
 strengths = ["tiny", "scripting", "classification"]
-blurb = "A pocket model for shell pipelines: tagging, yes/no answers, quick rewrites."
+blurb = "A pocket model for shell pipelines: tagging, yes/no answers, quick rewrites. Always installed."
 
 [[model]]
-category = "coding"
-slug = "qwen-coder-npu"
-name = "Qwen 2.5 Coder 1.5B (NPU)"
+category = "chatbots"
+slug = "qwen-npu"
+name = "Qwen 2.5 Instruct 1.5B (NPU)"
+maker = "Alibaba"
+origin = "CN"
 head = "npu"
-model = "qwen2.5-coder:1.5b"
+model = "qwen2.5-instruct:1.5b"
 preload = "firstboot"
 size_gb = 1.6
-strengths = ["code completion", "shell one-liners", "runs on the NPU"]
-blurb = "Coding model on the Hailo-10H. Point aider or your IDE at coding/qwen-coder-npu."
+strengths = ["fast", "general chat", "runs on the NPU"]
+blurb = "NPU fallback that works with every Hailo GenAI release, including 5.1.1."
 
 [[model]]
 category = "coding"
-slug = "qwen-coder"
-name = "Qwen 2.5 Coder 3B"
+slug = "phi"
+name = "Phi-4 Mini 3.8B"
+maker = "Microsoft"
+origin = "US"
 head = "cpu"
-model = "qwen2.5-coder:3b"
+model = "phi4-mini"
 preload = "ondemand"
-size_gb = 1.9
+size_gb = 2.5
+ram_gb = 5
+strengths = ["code", "maths", "function calling"]
+blurb = "Microsoft's small model punches above its size on code and maths. The default for aider."
+
+[[model]]
+category = "coding"
+slug = "granite-code"
+name = "Granite Code 3B"
+maker = "IBM"
+origin = "US"
+head = "cpu"
+model = "granite-code:3b"
+preload = "ondemand"
+size_gb = 2.0
 ram_gb = 4
-strengths = ["code generation", "explaining code"]
-blurb = "Bigger CPU coder. Slower, about 5 tokens/s, but writes better code."
+strengths = ["code generation", "explaining code", "116 languages"]
+blurb = "IBM's code model, trained only on permissively licensed code."
 
 [[model]]
 category = "coding"
 slug = "poolside"
 name = "Poolside Laguna XS.2 (33B MoE)"
+maker = "Poolside"
+origin = "US"
 head = "remote"
 model = "laguna-xs.2"
 preload = "ondemand"
@@ -152,32 +213,65 @@ strengths = ["agentic coding", "long tasks", "3B active params"]
 blurb = "Poolside's open-weight agentic coder. Too big for a Pi's RAM, so it runs on the remote head (a PC or server on your LAN running Ollama)."
 
 [[model]]
-category = "reasoning"
-slug = "deepseek-r1-npu"
-name = "DeepSeek R1 Distill 1.5B (NPU)"
+category = "coding"
+slug = "qwen-coder-npu"
+name = "Qwen 2.5 Coder 1.5B (NPU)"
+maker = "Alibaba"
+origin = "CN"
 head = "npu"
-model = "deepseek_r1_distill_qwen:1.5b"
-preload = "ondemand"
+model = "qwen2.5-coder:1.5b"
+preload = "firstboot"
 size_gb = 1.6
-strengths = ["step-by-step", "maths", "runs on the NPU"]
-blurb = "Shows its working. Slower to answer, but better at puzzles and maths."
+strengths = ["code completion", "shell one-liners", "runs on the NPU"]
+blurb = "The only coding model Hailo has compiled for the NPU. Fast enough for IDE autocomplete."
 
 [[model]]
 category = "reasoning"
-slug = "qwen3"
-name = "Qwen 3 1.7B"
+slug = "phi-reasoning"
+name = "Phi-4 Mini Reasoning 3.8B"
+maker = "Microsoft"
+origin = "US"
 head = "cpu"
-model = "qwen3:1.7b"
+model = "phi4-mini-reasoning"
 preload = "ondemand"
-size_gb = 1.4
-ram_gb = 3
-strengths = ["thinking mode", "tool use"]
-blurb = "Toggle thinking on and off with /think and /no_think in your prompt."
+size_gb = 3.2
+ram_gb = 5
+strengths = ["step-by-step", "maths", "logic puzzles"]
+blurb = "Shows its working. Slow to answer, but strong at maths and multi-step problems."
+
+[[model]]
+category = "reasoning"
+slug = "gpt-oss"
+name = "gpt-oss 20B"
+maker = "OpenAI"
+origin = "US"
+head = "remote"
+model = "gpt-oss:20b"
+preload = "ondemand"
+size_gb = 14
+ram_gb = 16
+strengths = ["reasoning", "tool use", "adjustable effort"]
+blurb = "OpenAI's open-weight reasoning model. Runs on the remote head; a 16 GB Pi can try it on the CPU with --force, slowly."
+
+[[model]]
+category = "reasoning"
+slug = "deepseek-r1-npu"
+name = "DeepSeek R1 Distill 1.5B (NPU)"
+maker = "DeepSeek"
+origin = "CN"
+head = "npu"
+model = "deepseek_r1_distill_qwen:1.5b"
+preload = "ondemand"
+size_gb = 2.4
+strengths = ["step-by-step", "maths", "runs on the NPU"]
+blurb = "The only reasoning model Hailo has compiled for the NPU."
 
 [[model]]
 category = "vision"
 slug = "gemma-vision"
 name = "Gemma 3 4B (vision)"
+maker = "Google"
+origin = "US"
 head = "cpu"
 model = "gemma3:4b"
 preload = "ondemand"
@@ -188,8 +282,24 @@ blurb = "Describe photos, read screenshots. Needs an 8 GB Pi."
 
 [[model]]
 category = "vision"
+slug = "granite-vision"
+name = "Granite Vision 2B"
+maker = "IBM"
+origin = "US"
+head = "cpu"
+model = "granite3.2-vision:2b"
+preload = "ondemand"
+size_gb = 2.4
+ram_gb = 4
+strengths = ["documents", "charts", "tables"]
+blurb = "Reads documents: scanned pages, charts, tables and forms."
+
+[[model]]
+category = "vision"
 slug = "moondream"
 name = "Moondream 2"
+maker = "Moondream"
+origin = "US"
 head = "cpu"
 model = "moondream:1.8b"
 preload = "ondemand"
@@ -200,8 +310,38 @@ blurb = "Small image-captioning model. Good for camera snapshots."
 
 [[model]]
 category = "agents"
+slug = "granite-agent"
+name = "Granite 4.0 Tiny (7B MoE)"
+maker = "IBM"
+origin = "US"
+head = "cpu"
+model = "granite4:tiny-h"
+preload = "ondemand"
+size_gb = 4.2
+ram_gb = 7
+strengths = ["tool calling", "RAG", "1B active params"]
+blurb = "Hybrid Mamba MoE built for agents: only 1B parameters active per token, so it's quicker than its size suggests."
+
+[[model]]
+category = "agents"
+slug = "nemotron"
+name = "Nemotron Mini 4B"
+maker = "NVIDIA"
+origin = "US"
+head = "cpu"
+model = "nemotron-mini"
+preload = "ondemand"
+size_gb = 2.7
+ram_gb = 5
+strengths = ["function calling", "RAG", "roleplay"]
+blurb = "NVIDIA's small model tuned for function calling and retrieval-augmented answers."
+
+[[model]]
+category = "agents"
 slug = "nomic-embed"
 name = "Nomic Embed Text"
+maker = "Nomic AI"
+origin = "US"
 head = "cpu"
 model = "nomic-embed-text"
 preload = "build"
@@ -209,7 +349,22 @@ size_gb = 0.3
 ram_gb = 1
 embedding = true
 strengths = ["embeddings", "RAG", "search"]
-blurb = "Turns documents into vectors for Open WebUI, AnythingLLM and other RAG apps."
+blurb = "Turns documents into vectors for Open WebUI, AnythingLLM and other RAG apps. Always installed."
+
+[[model]]
+category = "agents"
+slug = "embeddinggemma"
+name = "EmbeddingGemma 300M"
+maker = "Google"
+origin = "US"
+head = "cpu"
+model = "embeddinggemma"
+preload = "ondemand"
+size_gb = 0.6
+ram_gb = 1
+embedding = true
+strengths = ["embeddings", "multilingual", "search"]
+blurb = "Google's embedding model: better than Nomic for non-English documents."
 
 # --- apps ---------------------------------------------------------------------
 
@@ -251,7 +406,8 @@ name = "aider"
 kind = "pipx"
 package = "aider-chat"
 bin = "aider"
-run = ["aider", "--model", "ollama_chat/coding/qwen-coder-npu"]
+run = ["aider", "--model", "ollama_chat/coding/phi"]
+needs = ["coding/phi"]
 env = { OLLAMA_API_BASE = "http://127.0.0.1:11434" }
 blurb = "AI pair programmer in your git repo. Edits files and commits for you."
 
@@ -326,7 +482,7 @@ name = "Devour any Ollama model"
 kind = "builtin"
 run = ["pull", "--ask"]
 preinstalled = true
-blurb = "Download any model from ollama.com by name, e.g. phi4-mini or granite3.3:2b."
+blurb = "Download any model from ollama.com by name, e.g. olmo2 or llama3.1:8b."
 
 [[app]]
 id = "status"

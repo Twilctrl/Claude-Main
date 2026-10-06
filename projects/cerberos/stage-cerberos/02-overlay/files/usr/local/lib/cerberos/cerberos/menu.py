@@ -49,6 +49,8 @@ class State:
                     note = f"needs {m.ram_gb:g}GB"
                 elif m.head == "remote" and not ctx.conf["CERBEROS_REMOTE_URL"]:
                     note = "remote"
+                if m.origin:
+                    note = f"{m.origin}] [{note}"
                 items.append(Item("model", m, m.name, m.alias in self.installed, note))
             if items:
                 self.cats.append((c, items))
@@ -73,8 +75,8 @@ def _colors():
         bg = curses.COLOR_BLACK
     ash = 8 if curses.COLORS >= 16 else curses.COLOR_WHITE
     curses.init_pair(1, curses.COLOR_RED, bg)        # frame, blood
-    curses.init_pair(2, curses.COLOR_YELLOW, bg)     # ember / hellfire (bold)
-    curses.init_pair(3, curses.COLOR_BLACK, curses.COLOR_RED)  # selection
+    curses.init_pair(2, curses.COLOR_YELLOW, bg)     # rust, tallow when bold
+    curses.init_pair(3, curses.COLOR_WHITE, curses.COLOR_RED)  # selection: bone on blood
     curses.init_pair(4, ash, bg)                     # dim text
     curses.init_pair(5, curses.COLOR_GREEN, bg)      # ok
     curses.init_pair(6, curses.COLOR_MAGENTA, bg)    # crimson accent
@@ -168,7 +170,8 @@ def draw(scr, st, unicode_ok):
     if cur is not None:
         if cur.kind == "model":
             m = cur.obj
-            head = f"{m.alias}  ·  {HEAD_LABEL.get(m.head, m.head)}  ·  {', '.join(m.strengths)}"
+            maker = f"{m.maker} ({m.origin})  ·  " if m.maker else ""
+            head = f"{m.alias}  ·  {maker}{HEAD_LABEL.get(m.head, m.head)}  ·  {', '.join(m.strengths)}"
             desc = m.blurb
         else:
             a = cur.obj

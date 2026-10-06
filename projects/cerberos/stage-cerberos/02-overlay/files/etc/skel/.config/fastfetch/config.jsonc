@@ -5,10 +5,10 @@
     "position": "top",
     "color": { "1": "red" }
   },
-  "display": { "color": { "keys": "yellow", "title": "red" }, "separator": " // " },
+  "display": { "color": { "keys": "red", "title": "white" }, "separator": " // " },
   "modules": [
     "title", "separator", "os", "kernel", "uptime", "cpu",
-    { "type": "command", "key": "NPU", "text": "test -e /dev/hailo0 && echo 'Hailo-10H awake' || echo asleep" },
+    { "type": "command", "key": "NPU", "text": "test -e /dev/hailo0 && echo 'Hailo-10H chained' || echo absent" },
     { "type": "command", "key": "Gate", "text": "curl -s -m 1 localhost:11434/api/tags >/dev/null && echo 'open :11434' || echo closed" },
     "memory", "disk", "localip", "colors"
   ]

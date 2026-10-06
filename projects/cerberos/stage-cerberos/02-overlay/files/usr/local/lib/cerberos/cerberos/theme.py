@@ -1,6 +1,6 @@
-"""Cyber-hell colours and flourishes. With the CerberOS console palette loaded,
-the basic ANSI colours become: 31 blood red, 33 ember orange, 93 hellfire
-yellow, 35 crimson-magenta, 36 glitch cyan, 90 ash, 97 bone white."""
+"""Colours and flourishes. With the CerberOS console palette loaded, the basic
+ANSI colours become: 31 arterial red, 91 fresh blood, 33 rust, 93 tallow,
+35 clotted crimson, 36 cold iron, 90 ash, 37/97 bone."""
 
 import os
 import random
@@ -21,7 +21,8 @@ blood, ember, fire, crimson, glitch, ash, bone = (
     _c(c) for c in ("1;31", "33", "1;93", "35", "36", "90", "1;97"))
 red, ok_green, dim, bold = _c("91"), _c("92"), _c("2"), _c("1")
 
-BANNER_COLOURS = ("1;93", "1;33", "1;91", "1;31", "31", "35")
+# Bone at the top, bleeding into red, clotting at the bottom of the drips.
+BANNER_COLOURS = ("1;97", "37", "1;91", "91", "31", "31", "31", "31", "35", "35", "35")
 TAGLINE = "three heads · one gate · no cloud"
 
 
@@ -38,16 +39,16 @@ def banner(out=sys.stdout):
 
 
 def decode(text, duration=0.45):
-    """Print text with a short glitch 'summoning' effect."""
+    """Print text as if it were rotting into place."""
     if not FX:
-        print(fire(text))
+        print(bone(text))
         return
-    glyphs = "!<>-_\\/[]{}=+*^?#%&$01"
+    glyphs = "▓▒░#%&*:."
     steps = 12
     for i in range(steps + 1):
         fixed = int(len(text) * i / steps)
         noise = "".join(c if c == " " else random.choice(glyphs) for c in text[fixed:])
-        sys.stdout.write("\r" + fire(text[:fixed]) + blood(noise))
+        sys.stdout.write("\r" + bone(text[:fixed]) + blood(noise))
         sys.stdout.flush()
         time.sleep(duration / steps)
     sys.stdout.write("\n")

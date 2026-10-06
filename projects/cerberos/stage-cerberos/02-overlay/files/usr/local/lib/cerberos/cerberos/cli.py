@@ -147,11 +147,18 @@ def cmd_status(ctx, args):
 def cmd_models(ctx, args):
     installed = ctx.client.installed_names()
     only_installed = "--installed" in args
+    origin = None
+    if "--origin" in args and args.index("--origin") + 1 < len(args):
+        origin = args[args.index("--origin") + 1].upper()
+    elif "--us" in args:
+        origin = "US"
     ram = mem_total_gb()
     for c in ctx.catalog.categories:
         ms = ctx.catalog.models_in(c.id)
         if only_installed:
             ms = [m for m in ms if m.alias in installed]
+        if origin:
+            ms = [m for m in ms if m.origin.upper() == origin]
         if not ms:
             continue
         print(f"  {t.blood(c.label)} {t.ash('— ' + c.tagline)}")
@@ -163,20 +170,22 @@ def cmd_models(ctx, args):
                 note = t.red(f" needs {m.ram_gb:g} GB RAM")
             elif not have and m.head == "remote" and not ctx.conf["CERBEROS_REMOTE_URL"]:
                 note = t.ember(" needs the remote head")
-            print(f"    {mark} {t.fire(m.alias.ljust(26))} {m.name[:36].ljust(36)} "
-                  f"{t.ash(m.head.ljust(6))}{note}")
+            flag = t.bone(m.origin.ljust(3)) if m.origin == "US" else t.ash(m.origin.ljust(3))
+            print(f"    {mark} {t.fire(m.alias.ljust(26))} {m.name[:32].ljust(32)} "
+                  f"{flag}{t.ash(m.head.ljust(6))}{note}")
         print()
     catalog_upstreams = {m.model for m in ctx.catalog.models} | set(ctx.catalog.by_alias)
     extra = sorted(n for n in installed if n not in catalog_upstreams
                    and n.removesuffix(":latest") not in catalog_upstreams
                    and n.split("@")[0] not in catalog_upstreams)
-    if extra:
+    if extra and not origin:
         print(f"  {t.blood('Uncatalogued')} {t.ash('— pulled by hand')}")
         for n in extra:
             print(f"    {t.ok_green('■')} {n}")
         print()
     if not only_installed:
         print(t.ash("  ■ installed   · available.  cerb pull <name> to devour one."))
+        print(t.ash("  cerb models --us  shows only American-made models."))
     return 0
 
 
@@ -400,6 +409,9 @@ def cmd_ask(ctx, args):
     except KeyboardInterrupt:
         print()
         return 130
+    except BrokenPipeError:  # e.g. `cerb models | head`
+        sys.stderr.close()
+        return 0
     return 0
 
 
@@ -462,6 +474,10 @@ def cmd_launch(ctx, args):
     name, rest = args[0], args[1:]
     app = ctx.catalog.apps_by_id.get(name)
     if app:
+        for needed in app.needs:
+            if not ensure_model(ctx, needed):
+                from_menu_pause()
+                return 1
         rc = A.launch(app, lambda argv: main(argv), rest)
     elif ctx.catalog.find_model(name) or ":" in name:
         rc = cmd_chat(ctx, [name])
@@ -516,14 +532,14 @@ def cmd_gate(ctx, args):
     t.kv("LAN access", "on" if lan else "off  (cerb config → CERBEROS_GATE_LAN=1)", 11)
     print()
     print(t.ash("  Model names: catalog paths (chatbots/gemma), raw names (gemma3:1b),"))
-    print(t.ash("  or force a head with @npu / @cpu / @remote (qwen2:1.5b@npu)."))
+    print(t.ash("  or force a head with @npu / @cpu / @remote (llama3.2:1b@cpu)."))
     ext = f"http://{A.lan_ip()}:{port}"
     print()
     print(t.blood("  Connect your tools"))
     print(f"""
   {t.fire('Open WebUI / AnythingLLM')}  Ollama URL: {base}
   {t.fire('llm')}                      llm -m chatbots/gemma "hi"          (llm-ollama plugin)
-  {t.fire('aider')}                    OLLAMA_API_BASE={base} aider --model ollama_chat/coding/qwen-coder-npu
+  {t.fire('aider')}                    OLLAMA_API_BASE={base} aider --model ollama_chat/coding/phi
   {t.fire('OpenAI SDK')}               OpenAI(base_url="{base}/v1", api_key="cerberos")
   {t.fire('curl')}                     curl {base}/v1/chat/completions -d '{{"model":"chatbots/gemma","messages":[{{"role":"user","content":"hi"}}]}}'
 
@@ -532,11 +548,16 @@ def cmd_gate(ctx, args):
       - name: CerberOS coder
         provider: ollama
         apiBase: {ext}
+        model: coding/phi
+        roles: [chat, edit]
+      - name: CerberOS autocomplete (NPU, fastest)
+        provider: ollama
+        apiBase: {ext}
         model: coding/qwen-coder-npu
-        roles: [chat, edit, autocomplete]
+        roles: [autocomplete]
 
   {t.fire('Cline / Roo / any OpenAI-compatible tool')}
-    Base URL {ext}/v1   API key cerberos   Model coding/qwen-coder-npu
+    Base URL {ext}/v1   API key cerberos   Model coding/phi
 """)
     return 0
 
@@ -663,6 +684,7 @@ def cmd_preload(ctx, args):
     time.sleep(5)  # let the heads settle
     states = ctx.client.head_states()
     installed = ctx.client.installed_names()
+    npu_offers = npu_available(ctx)
     rc = 0
     for m in ctx.catalog.models:
         if m.preload not in ("build", "firstboot") or m.alias in installed:
@@ -671,12 +693,29 @@ def cmd_preload(ctx, args):
             t.warn(f"skipping {m.alias}: {m.head} head is asleep")
             rc = 1
             continue
+        if m.head == "npu" and npu_offers and m.model not in npu_offers:
+            # e.g. Llama 3.2 1B needs Hailo GenAI 5.2+; don't retry every boot.
+            t.warn(f"skipping {m.alias}: this hailo-ollama release doesn't offer {m.model}")
+            continue
         rc |= cmd_pull(ctx, [m.alias])
     for app_id in ctx.conf.get("CERBEROS_FIRSTBOOT_APPS", "").split():
         app = ctx.catalog.apps_by_id.get(app_id)
         if app and not A.is_installed(app):
             rc |= A.install(app)
     return rc
+
+
+def npu_available(ctx):
+    """Models the installed hailo-ollama can pull, or an empty set if unknown."""
+    url = ctx.conf.get("CERBEROS_NPU_URL")
+    if not url:
+        return set()
+    try:
+        data = ctx.client.get("/hailo/v1/list", base=url.rstrip("/"))
+    except GateError:
+        return set()
+    items = data.get("models", data) if isinstance(data, dict) else data
+    return {i if isinstance(i, str) else i.get("name", "") for i in items or []}
 
 
 def cmd_menu(ctx, args):
@@ -691,7 +730,7 @@ def cmd_help(ctx, args):
 
   {t.fire('cerb chat')} [model]        talk to a model        {t.ash('alias: summon')}
   {t.fire('cerb ask')} [-m model] "…"  one-shot answer; stdin is appended
-  {t.fire('cerb models')}              every model, by strength
+  {t.fire('cerb models')} [--us]       every model, by strength (--us: American-made only)
   {t.fire('cerb pull')} <model>        download a model       {t.ash('alias: devour')}
   {t.fire('cerb rm')} <model>          delete a model         {t.ash('alias: banish')}
   {t.fire('cerb use')} <model>         set the default model
@@ -707,7 +746,7 @@ def cmd_help(ctx, args):
   {t.fire('cerb config')}              edit settings
   {t.fire('cerb sync')}                rebuild /srv/local-models and the menu after editing the catalog
 
-  {t.ash('Models are named by strength: chatbots/gemma, coding/qwen-coder-npu, … (see /srv/local-models)')}
+  {t.ash('Models are named by strength: chatbots/gemma, coding/phi, … (see /srv/local-models)')}
 """)
     return 0
 
@@ -733,6 +772,9 @@ def main(argv):
         print(f"CerberOS cerb {__version__}")
         return 0
     if cmd == "exec":
+        if not args:
+            t.fail("usage: cerb exec <program> [args]")
+            return 2
         os.execvp(args[0], args)
     cmd = ALIASES.get(cmd, cmd)
     fn = COMMANDS.get(cmd)
@@ -744,3 +786,6 @@ def main(argv):
     except KeyboardInterrupt:
         print()
         return 130
+    except BrokenPipeError:  # e.g. `cerb models | head`
+        sys.stderr.close()
+        return 0

@@ -20,4 +20,4 @@ Personal Claude Code plugins, published as a plugin marketplace.
 | Project | Description |
 | --- | --- |
 | [feather-llm-keyboard](projects/feather-llm-keyboard) | Adafruit Feather RP2350 firmware that types a Raspberry Pi's local LLM output into a laptop as a USB keyboard. |
-| [cerberos](projects/cerberos) | CerberOS: a cyber-hell Raspberry Pi 5 + Hailo-10H distro for local AI. Three model servers (NPU, CPU, remote) behind one Ollama/OpenAI-compatible gate, with a Kali-style categorized start menu. |
+| [cerberos](projects/cerberos) | CerberOS: a grim, gore-themed Raspberry Pi 5 + Hailo-10H distro for local AI. Three model servers (NPU, CPU, remote) behind one Ollama/OpenAI-compatible gate, with a Kali-style categorized start menu. |
