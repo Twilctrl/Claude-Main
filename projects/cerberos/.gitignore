@@ -1,0 +1,6 @@
+work/
+deploy/
+stage-cerberos/00-hailo/files/*.deb
+stage-cerberos/01-ollama/files/*.tar.zst
+stage-cerberos/01-ollama/files/models/
+__pycache__/

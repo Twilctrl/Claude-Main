@@ -1,0 +1,14 @@
+[Unit]
+Description=CerberOS hellfire console palette
+DefaultDependencies=no
+After=console-setup.service systemd-vconsole-setup.service
+Before=getty@tty1.service sysinit.target
+ConditionPathExists=/dev/tty0
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/setvtrgb /etc/cerberos/vtrgb
+RemainAfterExit=yes
+
+[Install]
+WantedBy=sysinit.target

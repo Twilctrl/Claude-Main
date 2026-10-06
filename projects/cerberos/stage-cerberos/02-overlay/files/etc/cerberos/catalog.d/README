@@ -1,0 +1,12 @@
+# Drop extra catalog files here (*.toml, same format as ../catalog.toml),
+# then run: sudo cerb sync
+#
+# [[model]]
+# category = "coding"
+# slug = "granite"
+# name = "IBM Granite 3.3 2B"
+# head = "cpu"
+# model = "granite3.3:2b"
+# ram_gb = 3
+# strengths = ["code", "tool use"]
+# blurb = "Example of a model you added yourself."

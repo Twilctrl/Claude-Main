@@ -1,0 +1,3 @@
+#!/bin/sh
+# cerb: the CerberOS command. `cerb` alone opens the start menu; `cerb help` lists commands.
+PYTHONPATH=/usr/local/lib/cerberos${PYTHONPATH:+:$PYTHONPATH} exec python3 -m cerberos "$@"

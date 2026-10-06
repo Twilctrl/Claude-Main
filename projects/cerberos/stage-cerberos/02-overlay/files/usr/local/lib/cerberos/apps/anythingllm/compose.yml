@@ -1,0 +1,26 @@
+# AnythingLLM (documents, RAG, agents), wired to the CerberOS gate.
+services:
+  anythingllm:
+    image: mintplexlabs/anythingllm:latest
+    container_name: cerberos-anythingllm
+    network_mode: host
+    restart: unless-stopped
+    cap_add:
+      - SYS_ADMIN
+    environment:
+      SERVER_PORT: "3001"
+      STORAGE_DIR: "/app/server/storage"
+      LLM_PROVIDER: "ollama"
+      OLLAMA_BASE_PATH: "http://127.0.0.1:11434"
+      OLLAMA_MODEL_PREF: "chatbots/qwen-npu"
+      OLLAMA_MODEL_TOKEN_LIMIT: "4096"
+      EMBEDDING_ENGINE: "ollama"
+      EMBEDDING_BASE_PATH: "http://127.0.0.1:11434"
+      EMBEDDING_MODEL_PREF: "agents/nomic-embed"
+      EMBEDDING_MODEL_MAX_CHUNK_LENGTH: "8192"
+      VECTOR_DB: "lancedb"
+      DISABLE_TELEMETRY: "true"
+    volumes:
+      - anythingllm:/app/server/storage
+volumes:
+  anythingllm:

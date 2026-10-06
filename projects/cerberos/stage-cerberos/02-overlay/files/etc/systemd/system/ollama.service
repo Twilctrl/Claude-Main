@@ -1,0 +1,27 @@
+[Unit]
+Description=CerberOS CPU head: Ollama on the Pi's CPU (port 11436)
+Documentation=https://docs.ollama.com/linux
+After=network-online.target cerberos-perf.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ollama
+Group=ollama
+Environment=HOME=/var/lib/ollama
+Environment=OLLAMA_HOST=127.0.0.1:11436
+Environment=OLLAMA_MODELS=/var/lib/ollama/models
+# One model resident at a time: a Pi's RAM is the limit, not compute.
+Environment=OLLAMA_MAX_LOADED_MODELS=1
+Environment=OLLAMA_NUM_PARALLEL=1
+Environment=OLLAMA_KEEP_ALIVE=15m
+Nice=-5
+ExecStart=/usr/bin/ollama serve
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=yes
+ProtectHome=yes
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target

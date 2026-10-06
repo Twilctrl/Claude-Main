@@ -1,0 +1,392 @@
+# CerberOS catalog: every model and app in the start menu, sorted by strength.
+#
+# Models appear as /srv/local-models/<category>/<slug>/ and every tool can
+# call them by that short name, e.g.  cerb chat chatbots/gemma
+# Add your own in /etc/cerberos/catalog.d/*.toml (same format), then: cerb sync
+#
+# Model fields
+#   head     npu    = Hailo-10H via hailo-ollama   (fast, leaves the CPU free)
+#            cpu    = Ollama on the Pi's CPU       (any GGUF model, slower)
+#            remote = the remote head in cerberos.conf (a bigger box on your LAN)
+#   model    the name that head knows it by
+#   preload  build     = baked into the image
+#            firstboot = downloaded on first boot
+#            ondemand  = downloaded the first time you pick it
+#   ram_gb   memory it needs on the Pi (cpu head); the menu warns if you're short
+#
+# App kinds
+#   builtin  part of cerb      pipx     Python CLI installed with pipx
+#   docker   web app container script   install script in /usr/local/lib/cerberos/apps/<id>/
+
+# --- categories (start menu order) -------------------------------------------
+
+[[category]]
+id = "chatbots"
+name = "Chatbots"
+tagline = "the voices in the dark"
+icon = "internet-chat"
+
+[[category]]
+id = "coding"
+name = "Coding"
+tagline = "code forged in hellfire"
+icon = "applications-development"
+
+[[category]]
+id = "reasoning"
+name = "Reasoning"
+tagline = "minds that think before they bite"
+icon = "applications-science"
+
+[[category]]
+id = "vision"
+name = "Vision"
+tagline = "eyes of the hound"
+icon = "camera-photo"
+
+[[category]]
+id = "voice"
+name = "Voice"
+tagline = "howls and whispers"
+icon = "audio-input-microphone"
+
+[[category]]
+id = "agents"
+name = "Agents & RAG"
+tagline = "familiars that fetch and remember"
+icon = "system-run"
+
+[[category]]
+id = "arsenal"
+name = "Model Arsenal"
+tagline = "devour, banish and bind models"
+icon = "folder-download"
+
+[[category]]
+id = "underworld"
+name = "Underworld"
+tagline = "the machine beneath: NPU, gate, system"
+icon = "utilities-system-monitor"
+
+# --- models -------------------------------------------------------------------
+
+[[model]]
+category = "chatbots"
+slug = "qwen-npu"
+name = "Qwen 2.5 Instruct 1.5B (NPU)"
+head = "npu"
+model = "qwen2.5-instruct:1.5b"
+preload = "firstboot"
+size_gb = 1.6
+strengths = ["fast", "general chat", "runs on the NPU"]
+blurb = "Default companion. Runs entirely on the Hailo-10H, so the CPU stays free."
+
+[[model]]
+category = "chatbots"
+slug = "gemma"
+name = "Gemma 3 1B"
+head = "cpu"
+model = "gemma3:1b"
+preload = "build"
+size_gb = 0.8
+ram_gb = 2
+strengths = ["fast", "general chat", "140 languages"]
+blurb = "Google's small Gemma: the quickest CPU chat model, about 20 tokens/s on a Pi 5."
+
+[[model]]
+category = "chatbots"
+slug = "llama"
+name = "Llama 3.2 3B (NPU)"
+head = "npu"
+model = "llama3.2:3b"
+preload = "ondemand"
+size_gb = 3.0
+strengths = ["all-rounder", "writing"]
+blurb = "Meta's Llama 3.2 3B compiled for the Hailo-10H. Better prose than the 1.5B models."
+
+[[model]]
+category = "chatbots"
+slug = "smollm"
+name = "SmolLM2 360M"
+head = "cpu"
+model = "smollm2:360m"
+preload = "build"
+size_gb = 0.7
+ram_gb = 1
+strengths = ["tiny", "scripting", "classification"]
+blurb = "A pocket model for shell pipelines: tagging, yes/no answers, quick rewrites."
+
+[[model]]
+category = "coding"
+slug = "qwen-coder-npu"
+name = "Qwen 2.5 Coder 1.5B (NPU)"
+head = "npu"
+model = "qwen2.5-coder:1.5b"
+preload = "firstboot"
+size_gb = 1.6
+strengths = ["code completion", "shell one-liners", "runs on the NPU"]
+blurb = "Coding model on the Hailo-10H. Point aider or your IDE at coding/qwen-coder-npu."
+
+[[model]]
+category = "coding"
+slug = "qwen-coder"
+name = "Qwen 2.5 Coder 3B"
+head = "cpu"
+model = "qwen2.5-coder:3b"
+preload = "ondemand"
+size_gb = 1.9
+ram_gb = 4
+strengths = ["code generation", "explaining code"]
+blurb = "Bigger CPU coder. Slower, about 5 tokens/s, but writes better code."
+
+[[model]]
+category = "coding"
+slug = "poolside"
+name = "Poolside Laguna XS.2 (33B MoE)"
+head = "remote"
+model = "laguna-xs.2"
+preload = "ondemand"
+size_gb = 20
+ram_gb = 24
+strengths = ["agentic coding", "long tasks", "3B active params"]
+blurb = "Poolside's open-weight agentic coder. Too big for a Pi's RAM, so it runs on the remote head (a PC or server on your LAN running Ollama)."
+
+[[model]]
+category = "reasoning"
+slug = "deepseek-r1-npu"
+name = "DeepSeek R1 Distill 1.5B (NPU)"
+head = "npu"
+model = "deepseek_r1_distill_qwen:1.5b"
+preload = "ondemand"
+size_gb = 1.6
+strengths = ["step-by-step", "maths", "runs on the NPU"]
+blurb = "Shows its working. Slower to answer, but better at puzzles and maths."
+
+[[model]]
+category = "reasoning"
+slug = "qwen3"
+name = "Qwen 3 1.7B"
+head = "cpu"
+model = "qwen3:1.7b"
+preload = "ondemand"
+size_gb = 1.4
+ram_gb = 3
+strengths = ["thinking mode", "tool use"]
+blurb = "Toggle thinking on and off with /think and /no_think in your prompt."
+
+[[model]]
+category = "vision"
+slug = "gemma-vision"
+name = "Gemma 3 4B (vision)"
+head = "cpu"
+model = "gemma3:4b"
+preload = "ondemand"
+size_gb = 3.3
+ram_gb = 6
+strengths = ["reads images", "best quality under 4B"]
+blurb = "Describe photos, read screenshots. Needs an 8 GB Pi."
+
+[[model]]
+category = "vision"
+slug = "moondream"
+name = "Moondream 2"
+head = "cpu"
+model = "moondream:1.8b"
+preload = "ondemand"
+size_gb = 1.7
+ram_gb = 3
+strengths = ["tiny vision", "captions"]
+blurb = "Small image-captioning model. Good for camera snapshots."
+
+[[model]]
+category = "agents"
+slug = "nomic-embed"
+name = "Nomic Embed Text"
+head = "cpu"
+model = "nomic-embed-text"
+preload = "build"
+size_gb = 0.3
+ram_gb = 1
+embedding = true
+strengths = ["embeddings", "RAG", "search"]
+blurb = "Turns documents into vectors for Open WebUI, AnythingLLM and other RAG apps."
+
+# --- apps ---------------------------------------------------------------------
+
+[[app]]
+id = "cerb-chat"
+category = "chatbots"
+name = "Cerberus Chat"
+kind = "builtin"
+run = ["chat"]
+preinstalled = true
+blurb = "Terminal chat with any model from any head. /model to switch, /help for more."
+
+[[app]]
+id = "open-webui"
+category = "chatbots"
+name = "Open WebUI"
+kind = "docker"
+image = "ghcr.io/open-webui/open-webui:main"
+port = 3000
+preinstalled = true
+blurb = "ChatGPT-style web interface with history, documents and multiple users. Opens on port 3000."
+
+[[app]]
+id = "llm"
+category = "chatbots"
+name = "llm (CLI)"
+kind = "pipx"
+package = "llm"
+plugins = ["llm-ollama"]
+bin = "llm"
+run = ["llm", "chat"]
+preinstalled = true
+blurb = "Simon Willison's llm: prompts from the shell, logs every conversation to SQLite."
+
+[[app]]
+id = "aider"
+category = "coding"
+name = "aider"
+kind = "pipx"
+package = "aider-chat"
+bin = "aider"
+run = ["aider", "--model", "ollama_chat/coding/qwen-coder-npu"]
+env = { OLLAMA_API_BASE = "http://127.0.0.1:11434" }
+blurb = "AI pair programmer in your git repo. Edits files and commits for you."
+
+[[app]]
+id = "ide-bridge"
+category = "coding"
+name = "IDE bridge (VS Code, Continue, Cline)"
+kind = "builtin"
+run = ["gate", "--ide"]
+preinstalled = true
+blurb = "Copy-paste settings that point your editor on another machine at CerberOS."
+
+[[app]]
+id = "hailo-apps"
+category = "vision"
+name = "Hailo vision demos"
+kind = "script"
+bin = "/opt/hailo-apps/run.sh"
+run = ["/opt/hailo-apps/run.sh"]
+blurb = "Hailo's object detection, pose and segmentation demos for the Pi camera."
+
+[[app]]
+id = "whisper"
+category = "voice"
+name = "whisper.cpp (speech to text)"
+kind = "script"
+bin = "/opt/whisper.cpp/build/bin/whisper-cli"
+run = ["/usr/local/lib/cerberos/apps/whisper/listen.sh"]
+blurb = "Offline transcription. Builds whisper.cpp and the base.en model (about 10 minutes)."
+
+[[app]]
+id = "piper"
+category = "voice"
+name = "Piper (text to speech)"
+kind = "pipx"
+package = "piper-tts"
+bin = "piper"
+run = ["/usr/local/lib/cerberos/apps/piper/say.sh"]
+blurb = "Fast, natural offline voices. Pipe any model's answer into speech."
+
+[[app]]
+id = "anythingllm"
+category = "agents"
+name = "AnythingLLM"
+kind = "docker"
+image = "mintplexlabs/anythingllm:latest"
+port = 3001
+blurb = "Chat with your documents: workspaces, RAG and agents, all pointed at the gate."
+
+[[app]]
+id = "n8n"
+category = "agents"
+name = "n8n workflows"
+kind = "docker"
+image = "docker.n8n.io/n8nio/n8n:latest"
+port = 5678
+blurb = "Visual automation: wire models into webhooks, schedules, email and 400+ services."
+
+[[app]]
+id = "model-manager"
+category = "arsenal"
+name = "Model Manager"
+kind = "builtin"
+run = ["menu", "--models"]
+preinstalled = true
+blurb = "Browse every model by strength, see what's installed, devour or banish them."
+
+[[app]]
+id = "pull-any"
+category = "arsenal"
+name = "Devour any Ollama model"
+kind = "builtin"
+run = ["pull", "--ask"]
+preinstalled = true
+blurb = "Download any model from ollama.com by name, e.g. phi4-mini or granite3.3:2b."
+
+[[app]]
+id = "status"
+category = "underworld"
+name = "Heads status"
+kind = "builtin"
+run = ["status"]
+preinstalled = true
+blurb = "NPU, CPU and remote heads, gate, temperature, memory and power."
+
+[[app]]
+id = "doctor"
+category = "underworld"
+name = "Doctor"
+kind = "builtin"
+run = ["doctor"]
+preinstalled = true
+blurb = "Checks the HAT, driver, every head, the gate and power, and tells you how to fix what's wrong."
+
+[[app]]
+id = "bench"
+category = "underworld"
+name = "Benchmark"
+kind = "builtin"
+run = ["bench"]
+preinstalled = true
+blurb = "Tokens per second for the default model, or any model you name."
+
+[[app]]
+id = "gate"
+category = "underworld"
+name = "The Gate (API and app connections)"
+kind = "builtin"
+run = ["gate"]
+preinstalled = true
+blurb = "One Ollama- and OpenAI-compatible endpoint for every head, plus how to connect apps."
+
+[[app]]
+id = "logs"
+category = "underworld"
+name = "Logs"
+kind = "builtin"
+run = ["logs"]
+preinstalled = true
+blurb = "Follow the gate and all three heads live."
+
+[[app]]
+id = "settings"
+category = "underworld"
+name = "Settings"
+kind = "builtin"
+run = ["config"]
+preinstalled = true
+blurb = "Edit /etc/cerberos/cerberos.conf: default model, remote head, LAN access."
+
+[[app]]
+id = "btop"
+category = "underworld"
+name = "btop (system monitor)"
+kind = "builtin"
+run = ["exec", "btop"]
+preinstalled = true
+blurb = "CPU, memory, disk and process monitor."

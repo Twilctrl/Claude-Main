@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=CerberOS Welcome
+Comment=Opens the CerberOS start menu on first login
+Exec=/usr/local/lib/cerberos/welcome.sh
+Icon=cerberos
+OnlyShowIn=XFCE;
+X-GNOME-Autostart-enabled=true

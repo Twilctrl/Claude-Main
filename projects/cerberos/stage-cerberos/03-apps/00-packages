@@ -1,0 +1,7 @@
+docker.io
+docker-compose
+pipx
+python3-venv
+alsa-utils
+nano
+xdg-utils
