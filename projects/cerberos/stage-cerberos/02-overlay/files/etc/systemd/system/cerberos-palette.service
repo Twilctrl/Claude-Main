@@ -1,5 +1,5 @@
 [Unit]
-Description=CerberOS dried-blood console palette
+Description=CerberOS console colour palette
 DefaultDependencies=no
 After=console-setup.service systemd-vconsole-setup.service
 Before=getty@tty1.service sysinit.target

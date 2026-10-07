@@ -7,6 +7,6 @@ while IFS= read -r line; do
     printf '\033[%sm%s\033[0m\n' "$c" "$line"
     i=$((i + 1))
 done < "$B"
-printf '\033[90m  // three heads · one gate · no cloud\033[0m\n\n'
+printf '\033[90m  local AI for Raspberry Pi 5 + Hailo-10H\033[0m\n\n'
 CERBEROS_NO_FX=1 timeout 5 /usr/local/bin/cerb status --brief 2>/dev/null || true
 printf '\n  \033[1;93mcerb\033[0m\033[90m start menu   \033[0m\033[1;93mcerb chat\033[0m\033[90m talk   \033[0m\033[1;93mcerb help\033[0m\033[90m everything else\033[0m\n\n'

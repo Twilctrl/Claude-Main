@@ -74,9 +74,9 @@ def _colors():
     except curses.error:
         bg = curses.COLOR_BLACK
     ash = 8 if curses.COLORS >= 16 else curses.COLOR_WHITE
-    curses.init_pair(1, curses.COLOR_RED, bg)        # frame, blood
-    curses.init_pair(2, curses.COLOR_YELLOW, bg)     # rust, tallow when bold
-    curses.init_pair(3, curses.COLOR_WHITE, curses.COLOR_RED)  # selection: bone on blood
+    curses.init_pair(1, curses.COLOR_RED, bg)        # frame
+    curses.init_pair(2, curses.COLOR_YELLOW, bg)     # amber, sand when bold
+    curses.init_pair(3, curses.COLOR_WHITE, curses.COLOR_RED)  # selection
     curses.init_pair(4, ash, bg)                     # dim text
     curses.init_pair(5, curses.COLOR_GREEN, bg)      # ok
     curses.init_pair(6, curses.COLOR_MAGENTA, bg)    # crimson accent
@@ -119,7 +119,7 @@ def draw(scr, st, unicode_ok):
     _put(scr, 0, 1, "▓▒░ " if unicode_ok else "## ", blood)
     _put(scr, 0, 5, "C E R B E R O S", fire)
     _put(scr, 0, 21, " ░▒▓" if unicode_ok else " ##", blood)
-    _put(scr, 0, 26, "three heads · one gate · no cloud", dim)
+    _put(scr, 0, 26, "local AI for Raspberry Pi 5 + Hailo-10H", dim)
     x = 1
     for head in ("npu", "cpu", "remote"):
         s = st.heads.get(head)

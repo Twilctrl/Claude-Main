@@ -1,14 +1,12 @@
 # CerberOS
 
-**Three heads. One gate. No cloud.**
+CerberOS is a Raspberry Pi OS–based distribution for running AI models locally
+on a **Raspberry Pi 5 with the AI HAT+ 2 (Hailo-10H, 40 TOPS, 8 GB on-module
+RAM)**. Nothing goes to the cloud.
 
-CerberOS is a Raspberry Pi OS–based distribution for running local AI on a
-**Raspberry Pi 5 with the AI HAT+ 2 (Hailo-10H, 40 TOPS, 8 GB on-module RAM)**.
-It takes its ease of use from Kali and Parrot: every model and tool sits in a
-numbered category in a start menu, and everything installs itself the first
-time you pick it. The look is grim and oppressive: dried blood, rusted iron and
-bone, three hounds caged behind bars. A little of the machine shows through in
-the terminal UI and stencilled text.
+The ease of use is modelled on Kali and Parrot: every model and tool sits in a
+numbered category in a start menu, and anything not yet installed installs
+itself the first time you pick it. The visual theme is dark red and black.
 
 ![The CerberOS start menu](docs/menu.png)
 
@@ -17,7 +15,7 @@ the terminal UI and stencilled text.
 > image hasn't been built or booted on real hardware yet. Expect rough edges,
 > and please report them.
 
-## The three heads and the gate
+## How it works
 
 ```
                  ┌───────────────────── the gate :11434 ─────────────────────┐
@@ -31,6 +29,9 @@ the terminal UI and stencilled text.
               the Hailo-10H            CPU, any GGUF model     compatible box on your LAN
 ```
 
+CerberOS runs up to three model servers, called *heads*, behind a single API,
+the *gate*. (Cerberus is the three-headed dog of Greek myth, hence the name.)
+
 - **NPU head.** Hailo's `hailo-ollama` runs Hailo-compiled models on the
   accelerator, which leaves the CPU free. Only Hailo can compile them, so the
   choice is short: Meta's Llama 3.2 1B, plus Qwen and DeepSeek.
@@ -42,7 +43,7 @@ the terminal UI and stencilled text.
 - **The gate** sits on Ollama's standard port, 11434, so **any app that
   supports Ollama finds every head with no setup**. It also serves the
   OpenAI API at `/v1`, for tools that only speak OpenAI. It merges the model
-  lists from all three heads and routes each request by model name. It
+  lists from every head and routes each request by model name. It
   translates where a head doesn't speak the client's dialect: OpenAI requests
   to the NPU become Ollama requests, and Ollama requests to an OpenAI-only
   remote become OpenAI requests.
@@ -120,14 +121,14 @@ catalog, put it in `/etc/cerberos/catalog.d/*.toml` and run `sudo cerb sync`.
 
 | # | Category | Apps |
 | --- | --- | --- |
-| 01 | Chatbots | **Cerberus Chat** (terminal) ◆, **Open WebUI** ◆★, **llm** CLI ◆ |
+| 01 | Chatbots | **Terminal chat** ◆, **Open WebUI** ◆★, **llm** CLI ◆ |
 | 02 | Coding | **aider**, IDE bridge (Continue, Cline and VS Code settings) ◆ |
 | 03 | Reasoning | (models only) |
 | 04 | Vision | Hailo vision demos (detection, pose, segmentation, depth) |
 | 05 | Voice | whisper.cpp (speech to text), Piper (text to speech) |
 | 06 | Agents & RAG | AnythingLLM, n8n |
-| 07 | Model Arsenal | Model manager, "Devour any model" |
-| 08 | Underworld | Status, Doctor, Benchmark, Gate, Logs, Settings, btop |
+| 07 | Models | Model manager, "Download any Ollama model" |
+| 08 | System | Status, Doctor, Benchmark, Gate, Logs, Settings, btop |
 
 ◆ installed in the image. ★ its container is downloaded at first boot. Every
 other app asks once and installs itself when you first launch it. Web apps run
@@ -139,30 +140,32 @@ Open WebUI on :3000, AnythingLLM on :3001, n8n on :5678.
 Type `cerb` to open the start menu: ←→ switch panes, 1–8 jump to a category,
 Enter launches, `i` installs, `x` removes. Or use it directly:
 
-| Command | Alias | What it does |
-| --- | --- | --- |
-| `cerb chat [model]` | `summon` | Streaming chat. `/model`, `/system`, `/clear`, `/save` |
-| `cerb ask [-m model] "…"` | | One-shot answer. Piped input is appended: `dmesg \| cerb ask "anything wrong?"` |
-| `cerb models [--us]` | `ls` | Every model by category, installed or not. `--us`: American-made only |
-| `cerb pull <model>` | `devour` | Download, with a progress bar |
-| `cerb rm <model>` | `banish` | Delete |
-| `cerb use <model>` | | Set the default model |
-| `cerb apps [category]` | | Every app by category |
-| `cerb launch <app\|model>` | `unleash` | Start anything; installs it first if needed |
-| `cerb status` | `heads` | Heads, gate, temperature, throttling, memory |
-| `cerb gate` | | Endpoints, plus copy-paste settings for Open WebUI, Continue, Cline, aider and the OpenAI SDK |
-| `cerb doctor` | `rite` | Checks the board, PCIe, driver, every head, the gate and power |
-| `cerb bench`, `logs`, `restart`, `config`, `sync` | | Benchmark, logs, restart, edit settings, rebuild the menu |
+| Command | What it does |
+| --- | --- |
+| `cerb chat [model]` | Streaming chat. `/model`, `/system`, `/clear`, `/save` |
+| `cerb ask [-m model] "…"` | One-shot answer. Piped input is appended: `dmesg \| cerb ask "anything wrong?"` |
+| `cerb models [--us]` | Every model by category, installed or not. `--us`: American-made only |
+| `cerb pull <model>` | Download, with a progress bar |
+| `cerb rm <model>` | Delete |
+| `cerb use <model>` | Set the default model |
+| `cerb apps [category]` | Every app by category |
+| `cerb launch <app\|model>` | Start anything; installs it first if needed |
+| `cerb status` | Heads, gate, temperature, throttling, memory |
+| `cerb gate` | Endpoints, plus copy-paste settings for Open WebUI, Continue, Cline, aider and the OpenAI SDK |
+| `cerb doctor` | Checks the board, PCIe, driver, every head, the gate and power |
+| `cerb bench`, `logs`, `restart`, `config`, `sync` | Benchmark, logs, restart, edit settings, rebuild the menu |
+
+The older command names `summon`, `devour`, `banish`, `unleash`, `heads` and
+`rite` still work.
 
 ## Two editions
 
-- **lite** (default): console only. Boots to a login screen with a bleeding
-  banner, and `cerb` is the start menu. Leaves the most RAM for models.
-- **desktop**: XFCE in the same grim theme. The Whisker start menu gets
-  Kali-style numbered categories that hold every app and model. The wallpaper
-  and login screen show three hounds caged behind rusted bars. The terminal
-  uses the dried-blood palette, and the workspaces are named NPU, CPU and
-  REMOTE. On first login, the menu opens in a terminal.
+- **lite** (default): console only. `cerb` is the start menu. Leaves the most
+  RAM for models.
+- **desktop**: XFCE with the same dark red theme. The Whisker start menu has
+  Kali-style numbered categories that hold every app and model, and the
+  workspaces are named NPU, CPU and REMOTE. On first login, the menu opens in
+  a terminal.
 
 ![Desktop wallpaper](docs/wallpaper.jpg)
 
@@ -182,7 +185,7 @@ or with `xz -dc deploy/*.img.xz | sudo dd of=/dev/sdX bs=4M status=progress`.
 | Variable | Default | |
 | --- | --- | --- |
 | `CERBEROS_FLAVOR` | `lite` | `lite` or `desktop` |
-| `CERBEROS_USER` | `hellhound` | Login user |
+| `CERBEROS_USER` | `pi` | Login user |
 | `CERBEROS_PASS` | random | Printed at the end and saved to `deploy/password.txt` |
 | `CERBEROS_SSH_PUBKEY` | — | Path to a `.pub` key to authorise for SSH |
 | `CERBEROS_HOSTNAME` | `cerberos` | Reach it at `cerberos.local` |
@@ -201,7 +204,7 @@ they run on the Pi unchanged. Downloads are cached in `work/`.
 ## First boot
 
 1. Use the official 27 W USB-C supply and an active cooler.
-2. Boot, then log in at the console or with `ssh hellhound@cerberos.local`.
+2. Boot, then log in at the console or with `ssh pi@cerberos.local`.
    The first boot downloads the NPU models and the Open WebUI container in the
    background. Follow it with `cerb logs`.
 3. Run `cerb doctor`, then `cerb`.
@@ -222,11 +225,11 @@ set `CERBEROS_GATE_KEY` to require a bearer token from other machines.
   Background apt and man-db jobs are off.
 - Root is locked; pi-gen would otherwise leave it as `root`/`root`. The gate
   runs as its own unprivileged, sandboxed user.
-- The dried-blood palette loads from the kernel command line, so it's there
-  from the first boot message. The palette is arterial and fresh-blood reds,
-  rust, tallow, bone, bruise, bile and cold iron. The console uses a Terminus
-  font, with a bleeding banner on the login screen and at login, a prompt that
-  shows failed exit codes, and matching tmux and fastfetch themes.
+- The console colour palette (dark reds, amber and off-white) loads from the
+  kernel command line, so it applies from the first boot message. The console
+  uses a large Terminus font, with a banner on the login screen and at login,
+  a prompt that shows failed exit codes, and matching tmux and fastfetch
+  themes.
 - The wallpaper and icons come from `tools/make-art.py`; edit it and re-run it
   to change them.
 

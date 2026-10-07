@@ -1,4 +1,4 @@
-"""The gate: one Ollama- and OpenAI-compatible API in front of all three heads.
+"""The gate: one Ollama- and OpenAI-compatible API in front of every head (model server).
 
 Apps that expect Ollama on localhost:11434 (Open WebUI, AnythingLLM, llm,
 aider, Continue...) or an OpenAI-style /v1 endpoint all talk to the gate. It
@@ -331,7 +331,7 @@ class GateHandler(BaseHTTPRequestHandler):
 
     # --- endpoints
     def root(self, _body):
-        data = b"Cerberus is guarding the gate. Ollama API at /api, OpenAI API at /v1."
+        data = b"CerberOS gate. Ollama API at /api, OpenAI API at /v1."
         self.send_response(200)
         self.send_header("Content-Type", "text/plain")
         self.send_header("Content-Length", str(len(data)))
@@ -607,7 +607,7 @@ def serve(conf=None, catalog=None, host=None, port=None, verbose=False):
     port = int(port or conf["CERBEROS_GATE_PORT"])
     srv = GateServer((host, port), GateHandler)
     srv.verbose = verbose
-    log(f"the gate is open on {host}:{port} -> " +
+    log(f"listening on {host}:{port} -> " +
         ", ".join(f"{h}={u}" for h, u in up.urls.items()))
     try:
         srv.serve_forever()

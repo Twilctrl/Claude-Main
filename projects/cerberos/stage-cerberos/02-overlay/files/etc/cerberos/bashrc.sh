@@ -2,7 +2,7 @@
 case $- in *i*) ;; *) return ;; esac
 
 if [ "$(id -u)" -eq 0 ]; then _cb_u='\[\e[1;91m\]'; else _cb_u='\[\e[1;97m\]'; fi
-_cb_f='\[\e[31m\]'   # frame: arterial red
+_cb_f='\[\e[31m\]'   # frame
 _cb_r='\[\e[0m\]'
 _cb_status() {
     local s=$?

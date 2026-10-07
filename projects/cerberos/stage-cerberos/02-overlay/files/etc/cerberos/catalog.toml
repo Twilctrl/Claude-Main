@@ -24,49 +24,49 @@
 [[category]]
 id = "chatbots"
 name = "Chatbots"
-tagline = "voices from the pit"
+tagline = "general conversation and writing"
 icon = "internet-chat"
 
 [[category]]
 id = "coding"
 name = "Coding"
-tagline = "code carved into bone"
+tagline = "write, explain and fix code"
 icon = "applications-development"
 
 [[category]]
 id = "reasoning"
 name = "Reasoning"
-tagline = "minds that chew before they swallow"
+tagline = "step-by-step problem solving"
 icon = "applications-science"
 
 [[category]]
 id = "vision"
 name = "Vision"
-tagline = "eyes that never close"
+tagline = "understand images and documents"
 icon = "camera-photo"
 
 [[category]]
 id = "voice"
 name = "Voice"
-tagline = "screams in, whispers out"
+tagline = "speech to text and text to speech"
 icon = "audio-input-microphone"
 
 [[category]]
 id = "agents"
 name = "Agents & RAG"
-tagline = "servants that fetch and never forget"
+tagline = "tools, documents and automation"
 icon = "system-run"
 
 [[category]]
-id = "arsenal"
-name = "Model Arsenal"
-tagline = "devour, banish and chain models"
+id = "models"
+name = "Models"
+tagline = "browse, download and remove models"
 icon = "folder-download"
 
 [[category]]
-id = "underworld"
-name = "Underworld"
-tagline = "the machinery beneath the floor"
+id = "system"
+name = "System"
+tagline = "status, diagnostics and settings"
 icon = "utilities-system-monitor"
 
 # --- models -------------------------------------------------------------------
@@ -371,7 +371,7 @@ blurb = "Google's embedding model: better than Nomic for non-English documents."
 [[app]]
 id = "cerb-chat"
 category = "chatbots"
-name = "Cerberus Chat"
+name = "Terminal chat"
 kind = "builtin"
 run = ["chat"]
 preinstalled = true
@@ -468,17 +468,17 @@ blurb = "Visual automation: wire models into webhooks, schedules, email and 400+
 
 [[app]]
 id = "model-manager"
-category = "arsenal"
+category = "models"
 name = "Model Manager"
 kind = "builtin"
 run = ["menu", "--models"]
 preinstalled = true
-blurb = "Browse every model by strength, see what's installed, devour or banish them."
+blurb = "Browse every model by strength, see what's installed, download or remove them."
 
 [[app]]
 id = "pull-any"
-category = "arsenal"
-name = "Devour any Ollama model"
+category = "models"
+name = "Download any Ollama model"
 kind = "builtin"
 run = ["pull", "--ask"]
 preinstalled = true
@@ -486,8 +486,8 @@ blurb = "Download any model from ollama.com by name, e.g. olmo2 or llama3.1:8b."
 
 [[app]]
 id = "status"
-category = "underworld"
-name = "Heads status"
+category = "system"
+name = "Status"
 kind = "builtin"
 run = ["status"]
 preinstalled = true
@@ -495,7 +495,7 @@ blurb = "NPU, CPU and remote heads, gate, temperature, memory and power."
 
 [[app]]
 id = "doctor"
-category = "underworld"
+category = "system"
 name = "Doctor"
 kind = "builtin"
 run = ["doctor"]
@@ -504,7 +504,7 @@ blurb = "Checks the HAT, driver, every head, the gate and power, and tells you h
 
 [[app]]
 id = "bench"
-category = "underworld"
+category = "system"
 name = "Benchmark"
 kind = "builtin"
 run = ["bench"]
@@ -513,25 +513,25 @@ blurb = "Tokens per second for the default model, or any model you name."
 
 [[app]]
 id = "gate"
-category = "underworld"
-name = "The Gate (API and app connections)"
+category = "system"
+name = "Gate (API and app connections)"
 kind = "builtin"
 run = ["gate"]
 preinstalled = true
-blurb = "One Ollama- and OpenAI-compatible endpoint for every head, plus how to connect apps."
+blurb = "The Ollama- and OpenAI-compatible endpoint for all models, and how to connect apps to it."
 
 [[app]]
 id = "logs"
-category = "underworld"
+category = "system"
 name = "Logs"
 kind = "builtin"
 run = ["logs"]
 preinstalled = true
-blurb = "Follow the gate and all three heads live."
+blurb = "Follow the gate and model server logs live."
 
 [[app]]
 id = "settings"
-category = "underworld"
+category = "system"
 name = "Settings"
 kind = "builtin"
 run = ["config"]
@@ -540,7 +540,7 @@ blurb = "Edit /etc/cerberos/cerberos.conf: default model, remote head, LAN acces
 
 [[app]]
 id = "btop"
-category = "underworld"
+category = "system"
 name = "btop (system monitor)"
 kind = "builtin"
 run = ["exec", "btop"]

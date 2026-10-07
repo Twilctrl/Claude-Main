@@ -8,7 +8,7 @@ sed -i \
 	-e 's/^FONTSIZE=.*/FONTSIZE="16x32"/' \
 	/etc/default/console-setup
 
-# Pre-login screen: the bleeding banner, plus where to reach this box.
+# Pre-login screen: the banner, plus where to reach this box.
 {
 	printf '\033[2J\033[H'
 	i=0
@@ -17,7 +17,7 @@ sed -i \
 		printf '\033[%sm%s\033[0m\n' "$c" "$line"
 		i=$((i + 1))
 	done < /usr/local/lib/cerberos/banner.txt
-	printf '\033[90m  // three heads · one gate · no cloud\033[0m\n'
+	printf '\033[90m  local AI for Raspberry Pi 5 + Hailo-10H\033[0m\n'
 	printf '\033[31m  // \\n · \\l · ip \\4 · ssh in and type \033[1;93mcerb\033[0m\n\n'
 } > /etc/issue
 
