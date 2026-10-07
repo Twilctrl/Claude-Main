@@ -1,0 +1,11 @@
+Scream and Run adds a horror survival event.
+
+Craft a Love Letter and read it. Tsubaki, the transfer student, notices you. She cannot be hurt, and one touch is death. Survive until she gives up.
+
+- Phase 1, Stalking: she wanders closer and pretends not to see you.
+- Phase 2, Hunting: she follows where she last saw you. Break line of sight and she loses you.
+- Phase 3, Frenzy: the final minute. She teleports behind you, and you'll hear it coming.
+
+Hide in a Locker (right-click), crouch in the dark, and stay quiet. Mining, running and attacking all make noise.
+
+Single-player only. Doesn't touch any other mod's content and works alongside Calamity.
