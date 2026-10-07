@@ -10,13 +10,13 @@ if ! grep -q "cerberos" "${BOOT}/config.txt"; then
 # --- cerberos ---
 # PCIe Gen 3 doubles the bandwidth to the Hailo-10H.
 dtparam=pciex1_gen=3
-# No rainbow splash: straight to the dark.
+# No rainbow splash.
 disable_splash=1
 [all]
 CFG
 fi
 
-# Quiet, themed boot. The vt.default_* values load the CerberOS dried-blood palette
+# Quiet, themed boot. The vt.default_* values load the CerberOS colour palette
 # into the kernel console before anything else prints.
 VT_RED=$(sed -n 1p "${ROOTFS_DIR}/etc/cerberos/vtrgb")
 VT_GRN=$(sed -n 2p "${ROOTFS_DIR}/etc/cerberos/vtrgb")

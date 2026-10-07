@@ -84,7 +84,7 @@ def port_open(port, host="127.0.0.1"):
 
 
 def install(app):
-    t.decode(f"// binding {app.name}")
+    t.decode(f"Installing {app.name}")
     if app.kind == "builtin":
         t.ok("built in; nothing to install")
         return 0
@@ -160,13 +160,13 @@ def exec_or_fail(argv, env):
 
 def launch_docker(app):
     if not is_running(app):
-        print(t.ash(f"  raising {app.name}..."))
+        print(t.ash(f"  starting {app.name}..."))
         if compose(app, "up", "-d") != 0:
             return 1
         for i in range(180):
             if port_open(app.port):
                 break
-            sys.stdout.write("\r  " + t.ember("summoning " + "▓" * (i % 20) + "░" * (19 - i % 20)))
+            sys.stdout.write("\r  " + t.ember("starting " + "▓" * (i % 20) + "░" * (19 - i % 20)))
             sys.stdout.flush()
             time.sleep(1)
         print()

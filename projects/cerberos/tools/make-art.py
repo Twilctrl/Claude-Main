@@ -1,4 +1,4 @@
-"""Generate the CerberOS wallpaper and icons: three hounds behind iron bars.
+"""Generate the CerberOS wallpaper and icons.
 
     python3 tools/make-art.py stage-cerberos/06-desktop/files
 """
@@ -148,20 +148,20 @@ def wallpaper():
     for _ in range(18):
         x, y, r = random.uniform(0, W), random.uniform(820, H), random.uniform(2, 9)
         s.append(f'<ellipse cx="{x:.0f}" cy="{y:.0f}" rx="{r:.1f}" ry="{r * random.uniform(0.6, 1):.1f}" fill="#5a0808" opacity="0.8"/>')
-    # name, bleeding
+    # name
     s.append(f'<text x="{W / 2}" y="842" text-anchor="middle" font-family="DejaVu Serif, serif" font-weight="700" font-size="112" letter-spacing="22" fill="#000" opacity="0.9" filter="url(#shadow)">CERBEROS</text>')
     s.append(f'<g filter="url(#ragged)"><text x="{W / 2}" y="836" text-anchor="middle" font-family="DejaVu Serif, serif" font-weight="700" font-size="112" letter-spacing="22" fill="url(#textG)">CERBEROS</text></g>')
     for x, ln in ((560, 70), (668, 30), (812, 110), (905, 45), (1060, 85), (1190, 40), (1312, 120), (1392, 55)):
         s.append(drip(x, 832, ln, 7))
-    # prisoner's tally marks scratched into the dark
+    # tally marks
     tx, ty = 120, 990
     for g in range(6):
         for k in range(4):
             s.append(f'<line x1="{tx + g * 62 + k * 10}" y1="{ty}" x2="{tx + g * 62 + k * 10 + 2}" y2="{ty + 36}" stroke="#8a7f70" stroke-width="3" opacity="0.6"/>')
         s.append(f'<line x1="{tx + g * 62 - 6}" y1="{ty + 30}" x2="{tx + g * 62 + 38}" y2="{ty + 6}" stroke="#8a7f70" stroke-width="3" opacity="0.6"/>')
-    # the faint machine underneath
-    s.append(f'<text x="{W - 60}" y="1040" text-anchor="end" font-family="DejaVu Sans Mono, monospace" font-size="17" letter-spacing="3" fill="#6f8a8f" opacity="0.55">HOLDING CELL 03 · SUBJECTS: NPU / CPU / REMOTE · CONTAINMENT NOMINAL</text>')
-    s.append(f'<text x="{W / 2}" y="900" text-anchor="middle" font-family="DejaVu Sans Mono, monospace" font-size="19" letter-spacing="9" fill="#8a7f70" opacity="0.75">THREE HEADS · ONE GATE · NO CLOUD</text>')
+    # small print
+    s.append(f'<text x="{W - 60}" y="1040" text-anchor="end" font-family="DejaVu Sans Mono, monospace" font-size="17" letter-spacing="3" fill="#6f8a8f" opacity="0.55">NPU · CPU · REMOTE</text>')
+    s.append(f'<text x="{W / 2}" y="900" text-anchor="middle" font-family="DejaVu Sans Mono, monospace" font-size="19" letter-spacing="9" fill="#8a7f70" opacity="0.75">LOCAL AI · NO CLOUD</text>')
     s.append(f'<rect width="{W}" height="{H}" fill="url(#vignette)"/>')
     s.append(f'<rect width="{W}" height="{H}" filter="url(#grime)" opacity="0.45"/>')
     return f'<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" viewBox="0 0 {W} {H}">\n{DEFS}\n' + "\n".join(s) + "\n</svg>\n"

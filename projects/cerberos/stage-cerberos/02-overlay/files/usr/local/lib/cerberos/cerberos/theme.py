@@ -1,6 +1,6 @@
-"""Colours and flourishes. With the CerberOS console palette loaded, the basic
-ANSI colours become: 31 arterial red, 91 fresh blood, 33 rust, 93 tallow,
-35 clotted crimson, 36 cold iron, 90 ash, 37/97 bone."""
+"""Terminal colours. With the CerberOS console palette loaded, the basic ANSI
+colours become: 31 dark red, 91 red, 33 amber, 93 sand, 35 crimson, 36 steel,
+90 grey, 37/97 off-white. (The helper names below predate the wording.)"""
 
 import os
 import random
@@ -21,9 +21,9 @@ blood, ember, fire, crimson, glitch, ash, bone = (
     _c(c) for c in ("1;31", "33", "1;93", "35", "36", "90", "1;97"))
 red, ok_green, dim, bold = _c("91"), _c("92"), _c("2"), _c("1")
 
-# Bone at the top, bleeding into red, clotting at the bottom of the drips.
+# Banner gradient: off-white at the top fading to red, darker toward the bottom.
 BANNER_COLOURS = ("1;97", "37", "1;91", "91", "31", "31", "31", "31", "35", "35", "35")
-TAGLINE = "three heads · one gate · no cloud"
+TAGLINE = "local AI for Raspberry Pi 5 + Hailo-10H"
 
 
 def banner(out=sys.stdout):
@@ -39,7 +39,7 @@ def banner(out=sys.stdout):
 
 
 def decode(text, duration=0.45):
-    """Print text as if it were rotting into place."""
+    """Print a heading with a short scramble-in effect."""
     if not FX:
         print(bone(text))
         return

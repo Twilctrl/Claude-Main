@@ -22,7 +22,7 @@ fi
 if /usr/local/bin/cerb preload; then
     mkdir -p /var/lib/cerberos
     touch /var/lib/cerberos/firstboot.done
-    log "the hound is fed"
+    log "done"
 else
     log "some downloads failed; retrying next boot (or run: sudo cerb preload)"
 fi

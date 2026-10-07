@@ -13,6 +13,7 @@ from .client import Client, GateError, run_turn
 from .config import ETC, HEAD_LABEL, Catalog, gate_url, mem_total_gb, read_conf
 
 CONF_PATH = os.path.join(ETC, "cerberos.conf")
+# Older names from earlier releases; still accepted.
 ALIASES = {"summon": "chat", "devour": "pull", "banish": "rm", "heads": "status",
            "unleash": "launch", "rite": "doctor", "remove": "rm", "run": "launch",
            "list": "models", "ls": "models"}
@@ -113,8 +114,8 @@ def cmd_status(ctx, args):
     npu_dev = os.path.exists("/dev/hailo0")
     for head in ("npu", "cpu", "remote"):
         st = states[head]
-        extra = {None: t.ash("not configured"), True: t.ok_green("awake"),
-                 False: t.red("asleep")}[st]
+        extra = {None: t.ash("not configured"), True: t.ok_green("up"),
+                 False: t.red("down")}[st]
         if head == "npu" and not npu_dev:
             extra += t.ash("  (no /dev/hailo0)")
         if head == "remote" and st is not None:
@@ -184,7 +185,7 @@ def cmd_models(ctx, args):
             print(f"    {t.ok_green('■')} {n}")
         print()
     if not only_installed:
-        print(t.ash("  ■ installed   · available.  cerb pull <name> to devour one."))
+        print(t.ash("  ■ installed   · available.  cerb pull <name> to download one."))
         print(t.ash("  cerb models --us  shows only American-made models."))
     return 0
 
@@ -201,7 +202,7 @@ def cmd_pull(ctx, args):
         print(t.ash("  Any name from ollama.com/library works, e.g. phi4-mini or granite3.3:2b."))
         print(t.ash("  Catalog names work too: cerb models"))
         try:
-            name = input(t.ember("  model to devour » ")).strip()
+            name = input(t.ember("  model to download » ")).strip()
         except (EOFError, KeyboardInterrupt):
             print()
             return 1
@@ -223,7 +224,7 @@ def cmd_pull(ctx, args):
                        "Use --force to try anyway.")
                 rc = 1
                 continue
-        t.decode(f"// devouring {name}")
+        t.decode(f"Downloading {name}")
         last = ""
         try:
             for msg in ctx.client.pull(name):
@@ -238,7 +239,7 @@ def cmd_pull(ctx, args):
                 last = status
                 sys.stdout.flush()
             print()
-            t.ok(f"{name} devoured")
+            t.ok(f"{name} downloaded")
         except GateError as e:
             print()
             t.fail(f"{name}: {e}")
@@ -258,11 +259,11 @@ def cmd_rm(ctx, args):
         return 2
     rc = 0
     for name in args:
-        if not A.confirm(f"Banish {name}? Its files will be deleted.", default=False):
+        if not A.confirm(f"Delete {name}?", default=False):
             continue
         try:
             ctx.client.delete(name)
-            t.ok(f"{name} banished")
+            t.ok(f"{name} deleted")
         except GateError as e:
             t.fail(f"{name}: {e}")
             rc = 1
@@ -307,7 +308,7 @@ def ensure_model(ctx, name):
     if name in installed or f"{name}:latest" in installed:
         return True
     print(f"{t.fire(name)} isn't installed.")
-    if not A.confirm("Devour it now?"):
+    if not A.confirm("Download it now?"):
         return False
     return cmd_pull(ctx, [name]) == 0
 
@@ -325,7 +326,7 @@ def cmd_chat(ctx, args):
         import readline  # noqa: F401  line editing and history
     except ImportError:
         pass
-    t.decode("// CERBERUS AWAKENS")
+    t.decode("CerberOS chat")
     print(t.ash(f"  {model} via {gate_url(ctx.conf)}   /help for commands"))
     system, messages = None, []
     you = "\001\033[1;33m\002you \001\033[1;31m\002» \001\033[0m\002" if t.TTY else "you » "
@@ -347,11 +348,11 @@ def cmd_chat(ctx, args):
                 return 0
             if cmd == "/clear":
                 messages = []
-                print(t.ash("  memory burned"))
+                print(t.ash("  conversation cleared"))
             elif cmd == "/model" and arg:
                 if ensure_model(ctx, arg):
                     model = arg
-                    print(t.ash(f"  head turned: {model}"))
+                    print(t.ash(f"  now using {model}"))
             elif cmd == "/models":
                 for n in sorted(ctx.client.installed_names()):
                     print(t.ash("  ") + n)
@@ -368,7 +369,7 @@ def cmd_chat(ctx, args):
             continue
         messages.append({"role": "user", "content": line})
         convo = ([{"role": "system", "content": system}] if system else []) + messages
-        sys.stdout.write("\n" + t.blood("cerberus ") + t.ember("» "))
+        sys.stdout.write("\n" + t.blood("ai ") + t.ember("» "))
         sys.stdout.flush()
         try:
             reply, tokens, secs, ttft = run_turn(ctx.client, model, convo, _echo)
@@ -376,7 +377,7 @@ def cmd_chat(ctx, args):
             rate = tokens / secs if secs > 0 else 0
             print("\n" + t.ash(f"  [ {tokens} tok · {rate:.1f} tok/s · first token {ttft:.2f}s ]"))
         except KeyboardInterrupt:
-            print(t.ash("\n  [silenced]"))
+            print(t.ash("\n  [stopped]"))
             messages.pop()
         except GateError as e:
             print(t.red(f"\n  {e}"))
@@ -418,7 +419,7 @@ def cmd_ask(ctx, args):
 def cmd_bench(ctx, args):
     model = args[0] if args else ctx.default_model()
     prompt = "Explain in about 150 words how a neural network accelerator speeds up inference."
-    t.decode(f"// trial by fire: {model}")
+    t.decode(f"Benchmark: {model}")
     rates = []
     for i in range(3):
         sys.stdout.write(t.ash(f"  run {i + 1}/3 … "))
@@ -572,7 +573,7 @@ def run_quiet(argv, timeout=10):
 
 
 def cmd_doctor(ctx, args):
-    t.decode("// the rite of diagnosis")
+    t.decode("CerberOS diagnostics")
     board = read_file("/proc/device-tree/model").replace("\0", "")
     t.kv("board", board or "unknown")
     if any(s in board for s in ("Pi 5", "Compute Module 5")):
@@ -598,9 +599,9 @@ def cmd_doctor(ctx, args):
         elif st is None:
             t.warn(f"{HEAD_LABEL[head]} not configured")
         elif st:
-            t.ok(f"{HEAD_LABEL[head]} awake")
+            t.ok(f"{HEAD_LABEL[head]} up")
         else:
-            t.fail(f"{HEAD_LABEL[head]} asleep: cerb logs {head}")
+            t.fail(f"{HEAD_LABEL[head]} down: cerb logs {head}")
     if ctx.client.alive():
         t.ok(f"gate open at {gate_url(ctx.conf)}")
         default = ctx.conf["CERBEROS_DEFAULT_MODEL"]
@@ -620,7 +621,7 @@ def cmd_doctor(ctx, args):
     if shutil.which("docker"):
         t.ok("docker present for web apps")
     if os.path.exists("/var/lib/cerberos/firstboot.done"):
-        t.ok("first-boot rites complete")
+        t.ok("first-boot setup complete")
     else:
         t.warn("first boot not finished: journalctl -u cerberos-firstboot")
     return 0
@@ -690,7 +691,7 @@ def cmd_preload(ctx, args):
         if m.preload not in ("build", "firstboot") or m.alias in installed:
             continue
         if not states.get(m.head):
-            t.warn(f"skipping {m.alias}: {m.head} head is asleep")
+            t.warn(f"skipping {m.alias}: {m.head} head is down")
             rc = 1
             continue
         if m.head == "npu" and npu_offers and m.model not in npu_offers:
@@ -728,16 +729,16 @@ def cmd_help(ctx, args):
     print(f"""
   {t.blood('Just type')} {t.fire('cerb')} {t.blood('for the start menu.')} Or:
 
-  {t.fire('cerb chat')} [model]        talk to a model        {t.ash('alias: summon')}
+  {t.fire('cerb chat')} [model]        talk to a model
   {t.fire('cerb ask')} [-m model] "…"  one-shot answer; stdin is appended
   {t.fire('cerb models')} [--us]       every model, by strength (--us: American-made only)
-  {t.fire('cerb pull')} <model>        download a model       {t.ash('alias: devour')}
-  {t.fire('cerb rm')} <model>          delete a model         {t.ash('alias: banish')}
+  {t.fire('cerb pull')} <model>        download a model
+  {t.fire('cerb rm')} <model>          delete a model
   {t.fire('cerb use')} <model>         set the default model
   {t.fire('cerb apps')} [category]     every app, by category
-  {t.fire('cerb launch')} <app|model>  start anything; installs it first if needed {t.ash('alias: unleash')}
+  {t.fire('cerb launch')} <app|model>  start anything; installs it first if needed
   {t.fire('cerb stop')} <app>          stop a web app
-  {t.fire('cerb status')}              heads, gate, temperature, power {t.ash('alias: heads')}
+  {t.fire('cerb status')}              heads, gate, temperature, power
   {t.fire('cerb gate')}                API endpoints and how to connect apps
   {t.fire('cerb bench')} [model]       tokens per second
   {t.fire('cerb doctor')}              find and explain problems

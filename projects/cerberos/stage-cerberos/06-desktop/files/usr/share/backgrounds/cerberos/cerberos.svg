@@ -193,8 +193,8 @@
 <line x1="450" y1="990" x2="452" y2="1026" stroke="#8a7f70" stroke-width="3" opacity="0.6"/>
 <line x1="460" y1="990" x2="462" y2="1026" stroke="#8a7f70" stroke-width="3" opacity="0.6"/>
 <line x1="424" y1="1020" x2="468" y2="996" stroke="#8a7f70" stroke-width="3" opacity="0.6"/>
-<text x="1860" y="1040" text-anchor="end" font-family="DejaVu Sans Mono, monospace" font-size="17" letter-spacing="3" fill="#6f8a8f" opacity="0.55">HOLDING CELL 03 · SUBJECTS: NPU / CPU / REMOTE · CONTAINMENT NOMINAL</text>
-<text x="960.0" y="900" text-anchor="middle" font-family="DejaVu Sans Mono, monospace" font-size="19" letter-spacing="9" fill="#8a7f70" opacity="0.75">THREE HEADS · ONE GATE · NO CLOUD</text>
+<text x="1860" y="1040" text-anchor="end" font-family="DejaVu Sans Mono, monospace" font-size="17" letter-spacing="3" fill="#6f8a8f" opacity="0.55">NPU · CPU · REMOTE</text>
+<text x="960.0" y="900" text-anchor="middle" font-family="DejaVu Sans Mono, monospace" font-size="19" letter-spacing="9" fill="#8a7f70" opacity="0.75">LOCAL AI · NO CLOUD</text>
 <rect width="1920" height="1080" fill="url(#vignette)"/>
 <rect width="1920" height="1080" filter="url(#grime)" opacity="0.45"/>
 </svg>
