@@ -1,0 +1,104 @@
+Items: {
+	LoveLetter: {
+		DisplayName: Love Letter
+		Tooltip:
+			'''
+			"I've been watching you for a long time."
+			Starts a survival event. Someone noticed you, and she can't be hurt.
+			Hide, run, and survive until she gives up.
+			Single-player only
+			'''
+	}
+
+	TornRibbon: {
+		DisplayName: Tsubaki's Torn Ribbon
+		Tooltip: A souvenir from someone who almost had you.
+	}
+
+	HidingLockerItem: {
+		DisplayName: Hiding Locker
+		Tooltip:
+			'''
+			Right-click to hide inside. Jump or right-click again to get out.
+			She can't see you in there. Don't stay too long.
+			'''
+	}
+}
+
+NPCs.Tsubaki.DisplayName: Tsubaki
+Tiles.HidingLocker.MapEntry: Locker
+
+Configs: {
+	ScreamConfig: {
+		DisplayName: Scream and Run: Gameplay
+
+		SurvivalSeconds: {
+			Label: Survival time (seconds)
+			Tooltip: How long you must survive before she gives up. The last minute (or last third, on short runs) is the frenzy.
+		}
+
+		SpeedMultiplier: {
+			Label: Her speed multiplier
+			Tooltip: Multiplies every movement speed she has.
+		}
+
+		OneShot: {
+			Label: One-shot kills
+			Tooltip:
+				'''
+				On: any touch kills instantly, ignoring defense, armor and invincibility.
+				Off: her touch takes 40% of your max life, and she backs off afterwards.
+				She still kills you if she opens your locker.
+				'''
+		}
+	}
+
+	ScreamClientConfig: {
+		DisplayName: Scream and Run: Effects
+
+		ScreenDistortion: {
+			Label: Screen distortion and shake
+			Tooltip: Scanline tears, static and camera shake when she's close.
+		}
+
+		JumpscareFlash: {
+			Label: Jumpscare flash
+			Tooltip: White flash and shake when she catches you. Turn off if flashing images bother you.
+		}
+	}
+}
+
+Messages: {
+	Noticed: She noticed you.
+	StoppedPretending: She stopped pretending.
+	Frenzy: She's done waiting.
+	GaveUp: '''"...Fine. I'll find you tomorrow." She gave up, for now.'''
+	Waiting: She'll be waiting for you.
+}
+
+Death: {
+	Caught1: "{0} was caught by Tsubaki."
+	Caught2: "{0} will be with Tsubaki forever."
+	Locker: "{0} was found hiding in a locker."
+}
+
+UI: {
+	PhaseStalking: She's watching.
+	PhaseHunting: She's hunting you.
+	PhaseFrenzy: RUN.
+	Presence: Presence
+	Far: far
+	Near: near
+	Close: close
+	Behind: RIGHT BEHIND YOU
+	Seen: She sees you
+	Tracked: She's following your trail
+	Unseen: She lost you
+	LockerFound: She knows you're in there
+	Noise: Noise
+	Crouched: Crouched
+	Dark: In darkness
+	Hiding: Hiding... (Jump to leave)
+	MapBlood: Don't look for me. I'll find you.
+	Victory: She lost interest.
+}

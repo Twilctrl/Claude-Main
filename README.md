@@ -21,3 +21,4 @@ Personal Claude Code plugins, published as a plugin marketplace.
 | --- | --- |
 | [feather-llm-keyboard](projects/feather-llm-keyboard) | Adafruit Feather RP2350 firmware that types a Raspberry Pi's local LLM output into a laptop as a USB keyboard. |
 | [cerberos](projects/cerberos) | CerberOS: a Raspberry Pi 5 + Hailo-10H distro for running AI models locally. Three model servers (NPU, CPU, remote) behind one Ollama/OpenAI-compatible gate, with a Kali-style categorized start menu. |
+| [scream-and-run](projects/scream-and-run) | tModLoader mod: an unkillable yandere-style horror stalker. Hide, stay quiet, and survive 5 minutes. |
