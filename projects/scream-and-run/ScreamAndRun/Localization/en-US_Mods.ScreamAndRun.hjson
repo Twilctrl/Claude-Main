@@ -12,7 +12,7 @@ Items: {
 
 	TornRibbon: {
 		DisplayName: Tsubaki's Torn Ribbon
-		Tooltip: "A souvenir from someone who almost had you."
+		Tooltip: A souvenir from someone who almost had you.
 	}
 
 	HidingLockerItem: {
@@ -25,17 +25,12 @@ Items: {
 	}
 }
 
-NPCs: {
-	Tsubaki.DisplayName: Tsubaki
-}
-
-Tiles: {
-	HidingLocker.MapEntry: Locker
-}
+NPCs.Tsubaki.DisplayName: Tsubaki
+Tiles.HidingLocker.MapEntry: Locker
 
 Configs: {
 	ScreamConfig: {
-		DisplayName: "Scream and Run: Gameplay"
+		DisplayName: Scream and Run: Gameplay
 
 		SurvivalSeconds: {
 			Label: Survival time (seconds)
@@ -59,7 +54,7 @@ Configs: {
 	}
 
 	ScreamClientConfig: {
-		DisplayName: "Scream and Run: Effects"
+		DisplayName: Scream and Run: Effects
 
 		ScreenDistortion: {
 			Label: Screen distortion and shake
@@ -77,7 +72,7 @@ Messages: {
 	Noticed: She noticed you.
 	StoppedPretending: She stopped pretending.
 	Frenzy: She's done waiting.
-	GaveUp: "\"...Fine. I'll find you tomorrow.\" She gave up, for now."
+	GaveUp: '''"...Fine. I'll find you tomorrow." She gave up, for now.'''
 	Waiting: She'll be waiting for you.
 }
 

@@ -44,6 +44,8 @@ namespace ScreamAndRun.Common.Systems
 		public static float Dim { get; private set; }
 
 		private static int bossIndex = -1;
+		/// <summary>The player's map style before we swapped "overlay" for the (blood-covered) minimap.</summary>
+		private static int savedMapStyle = -1;
 		private static HauntPhase lastPhase;
 
 		public static int StalkTicks => Math.Min(TotalTicks / 4, 90 * 60);
@@ -179,6 +181,23 @@ namespace ScreamAndRun.Common.Systems
 
 		public override void PostUpdateEverything() {
 			Dim = MathHelper.Clamp(Dim + (Active ? 1f / 120f : -1f / 90f), 0f, 1f);
+
+			// The overlay map is drawn in the world pass where no UI layer can cover it,
+			// so during the event it is swapped for the minimap, which is covered in blood.
+			if (Active && Main.mapStyle == 2) {
+				savedMapStyle = 2;
+				Main.mapStyle = 1;
+			}
+			else if (!Active) {
+				RestoreMapStyle();
+			}
+		}
+
+		private static void RestoreMapStyle() {
+			if (savedMapStyle >= 0) {
+				Main.mapStyle = savedMapStyle;
+				savedMapStyle = -1;
+			}
 		}
 
 		public override void ModifySunLightColor(ref Color tileColor, ref Color backgroundColor) {
@@ -199,6 +218,7 @@ namespace ScreamAndRun.Common.Systems
 			bossIndex = -1;
 			Dim = 0f;
 			lastPhase = HauntPhase.None;
+			RestoreMapStyle();
 		}
 	}
 }

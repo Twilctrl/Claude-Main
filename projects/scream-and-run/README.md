@@ -116,8 +116,8 @@ Her notice radius starts at **30 tiles**, then:
 - Distortion when she's near: torn scanlines, static, red flicker and camera shake (client config toggle).
 - HUD at the top center: countdown, phase, a **presence bar** (far / near / close / RIGHT BEHIND YOU),
   her awareness (lost you / following your trail / sees you), a noise meter, and crouch/darkness tags.
-- **Map:** during the event the minimap and map overlay are hidden under blood, and the fullscreen map
-  is painted over completely, including hover text.
+- **Map:** during the event the minimap is covered in blood (the overlay map style switches to the minimap),
+  and the fullscreen map is painted over completely: no hover text, and no map icons, so no pylon teleports.
 
 ## Config (Settings → Mod Configuration)
 
@@ -137,34 +137,42 @@ The mod has no reference to Calamity or any other mod and changes no content out
 global hooks are:
 
 - **Mining noise:** reads tile breaks near you and changes nothing.
-- **Sky tint and minimap hiding:** only while the event is active.
+- **Sky tint, minimap blood and hidden map icons:** only while the event is active.
 - **Music:** uses `BossHigh` priority, so it overrides boss music (including Calamity's) while the event runs.
 
 Tsubaki is not flagged as a boss (no boss bar, no boss-alive effects), deals no contact damage
 through the normal damage pipeline (so difficulty scaling can't touch her), and isn't counted for spawn caps.
 
-## Not tested, and known limitations
+## What's been verified, and known limitations
 
-I wrote this in a cloud container without tModLoader, because the network policy blocks GitHub, where
-tModLoader is distributed. So:
+**Verified** against tModLoader **v2026.08.3.0** (latest stable, Terraria 1.4.4.9), on Linux with the .NET 8 SDK:
 
-- **It has not been compiled against tModLoader, or run in game.** Every C# file passes a Roslyn
-  syntax check, and the pathfinder was unit-tested against a fake tile map: climbing walls, shafts,
-  platforms, sealed rooms, falling, and ~4 ms worst case. Everything else was written from my knowledge of the
-  tModLoader 1.4.4 API. If your first build fails, these are the most likely spots, all API names
-  that tModLoader has renamed or changed between versions:
-  - `PlayerDeathReason.ByCustomReason(string)` in `HauntPlayer.CaughtBy`. Newer versions may want
-    `ByCustomReason(NetworkText.FromLiteral(text))`.
-  - `PlayerDrawLayerLoader.Layers` in `HauntPlayer.HideDrawLayers`.
-  - `Mod.FileExists` in `ScreamAudio`.
-  - `SoundID.ForceRoarPitched` / `SoundID.ScaryScream` placeholders. Swap for any other `SoundID` if missing.
-  - `ModNPC.CanFallThroughPlatforms` / `CanBeHitByNPC` signatures.
-- **Gameplay tuning is untested:** speeds, detection numbers, timings and whether the HUD overlaps
-  other UI (e.g. Calamity's meters) at your resolution. All the numbers are constants at the top of
-  `Tsubaki.cs` / `HauntPlayer.cs`.
-- **Map pylon teleport:** the fullscreen map is covered, but a blind click on a pylon's position may
-  still teleport you. Teleporting far away just makes her relocate near you anyway.
-- **Multiplayer is unsupported:** noise and hiding are client-side, so the event is single-player only.
-- Journey mode god-mode and mods that cancel death in `PreKill` may still save you. She retries for
-  15 ticks, but a mod that always cancels death wins.
-- Other enemies can still hit you inside a locker.
+- The mod **compiles with zero warnings** and **packages to `ScreamAndRun.tmod`** through tModLoader's own build.
+- It **loads on a headless tModLoader server** that generates a world: content, configs, recipes and localization
+  all register, with no warnings or errors in the log.
+- Runtime assumptions checked against decompiled tModLoader:
+  - the vanilla minimap layer name;
+  - the sprite batch state in the fullscreen-map hook;
+  - that packaging keeps audio file names, so sound drop-ins are found;
+  - that anything under a `/Music/` folder is registered as music.
+- The pathfinder is unit-tested against a fake tile map: climbing walls, shafts, platforms, sealed rooms,
+  falling, and ~4 ms worst case.
+
+**Not verified:**
+
+- **Nothing has been played in the game client.** The client needs Terraria's own art and audio, which come with your
+  Steam copy and aren't available here. So nothing visual or interactive has been seen working: the boss
+  moving, the HUD, the vignette, the locker, the jumpscare, or the event start to finish.
+- **Gameplay tuning:** speeds, detection numbers, timings, and whether the HUD overlaps other UI (e.g. Calamity's
+  meters) at your resolution. All the numbers are constants at the top of `Tsubaki.cs` / `HauntPlayer.cs`.
+- **Calamity:** it wasn't loaded alongside this mod. The mod doesn't reference it, though.
+
+**Known limitations:**
+
+- **Multiplayer is unsupported.** Noise and hiding are client-side, so the event is single-player only.
+- **The map overlay is switched off during the event.** It's drawn into the world itself, where it can't be
+  covered, so it's swapped for the (blood-covered) minimap and your setting is restored when the event ends. If you
+  save settings mid-event, "minimap" is what gets saved.
+- **Some death cancels still work.** Journey mode god mode and mods that cancel death in `PreKill` may still save
+  you. She retries for 15 ticks, but a mod that always cancels death wins.
+- **Lockers don't protect you from other enemies.** They can still hit you inside one.

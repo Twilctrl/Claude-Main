@@ -181,8 +181,7 @@ namespace ScreamAndRun.Common.Players
 			int dir = npc.Center.X < Player.Center.X ? 1 : -1;
 
 			string key = inLocker ? "Locker" : Main.rand.NextBool() ? "Caught1" : "Caught2";
-			string text = Language.GetTextValue("Mods.ScreamAndRun.Death." + key, Player.name);
-			PlayerDeathReason reason = PlayerDeathReason.ByCustomReason(text);
+			PlayerDeathReason reason = PlayerDeathReason.ByCustomReason(NetworkText.FromKey("Mods.ScreamAndRun.Death." + key, Player.name));
 
 			if (inLocker || ScreamConfig.Instance.OneShot) {
 				HauntUISystem.TriggerJumpscare();

@@ -10,6 +10,7 @@ using ScreamAndRun.Content.NPCs;
 using Terraria;
 using Terraria.GameContent;
 using Terraria.Localization;
+using Terraria.Map;
 using Terraria.ModLoader;
 using Terraria.UI;
 
@@ -73,10 +74,17 @@ namespace ScreamAndRun.Common.UI
 			bool active = HauntEventSystem.Active;
 
 			if (active) {
-				// Blood covers the minimap and the map overlay.
+				// Paint blood over the minimap right after vanilla draws it. The vanilla layer stays on
+				// because it also sets the offset that keeps the equipment panel below the minimap.
+				// (The overlay map style is switched to the minimap by HauntEventSystem.)
 				int mapIndex = layers.FindIndex(l => l.Name == "Vanilla: Map / Minimap");
-				if (mapIndex >= 0)
-					layers[mapIndex].Active = false;
+				if (mapIndex >= 0) {
+					layers.Insert(mapIndex + 1, new LegacyGameInterfaceLayer("ScreamAndRun: Minimap Blood", () => {
+						if (Main.mapEnabled && Main.mapStyle == 1 && !Main.mapFullscreen)
+							DrawBloodBlob(Main.spriteBatch, new Rectangle(Main.miniMapX - 6, Main.miniMapY - 6, Main.miniMapWidth + 12, Main.miniMapHeight + 12));
+						return true;
+					}, InterfaceScaleType.UI));
+				}
 			}
 
 			int mouseText = layers.FindIndex(l => l.Name == "Vanilla: Mouse Text");
@@ -189,10 +197,6 @@ namespace ScreamAndRun.Common.UI
 			HauntPhase phase = HauntEventSystem.Phase;
 			Texture2D pixel = TextureAssets.MagicPixel.Value;
 
-			// Blood over the minimap frame.
-			if (Main.mapEnabled && Main.mapStyle == 1)
-				DrawBloodBlob(sb, new Rectangle(Main.miniMapX - 6, Main.miniMapY - 6, Main.miniMapWidth + 12, Main.miniMapHeight + 12));
-
 			// Countdown.
 			int seconds = (int)Math.Ceiling(HauntEventSystem.TicksRemaining / 60f);
 			string time = $"{seconds / 60}:{seconds % 60:00}";
@@ -265,12 +269,24 @@ namespace ScreamAndRun.Common.UI
 		}
 
 		// ---------------------------------------------------------------- fullscreen map
+		/// <summary>
+		/// Hides every map icon (pylons, spawn, pings, other mods' icons) during the event.
+		/// Pylons handle their teleport clicks while drawing, so this also stops blind map teleports.
+		/// </summary>
+		public override void PreDrawMapIconOverlay(IReadOnlyList<IMapLayer> layers, MapOverlayDrawContext mapOverlayDrawContext) {
+			if (!HauntEventSystem.Active)
+				return;
+			foreach (IMapLayer layer in layers)
+				layer.Hide();
+		}
+
 		public override void PostDrawFullscreenMap(ref string mouseText) {
 			if (!HauntEventSystem.Active)
 				return;
 			mouseText = string.Empty;
 			SpriteBatch sb = Main.spriteBatch;
-			int w = Main.screenWidth, h = Main.screenHeight;
+			// tModLoader draws this hook under the UI scale matrix, so measure the screen in UI units.
+			int w = (int)Math.Ceiling(Main.screenWidth / Main.UIScale), h = (int)Math.Ceiling(Main.screenHeight / Main.UIScale);
 			sb.Draw(TextureAssets.MagicPixel.Value, new Rectangle(0, 0, w, h), new Color(58, 0, 6));
 
 			// Layered splatters at fixed spots, so it reads as one painted-over sheet.
