@@ -22,7 +22,7 @@ namespace ScreamAndRun.Common.Players
 	{
 		private const float BaseDetectionTiles = 45f;
 
-		// ---- perception (read by Tsubaki and the UI)
+		// ---- perception (read by Onryo and the UI)
 		/// <summary>0 to 1. Rises when you run, attack or mine, and fades over a few seconds.</summary>
 		public float Noise { get; private set; }
 		/// <summary>How far away she can notice you, in pixels.</summary>
@@ -30,7 +30,7 @@ namespace ScreamAndRun.Common.Players
 		public bool CrouchingStill { get; private set; }
 		public bool InDarkness { get; private set; }
 
-		// ---- written by Tsubaki each tick
+		// ---- written by Onryo each tick
 		/// <summary>0 when she is 60+ tiles away, 1 when she's on top of you.</summary>
 		public float Closeness;
 		public bool SeenByHer;
@@ -178,7 +178,7 @@ namespace ScreamAndRun.Common.Players
 		}
 
 		// ---------------------------------------------------------------- being caught
-		/// <summary>Called by Tsubaki on contact. Returns true if the player was killed.</summary>
+		/// <summary>Called by Onryo on contact. Returns true if the player was killed.</summary>
 		public bool CaughtBy(NPC npc, bool inLocker) {
 			if (Player.dead)
 				return true;

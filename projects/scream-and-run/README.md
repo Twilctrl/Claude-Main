@@ -1,6 +1,6 @@
 # Scream and Run
 
-A tModLoader mod: a horror survival "boss" you can't kill. Read the Love Letter and **Tsubaki**,
+A tModLoader mod: a horror survival "boss" you can't kill. Read the Love Letter and **Onryo**,
 the transfer student, notices you. One touch from her is death. Survive 5 minutes (configurable)
 and she gives up. Original character, no existing IP.
 
@@ -26,7 +26,7 @@ scream-and-run/
     │   └── UI/HauntUISystem.cs         vignette, distortion, HUD, map blood, jumpscare
     ├── Content/
     │   ├── Items/  LoveLetter, HidingLockerItem, TornRibbon (reward)
-    │   ├── NPCs/   Tsubaki
+    │   ├── NPCs/   Onryo
     │   └── Tiles/  HidingLocker
     └── Localization/en-US_Mods.ScreamAndRun.hjson   all text
 ```
@@ -89,7 +89,7 @@ Place a few lockers first, then read the letter.
   death message. If another mod's revive effect saves you, she retries for 15 ticks.
   With **One-shot** off, a touch takes 40% max life and she backs off.
 - **Win:** the timer hits 0, she fades away ("...Fine. I'll find you tomorrow.") and drops
-  **Tsubaki's Torn Ribbon** (vanity hat). If you die, she vanishes and the event ends; read the
+  **Onryo's Torn Ribbon** (vanity hat). If you die, she vanishes and the event ends; read the
   letter to try again.
 
 ### Detection
@@ -124,6 +124,9 @@ Her notice radius starts at **45 tiles**, then:
 - A vignette that tightens and pulses red as she gets closer (the presence range is 60 tiles).
 - A heartbeat that speeds up from ~0.8 to ~3.5 beats/s with proximity, and races when she's found your locker.
 - Distortion when she's near: torn scanlines, static, red flicker and camera shake (client config toggle).
+- **Jumpscare** when she catches you: her gory face (hollow socket, bloodshot eye, slit smile) fills the screen,
+  blood splatters burst across it and spread, and the screen pulses red. Turn off the white flash and shake in
+  the client config.
 - HUD at the top center: countdown, phase, a **presence bar** (far / near / close / RIGHT BEHIND YOU),
   her awareness (lost you / following your trail / sees you), a noise meter, and crouch/darkness tags.
   All of it except the clock is hidden while you're in a locker.
@@ -151,7 +154,7 @@ global hooks are:
 - **Sky tint, minimap blood and hidden map icons:** only while the event is active.
 - **Music:** uses `BossHigh` priority, so it overrides boss music (including Calamity's) while the event runs.
 
-Tsubaki is not flagged as a boss (no boss bar, no boss-alive effects), deals no contact damage
+Onryo is not flagged as a boss (no boss bar, no boss-alive effects), deals no contact damage
 through the normal damage pipeline (so difficulty scaling can't touch her), and isn't counted for spawn caps.
 
 ## What's been verified, and known limitations
@@ -175,7 +178,7 @@ through the normal damage pipeline (so difficulty scaling can't touch her), and 
   Steam copy and aren't available here. So nothing visual or interactive has been seen working: the boss
   moving, the HUD, the vignette, the locker, the jumpscare, or the event start to finish.
 - **Gameplay tuning:** speeds, detection numbers, timings, and whether the HUD overlaps other UI (e.g. Calamity's
-  meters) at your resolution. All the numbers are constants at the top of `Tsubaki.cs` / `HauntPlayer.cs`.
+  meters) at your resolution. All the numbers are constants at the top of `Onryo.cs` / `HauntPlayer.cs`.
 - **Calamity:** it wasn't loaded alongside this mod. The mod doesn't reference it, though.
 
 **Known limitations:**

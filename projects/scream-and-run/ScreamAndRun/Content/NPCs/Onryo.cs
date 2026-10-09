@@ -15,10 +15,10 @@ using Terraria.ModLoader;
 namespace ScreamAndRun.Content.NPCs
 {
 	/// <summary>
-	/// Tsubaki, the transfer student. She cannot be hurt, can't be knocked back, ignores
+	/// Onryo, the transfer student. She cannot be hurt, can't be knocked back, ignores
 	/// debuffs and never despawns on her own. HauntEventSystem spawns and removes her.
 	/// </summary>
-	public class Tsubaki : ModNPC
+	public class Onryo : ModNPC
 	{
 		public const int HitboxWidth = 28;
 		public const int HitboxHeight = 44;
@@ -39,7 +39,7 @@ namespace ScreamAndRun.Content.NPCs
 		public const int LockerSearchLimitUnseen = 12 * 60;
 		public const int MaxHideTicks = 40 * 60;
 
-		public override string Texture => "ScreamAndRun/Assets/Textures/NPCs/Tsubaki";
+		public override string Texture => "ScreamAndRun/Assets/Textures/NPCs/Onryo";
 
 		/// <summary>True while she has direct sight of the player (and isn't pretending).</summary>
 		public bool CanSeePlayer { get; private set; }

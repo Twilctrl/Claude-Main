@@ -8,7 +8,7 @@ size, then rebuild the mod.
 
 | File | Size | Notes |
 | --- | --- | --- |
-| `NPCs/Tsubaki.png` | 40 x 336 | 6 frames stacked vertically, 40x56 each. **Faces left** (Terraria flips it). Frames: 0 idle, 1-4 walk cycle, 5 wind-up before a teleport. Her hitbox is 28x44, bottom-centered in the frame. |
+| `NPCs/Onryo.png` | 40 x 336 | 6 frames stacked vertically, 40x56 each. **Faces left** (Terraria flips it). Frames: 0 idle, 1-4 walk cycle, 5 wind-up before a teleport. Her hitbox is 28x44, bottom-centered in the frame. |
 | `Items/LoveLetter.png` | 28 x 20 | Summon item. |
 | `Items/HidingLockerItem.png` | 20 x 30 | Locker in the inventory. |
 | `Items/TornRibbon.png` | 26 x 18 | Reward item icon. |
@@ -19,7 +19,7 @@ size, then rebuild the mod.
 | `UI/Jumpscare.png` | any | Full-screen jumpscare image. It's scaled to cover the screen, so square-ish works best. |
 | `../icon.png` | 80 x 80 | Mod icon in the mod list. |
 
-If you change a frame size or count, update `Main.npcFrameCount` / hitbox in `Content/NPCs/Tsubaki.cs`.
+If you change a frame size or count, update `Main.npcFrameCount` / hitbox in `Content/NPCs/Onryo.cs`.
 
 ## Sounds (`Sounds/`)
 

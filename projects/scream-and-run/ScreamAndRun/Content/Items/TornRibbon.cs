@@ -4,7 +4,7 @@ using Terraria.ModLoader;
 
 namespace ScreamAndRun.Content.Items
 {
-	/// <summary>The survival reward: Tsubaki's hair ribbon, as a vanity hat.</summary>
+	/// <summary>The survival reward: Onryo's hair ribbon, as a vanity hat.</summary>
 	[AutoloadEquip(EquipType.Head)]
 	public class TornRibbon : ModItem
 	{
