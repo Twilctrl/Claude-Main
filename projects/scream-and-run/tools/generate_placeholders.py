@@ -47,57 +47,147 @@ def rect(d, x0, y0, x1, y1, c):
 # ---------------------------------------------------------------- Tsubaki
 # 6 frames, 40x56 each. Drawn facing right, then mirrored: Terraria expects NPC
 # sprites to face LEFT and flips them itself when they walk right.
-#   0 idle, 1-4 walk cycle, 5 "telegraph" (arms up, before a teleport).
+#   0 idle, 1-4 walk cycle, 5 "telegraph" (knife raised, wide eyes, smile).
 FRAME_W, FRAME_H, FRAMES = 40, 56, 6
+
+OUTLINE = (8, 5, 10, 255)
+HAIR_MID = (26, 18, 34, 255)
+SKIN_BLUSH = (232, 176, 180, 255)
+EYE_DARK = (110, 0, 16, 255)
+SCLERA = (250, 246, 246, 255)
+BLOUSE_SHADE = (196, 198, 214, 255)
+NAVY_HI = (52, 62, 112, 255)
+SOCK = (16, 14, 22, 255)
+SOCK_HI = (40, 36, 52, 255)
+LOAFER = (64, 34, 26, 255)
+LOAFER_HI = (100, 58, 40, 255)
+BLADE_HI = (246, 248, 255, 255)
+BLOOD_HI = (170, 10, 24, 255)
+
+
+def px(d, x, y, c):
+    d.point((x, y), fill=c)
 
 
 def draw_tsubaki(d, oy, frame):
-    # long hair behind the body
-    rect(d, 11, oy + 6, 22, oy + 40, HAIR)
-    rect(d, 10, oy + 14, 12, oy + 42, HAIR)
-    # legs (walk cycle offsets)
-    stride = {0: (0, 0), 1: (-2, 2), 2: (0, 0), 3: (2, -2), 4: (0, 0), 5: (-1, 1)}[frame]
-    lift = {1: 1, 3: 1}.get(frame, 0)
-    rect(d, 16 + stride[0], oy + 40, 18 + stride[0], oy + 50 - lift, SKIN_SHADE)
-    rect(d, 21 + stride[1], oy + 40, 23 + stride[1], oy + 50, SKIN)
-    rect(d, 15 + stride[0], oy + 50 - lift, 19 + stride[0], oy + 53 - lift, SHOE)
-    rect(d, 20 + stride[1], oy + 50, 25 + stride[1], oy + 53, SHOE)
-    # pleated skirt
-    rect(d, 13, oy + 32, 28, oy + 40, NAVY)
+    tele = frame == 5
+    # Walk cycle: (back leg x-offset, front leg x-offset, back leg lift)
+    back_dx, front_dx, lift = {0: (0, 0, 0), 1: (-2, 2, 1), 2: (0, 0, 0), 3: (2, -2, 1), 4: (0, 0, 0), 5: (-1, 1, 0)}[frame]
+    bob = 1 if frame in (2, 4) else 0   # slight body bob on passing frames
+    y = oy + bob
+
+    # --- long back hair (behind everything)
+    rect(d, 10, y + 6, 21, y + 38, HAIR)
+    rect(d, 9, y + 14, 11, y + 41, HAIR)
+    for sx in (11, 14, 17, 20):          # strand highlights
+        rect(d, sx, y + 12, sx, y + 34 - (sx % 3) * 3, HAIR_MID)
+    for tx in range(9, 22, 2):           # ragged tips
+        px(d, tx, y + 39 + (tx % 3), HAIR)
+
+    # --- legs: black thigh-highs, a sliver of skin, loafers
+    def leg(lx, lifted, front):
+        top = y + 40
+        bottom = y + 50 - lifted
+        rect(d, lx, top, lx + 2, top + 1, SKIN if front else SKIN_SHADE)       # skin above the socks
+        rect(d, lx, top + 2, lx + 2, bottom, SOCK)
+        px(d, lx + (2 if front else 0), top + 3, SOCK_HI)
+        rect(d, lx - 1, bottom + 1, lx + 3, bottom + 3, LOAFER)
+        rect(d, lx + 2, bottom + 1, lx + 3, bottom + 1, LOAFER_HI)
+    leg(16 + back_dx, lift, False)
+    leg(21 + front_dx, 0, True)
+
+    # --- pleated skirt with a white trim stripe
+    rect(d, 13, y + 32, 28, y + 40, NAVY)
     for x in range(14, 28, 3):
-        rect(d, x, oy + 33, x, oy + 40, NAVY_DARK)
-    # sailor top + collar + ribbon
-    rect(d, 14, oy + 20, 27, oy + 32, WHITE)
-    rect(d, 13, oy + 20, 17, oy + 25, NAVY)
-    rect(d, 21, oy + 23, 24, oy + 26, RIBBON)
-    rect(d, 22, oy + 26, 23, oy + 29, RIBBON)
-    # head
-    rect(d, 16, oy + 7, 27, oy + 19, SKIN)
-    rect(d, 15, oy + 4, 28, oy + 9, HAIR)       # bangs
-    rect(d, 14, oy + 5, 17, oy + 20, HAIR)      # side hair
-    rect(d, 20, oy + 4, 25, oy + 5, HAIR_HI)    # shine
-    rect(d, 13, oy + 5, 16, oy + 7, RIBBON)     # hair ribbon
-    # eyes (bigger and wider in the telegraph frame)
-    if frame == 5:
-        rect(d, 21, oy + 11, 22, oy + 13, EYE)
-        rect(d, 25, oy + 11, 26, oy + 13, EYE)
-        rect(d, 21, oy + 16, 26, oy + 16, BLOOD)  # smile
+        rect(d, x, y + 33, x, y + 40, NAVY_DARK)
+        px(d, x + 1, y + 33, NAVY_HI)
+    rect(d, 13, y + 38, 28, y + 38, WHITE)
+
+    # --- sailor blouse
+    rect(d, 14, y + 20, 27, y + 32, WHITE)
+    rect(d, 14, y + 29, 27, y + 32, BLOUSE_SHADE)          # shading under the chest
+    rect(d, 12, y + 20, 18, y + 25, NAVY)                 # collar (back flap)
+    rect(d, 12, y + 24, 18, y + 24, WHITE)                # collar stripe
+    rect(d, 19, y + 21, 25, y + 22, NAVY)                 # front collar
+    rect(d, 20, y + 23, 24, y + 25, RIBBON)               # neckerchief knot
+    rect(d, 21, y + 26, 23, y + 29, RIBBON)
+    px(d, 22, y + 30, RIBBON)
+    px(d, 21, y + 23, BLOOD_HI)
+    for bx, by in ((17, 27), (25, 30), (15, 31)):        # blood flecks
+        px(d, bx, by, BLOOD)
+
+    # --- head
+    rect(d, 16, y + 7, 27, y + 19, SKIN)
+    rect(d, 16, y + 17, 18, y + 19, SKIN_SHADE)            # jaw shadow
+    rect(d, 15, y + 3, 28, y + 8, HAIR)                    # hime-cut bangs, straight across
+    for bx in (17, 20, 23, 26):
+        px(d, bx, y + 9, HAIR)                             # bang points
+    rect(d, 20, y + 4, 25, y + 4, HAIR_MID)                # shine
+    rect(d, 14, y + 4, 17, y + 21, HAIR)                   # side lock, to the chin
+    rect(d, 15, y + 8, 15, y + 19, HAIR_MID)
+    # big red bow at the back of the head
+    rect(d, 9, y + 3, 12, y + 6, RIBBON)
+    rect(d, 9, y + 9, 12, y + 12, RIBBON)
+    rect(d, 12, y + 6, 14, y + 9, EYE_DARK)
+    rect(d, 10, y + 12, 11, y + 16, RIBBON)                # tails
+
+    # eyes: lash line, white, red iris, dark pupil
+    for ex in (20, 24):
+        if tele:
+            rect(d, ex, y + 10, ex + 2, y + 13, SCLERA)
+            rect(d, ex + 1, y + 11, ex + 1, y + 12, EYE)
+            px(d, ex + 1, y + 11, OUTLINE)
+        else:
+            rect(d, ex, y + 11, ex + 2, y + 11, OUTLINE)    # lashes
+            rect(d, ex, y + 12, ex + 2, y + 13, SCLERA)
+            rect(d, ex + 1, y + 12, ex + 2, y + 13, EYE)
+            px(d, ex + 2, y + 13, EYE_DARK)
+    # blush + mouth
+    px(d, 19, y + 15, SKIN_BLUSH)
+    px(d, 26, y + 15, SKIN_BLUSH)
+    if tele:
+        rect(d, 21, y + 16, 25, y + 16, BLOOD)             # too-wide smile
+        px(d, 20, y + 15, BLOOD)
+        px(d, 26, y + 15, BLOOD)
     else:
-        rect(d, 21, oy + 12, 22, oy + 12, EYE)
-        rect(d, 25, oy + 12, 26, oy + 12, EYE)
-    # arm + knife
-    if frame == 5:
-        rect(d, 26, oy + 12, 28, oy + 22, WHITE)
-        rect(d, 27, oy + 9, 28, oy + 11, SKIN)
-        rect(d, 27, oy + 2, 28, oy + 8, BLADE)
-        rect(d, 27, oy + 8, 28, oy + 9, HANDLE)
+        rect(d, 22, y + 16, 23, y + 16, (170, 110, 120, 255))
+
+    # --- arm + knife
+    if tele:
+        rect(d, 25, y + 12, 27, y + 22, WHITE)             # arm raised
+        rect(d, 25, y + 12, 27, y + 13, NAVY)              # cuff
+        rect(d, 26, y + 9, 27, y + 11, SKIN)
+        rect(d, 26, y + 7, 27, y + 8, HANDLE)
+        rect(d, 26, oy + 0, 27, y + 6, BLADE)
+        px(d, 27, oy + 1, BLADE_HI)
+        px(d, 26, y + 6, BLOOD)
     else:
         swing = {1: 1, 3: -1}.get(frame, 0)
-        rect(d, 25, oy + 21, 27, oy + 29 + swing, WHITE)
-        rect(d, 26, oy + 29 + swing, 28, oy + 31 + swing, SKIN)
-        rect(d, 28, oy + 30 + swing, 29, oy + 31 + swing, HANDLE)
-        rect(d, 30, oy + 30 + swing, 35, oy + 31 + swing, BLADE)
-        rect(d, 33, oy + 32 + swing, 33, oy + 33 + swing, BLOOD)
+        rect(d, 25, y + 21, 27, y + 28 + swing, WHITE)
+        rect(d, 25, y + 27 + swing, 27, y + 28 + swing, NAVY)   # cuff
+        rect(d, 26, y + 29 + swing, 28, y + 31 + swing, SKIN)
+        rect(d, 28, y + 30 + swing, 30, y + 31 + swing, HANDLE)
+        rect(d, 31, y + 30 + swing, 36, y + 31 + swing, BLADE)
+        rect(d, 32, y + 30 + swing, 35, y + 30 + swing, BLADE_HI)
+        px(d, 36, y + 30 + swing, BLADE_HI)
+        rect(d, 33, y + 32 + swing, 33, y + 34 + swing, BLOOD)   # drip
+        px(d, 35, y + 32 + swing, BLOOD_HI)
+
+
+def add_outline(img, color):
+    """1px dark outline around everything opaque, so she reads against dark backgrounds."""
+    src = img.copy()
+    sp, dp = src.load(), img.load()
+    w, h = img.size
+    for yy in range(h):
+        for xx in range(w):
+            if sp[xx, yy][3] != 0:
+                continue
+            for nx, ny in ((xx - 1, yy), (xx + 1, yy), (xx, yy - 1), (xx, yy + 1)):
+                # stay inside the same frame so outlines don't bleed between frames
+                if 0 <= nx < w and 0 <= ny < h and ny // FRAME_H == yy // FRAME_H and sp[nx, ny][3] != 0:
+                    dp[xx, yy] = color
+                    break
 
 
 def tsubaki():
@@ -105,6 +195,7 @@ def tsubaki():
     d = ImageDraw.Draw(img)
     for f in range(FRAMES):
         draw_tsubaki(d, f * FRAME_H, f)
+    add_outline(img, OUTLINE)
     save(img.transpose(Image.FLIP_LEFT_RIGHT), "NPCs", "Tsubaki.png")
 
 
@@ -216,18 +307,48 @@ def blood_splat():
 
 
 def jumpscare():
+    rng = random.Random(77)
     img = Image.new("RGBA", (256, 256), (0, 0, 0, 255))
     d = ImageDraw.Draw(img)
-    d.ellipse([20, 0, 236, 280], fill=HAIR)               # hair mass
-    d.ellipse([58, 40, 198, 230], fill=SKIN)              # face
-    d.polygon([(58, 40), (198, 40), (198, 95), (170, 80), (128, 100), (86, 80), (58, 95)], fill=HAIR)  # bangs
-    for ex in (98, 158):                                  # eyes
-        d.ellipse([ex - 22, 110, ex + 22, 150], fill=(250, 250, 250, 255))
-        d.ellipse([ex - 14, 114, ex + 14, 146], fill=EYE)
-        d.ellipse([ex - 3, 126, ex + 3, 134], fill=(0, 0, 0, 255))
-    d.arc([78, 150, 178, 215], 10, 170, fill=BLOOD, width=6)   # smile
-    rect(d, 80, 180, 82, 230, BLOOD)
-    rect(d, 170, 175, 173, 240, BLOOD)
+    d.ellipse([16, -6, 240, 290], fill=HAIR)                       # hair mass
+    for _ in range(40):                                           # loose strands
+        x = rng.randint(20, 236)
+        d.line([(x, 20), (x + rng.randint(-12, 12), 256)], fill=(30, 22, 40, 255), width=1)
+    d.ellipse([58, 40, 198, 232], fill=SKIN)                      # face
+    d.ellipse([58, 150, 198, 232], fill=SKIN_SHADE)
+    d.ellipse([62, 140, 194, 226], fill=SKIN)
+    bangs = [(54, 30), (202, 30), (202, 92)]
+    for k in range(8):                                            # bangs hanging in points
+        x = 202 - (k + 1) * 18.5
+        bangs += [(x + 9, 104 if k % 2 else 98), (x, 86)]
+    bangs += [(54, 92)]
+    d.polygon(bangs, fill=HAIR)
+    d.polygon([(40, 60), (70, 60), (66, 240), (40, 256)], fill=HAIR)              # side locks
+    d.polygon([(186, 60), (216, 60), (216, 256), (190, 240)], fill=HAIR)
+    d.polygon([(196, 18), (236, 4), (232, 44)], fill=RIBBON)                      # bow
+    d.polygon([(196, 18), (214, 50), (176, 42)], fill=RIBBON)
+    d.ellipse([190, 14, 204, 28], fill=EYE_DARK)
+    for ex in (100, 156):                                         # eyes, wide open
+        d.ellipse([ex - 25, 106, ex + 25, 152], fill=SCLERA)
+        d.ellipse([ex - 15, 110, ex + 15, 148], fill=EYE)
+        d.ellipse([ex - 10, 115, ex + 10, 143], fill=EYE_DARK)
+        d.ellipse([ex - 3, 125, ex + 3, 133], fill=(0, 0, 0, 255))
+        d.ellipse([ex + 4, 117, ex + 9, 122], fill=(255, 255, 255, 255))    # glint
+        d.arc([ex - 27, 102, ex + 27, 156], 190, 350, fill=OUTLINE, width=4)  # lash line
+        for k in range(5):
+            lx = ex - 22 + k * 11
+            d.line([(lx, 106), (lx - 3, 98)], fill=OUTLINE, width=2)
+    d.ellipse([70, 158, 92, 168], fill=SKIN_BLUSH)                # blush
+    d.ellipse([164, 158, 186, 168], fill=SKIN_BLUSH)
+    d.chord([84, 176, 172, 204], 0, 180, fill=(50, 0, 6, 255))     # thin, too-wide smile
+    for tx in range(98, 160, 7):                                  # small even teeth
+        d.rectangle([tx, 190, tx + 4, 194], fill=(236, 230, 220, 255))
+    d.arc([84, 176, 172, 204], 0, 180, fill=BLOOD, width=2)
+    d.line([(84, 190), (76, 184)], fill=BLOOD, width=2)           # corners pulled up
+    d.line([(172, 190), (180, 184)], fill=BLOOD, width=2)
+    rect(d, 100, 135, 102, 175, BLOOD)                            # tears of blood
+    rect(d, 157, 140, 159, 185, BLOOD)
+    rect(d, 120, 205, 123, 245, BLOOD)                            # drip from the smile
     save(img, "UI", "Jumpscare.png")
 
 

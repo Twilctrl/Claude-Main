@@ -59,6 +59,10 @@ namespace ScreamAndRun.Content.NPCs
 
 		private int footstepTimer;
 		private int knockTimer = 120;
+		private int knocksLeft;
+		private int knockGap;
+
+		private int hopTicks;
 
 		private readonly List<Point> path = new();
 		private int pathIndex;
@@ -293,12 +297,28 @@ namespace ScreamAndRun.Content.NPCs
 				}
 			}
 
-			// Standing right outside: she knocks, rattles the door, and you feel it.
-			if (lockerDist < 3 * Tile && moving < 0.5f) {
+			// Standing right outside: a burst of knocks, then a rattle of the door, each one felt.
+			if (knocksLeft > 0) {
+				if (--knockGap <= 0) {
+					knocksLeft--;
+					if (knocksLeft == 0) {
+						SoundEngine.PlaySound(ScreamAudio.Rattle, hp.HideCenter);
+						HauntUISystem.Shake(22);
+					}
+					else {
+						SoundEngine.PlaySound(ScreamAudio.Knock, hp.HideCenter);
+						if (ScreamAudio.KnockLayer is SoundStyle layer)
+							SoundEngine.PlaySound(layer, hp.HideCenter);
+						HauntUISystem.Shake(16);
+						knockGap = Main.rand.Next(9, 15);
+					}
+				}
+			}
+			else if (lockerDist < 3 * Tile && moving < 0.5f) {
 				if (--knockTimer <= 0) {
-					knockTimer = Main.rand.Next(150, 260);
-					SoundEngine.PlaySound(ScreamAudio.Knock, hp.HideCenter);
-					HauntUISystem.Shake(14);
+					knockTimer = Main.rand.Next(170, 280);
+					knocksLeft = Main.rand.Next(3, 6) + 1; // 3-5 knocks, then the rattle
+					knockGap = 0;
 				}
 			}
 			else {
@@ -349,15 +369,19 @@ namespace ScreamAndRun.Content.NPCs
 			}
 
 			// Stuck = trying to get somewhere and not moving, whether or not a path was found.
+			// Escalates once a second: jump, then a new route plus another jump, then relocate.
 			bool wantsToMove = currentGoal is Vector2 g && Vector2.Distance(NPC.Center, g) > 3 * Tile;
-			if (++stuckTimer >= 120) {
+			if (++stuckTimer >= 60) {
 				stuckTimer = 0;
 				if (wantsToMove && Vector2.Distance(NPC.position, stuckAnchor) < Tile && dist > 4 * Tile) {
 					stuckStrikes++;
 					if (stuckStrikes == 1) {
-						// First try somewhere else; the goal may just be unreachable.
+						Hop(currentGoal.Value);
+					}
+					else if (stuckStrikes == 2) {
 						wanderTimer = 0;
 						repathTimer = 0;
+						Hop(currentGoal.Value);
 					}
 					else {
 						stuckStrikes = 0;
@@ -465,7 +489,29 @@ namespace ScreamAndRun.Content.NPCs
 		private static Point GoalToNode(Vector2 worldPoint) =>
 			new((int)Math.Round(worldPoint.X / Tile) - HuntPathfinder.W / 2, (int)Math.Floor(worldPoint.Y / Tile) - HuntPathfinder.H + 2);
 
+		/// <summary>A real jump with gravity and block collision, used to shake loose when stuck.</summary>
+		private void Hop(Vector2 toward) {
+			hopTicks = 45;
+			int dir = toward.X >= NPC.Center.X ? 1 : -1;
+			NPC.velocity = new Vector2(dir * 2.5f, -7.5f);
+			NPC.direction = NPC.spriteDirection = dir;
+			path.Clear();
+		}
+
 		private void MoveToward(Vector2? goal, float speed, Player player) {
+			NPC.noTileCollide = false;
+
+			if (hopTicks > 0) {
+				hopTicks--;
+				NPC.velocity.Y = Math.Min(NPC.velocity.Y + 0.35f, 10f);
+				// Landed (vanilla collision zeroed the fall) or timed out: go back to planning.
+				if (NPC.velocity.Y == 0f && hopTicks < 40 || hopTicks == 0) {
+					hopTicks = 0;
+					repathTimer = 0;
+				}
+				return;
+			}
+
 			if (goal is not Vector2 target) {
 				path.Clear();
 				NPC.velocity *= 0.8f;
@@ -479,19 +525,36 @@ namespace ScreamAndRun.Content.NPCs
 				pathGoal = target;
 				HuntPathfinder.FindPath(PositionToNode(NPC.position), GoalToNode(target), path);
 				pathIndex = 1;
+				// Start from exactly the first node, so every move begins on the grid.
+				if (path.Count > 1 && Vector2.Distance(NPC.position, NodeToPosition(path[0])) < 6f)
+					NPC.position = NodeToPosition(path[0]);
 			}
 
-			while (pathIndex < path.Count && Vector2.Distance(NPC.position, NodeToPosition(path[pathIndex])) < 3f)
+			// Reached a waypoint: snap onto it exactly. Arriving a few pixels low is what used to snag
+			// her hitbox on the corner of a step.
+			while (pathIndex < path.Count && Vector2.Distance(NPC.position, NodeToPosition(path[pathIndex])) < 3f) {
+				NPC.position = NodeToPosition(path[pathIndex]);
 				pathIndex++;
+			}
 
 			if (pathIndex < path.Count) {
-				Vector2 to = NodeToPosition(path[pathIndex]) - NPC.position;
+				Point next = path[pathIndex];
+				if (!HuntPathfinder.Fits(next.X, next.Y)) {
+					// The world changed under the plan (a block was placed): stop and re-plan next tick.
+					NPC.velocity = Vector2.Zero;
+					repathTimer = 0;
+					return;
+				}
+				Vector2 to = NodeToPosition(next) - NPC.position;
 				float sp = speed;
 				if (to.Y < -2f)
 					sp *= 0.8f; // climbing is slower
 				else if (to.Y > 2f && Math.Abs(to.X) < 2f)
 					sp *= 1.6f; // dropping is faster
 				NPC.velocity = to.Length() > sp ? Vector2.Normalize(to) * sp : to;
+				// Every cell on the path was checked open (diagonals included), so vanilla collision
+				// would only snag her on corners.
+				NPC.noTileCollide = true;
 			}
 			else if (CanSeePlayer && Vector2.Distance(NPC.Center, player.Center) < 5 * Tile) {
 				// End of the path but you're right there: lunge straight at you (tile collision still applies).
@@ -517,6 +580,7 @@ namespace ScreamAndRun.Content.NPCs
 			NPC.position = topLeft;
 			NPC.velocity = Vector2.Zero;
 			NPC.oldPosition = topLeft;
+			hopTicks = 0;
 			path.Clear();
 			repathTimer = 0;
 			stuckAnchor = topLeft;

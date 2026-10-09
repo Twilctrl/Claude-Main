@@ -38,7 +38,8 @@ with one of these names (`.ogg`, `.wav` or `.mp3`):
 | `LockerOpen` / `LockerClose` | Getting in and out of a locker, and when she rips it open. |
 | `GiveUp` | You survived. |
 | `Footstep` | Each of her steps while she's near the locker you're hiding in (played positionally). |
-| `Knock` | She bangs on / rattles your locker while standing right outside it. |
+| `Knock` | **One** knock on your locker. It's played 3-5 times in a burst when she stands outside. |
+| `Rattle` | The door rattle that ends each knock burst. |
 
 Example: `Sounds/Heartbeat.ogg`.
 
