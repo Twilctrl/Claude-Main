@@ -254,14 +254,16 @@ namespace ScreamAndRun.Common.Players
 				c = 1f;
 			if (c < 0.03f)
 				return;
+			// Quieter inside the locker, so her footsteps and knocks carry over it.
+			float hidingDuck = Hiding ? 0.55f : 1f;
 
 			if (secondBeatTimer > 0 && --secondBeatTimer == 0)
-				SoundEngine.PlaySound(ScreamAudio.Heartbeat with { Volume = 0.25f + 0.55f * c, Pitch = ScreamAudio.Heartbeat.Pitch + 0.15f });
+				SoundEngine.PlaySound(ScreamAudio.Heartbeat with { Volume = (0.25f + 0.55f * c) * hidingDuck, Pitch = ScreamAudio.Heartbeat.Pitch + 0.15f });
 
 			if (--heartbeatTimer <= 0) {
 				heartbeatTimer = (int)MathHelper.Lerp(75f, 17f, c);
 				secondBeatTimer = Math.Max(4, heartbeatTimer / 4);
-				SoundEngine.PlaySound(ScreamAudio.Heartbeat with { Volume = 0.3f + 0.7f * c });
+				SoundEngine.PlaySound(ScreamAudio.Heartbeat with { Volume = (0.3f + 0.7f * c) * hidingDuck });
 			}
 		}
 	}

@@ -187,9 +187,13 @@ namespace ScreamAndRun.Common.UI
 			for (int i = 0; i < slits - 1; i++)
 				sb.Draw(pixel, new Rectangle(x0, y0 + slitH + i * (slitH + gap), slitW, gap), Color.Black);
 
+			// Through the vents you see only sky: a flat, dim sliver of it, never the ground around
+			// the locker. Her shadow and eyes are the only way to know she's there.
+			Color sky = VentSky(hp.Player);
 			for (int i = 0; i < slits; i++) {
 				var slit = new Rectangle(x0, y0 + i * (slitH + gap), slitW, slitH);
-				sb.Draw(pixel, slit, Color.Black * 0.45f); // dim even through the vents
+				// Slightly lighter toward the top vent, like light coming down.
+				sb.Draw(pixel, slit, Color.Lerp(sky, Color.Black, 0.15f + i * 0.12f));
 
 				if (hp.LockerShadow > 0f) {
 					int bandW = (int)(slitW * 0.45f);
@@ -199,14 +203,24 @@ namespace ScreamAndRun.Common.UI
 				}
 			}
 
-			// Right outside: her eyes in the second vent, now and then.
+			// Right outside: her eyes in the second vent, now and then. Set wide, like a face pressed close.
 			if (hp.LockerShadow > 0.85f && Main.GlobalTimeWrappedHourly % 3f < 1.6f) {
-				int eyeY = y0 + slitH + gap + slitH / 2 - 2;
+				int eyeSize = Math.Max(4, (int)(slitH * 0.8f));
+				int eyeY = y0 + slitH + gap + (slitH - eyeSize) / 2;
 				int cx = (int)(x0 + slitW * (0.5f + hp.LockerShadowSide * 0.5f));
-				int eye = Math.Max(3, slitH / 2);
-				sb.Draw(pixel, new Rectangle(cx - eye * 3, eyeY, eye, eye), new Color(230, 10, 30));
-				sb.Draw(pixel, new Rectangle(cx + eye * 2, eyeY, eye, eye), new Color(230, 10, 30));
+				int spread = Math.Max(eyeSize * 3, (int)(slitW * 0.07f));
+				var eyeColor = new Color(230, 10, 30);
+				sb.Draw(pixel, new Rectangle(cx - spread - eyeSize / 2, eyeY, eyeSize, eyeSize), eyeColor);
+				sb.Draw(pixel, new Rectangle(cx + spread - eyeSize / 2, eyeY, eyeSize, eyeSize), eyeColor);
 			}
+		}
+
+		/// <summary>The colour of the "outside" seen through the vents: tinted sky above ground, black-brown below.</summary>
+		private static Color VentSky(Player player) {
+			bool underground = player.Center.Y > Main.worldSurface * 16.0;
+			Color baseColor = underground ? new Color(26, 20, 18) : Main.ColorOfTheSkies;
+			// The event's blood-dark sky tint.
+			return Color.Lerp(baseColor, new Color(40, 8, 14), 0.55f * HauntEventSystem.Dim);
 		}
 
 		// ---------------------------------------------------------------- HUD

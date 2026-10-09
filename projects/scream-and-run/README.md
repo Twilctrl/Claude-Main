@@ -81,8 +81,8 @@ Place a few lockers first, then read the letter.
   9-13 tiles behind you**.
 - **Movement:** she never phases through blocks. A grid pathfinder lets her walk floors, step up ledges, and
   **crawl up walls and along ceilings**, through open space only. She drops through platforms. If she
-  stops making progress for 2 s she picks another route; after 4 s, or if you get 120+ tiles away (Magic
-  Mirror, etc.), she reappears out of sight closer to you.
+  stops making progress, she **jumps** after 1 s, picks another route and jumps again after 2 s, and after
+  3 s (or if you get 120+ tiles away, e.g. Magic Mirror) she reappears out of sight closer to you.
 - **Can't be killed:** no damage, no knockback, immune to every debuff, minions ignore her, and she
   never despawns until the event ends. If something deletes her anyway, she respawns.
 - **Death:** contact kills via `KillMe`, skipping defense, armor, i-frames and dodges, with a custom
@@ -106,13 +106,14 @@ Her notice radius starts at **45 tiles**, then:
 
 - **Right-click** to get in, **Jump** or right-click to get out. Inside you're invisible to her
   and can't move or use items.
-- **You trade sight for safety.** The screen goes solid black except for four dim vent slits, and the HUD
-  shows only the clock: no presence bar, no awareness, no noise meter. You have to listen:
+- **You trade sight for safety.** The screen goes solid black except for four thin vent slits, and through
+  them you see **only sky** (or dark rock underground), never the area around the locker. The HUD shows
+  only the clock: no presence bar, no awareness, no noise meter. You have to listen and watch the vents:
   - **Footsteps** when she walks within ~16 tiles, positioned left/right so you can tell her side.
   - **Her shadow** crosses the vents on the side she's on as she passes the locker.
-  - **Knocking**: when she stops right outside she bangs or rattles the door, with a small jolt. Sometimes her
-    **red eyes** show in a vent.
-  - The heartbeat never drops below a nervous pace while you're inside.
+  - **Knocking**: when she stops right outside, a burst of 3-5 loud knocks and then a rattle of the door,
+    each with a jolt. Sometimes her **red eyes** show in a vent.
+  - The heartbeat never drops below a nervous pace while you're inside, but it's quieter so you can hear her.
 - If she's within 7 tiles of your locker, she builds suspicion. It takes **6 s if she saw you get in, 12 s if
   not**. When it fills, or once you've been inside **40 s total** (getting out and back in doesn't reset that quickly),
   she knows. She walks straight to the locker, and when she reaches it she rips it open (jumpscare and death,
