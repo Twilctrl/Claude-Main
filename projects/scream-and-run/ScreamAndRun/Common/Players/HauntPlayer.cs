@@ -20,7 +20,7 @@ namespace ScreamAndRun.Common.Players
 	/// </summary>
 	public class HauntPlayer : ModPlayer
 	{
-		private const float BaseDetectionTiles = 30f;
+		private const float BaseDetectionTiles = 45f;
 
 		// ---- perception (read by Tsubaki and the UI)
 		/// <summary>0 to 1. Rises when you run, attack or mine, and fades over a few seconds.</summary>
@@ -37,6 +37,10 @@ namespace ScreamAndRun.Common.Players
 		public bool Tracked;
 		public bool KnowsLocker;
 		public int SearchPressure;
+		/// <summary>While hiding: 0-1, how much of her shadow falls across the vents.</summary>
+		public float LockerShadow;
+		/// <summary>While hiding: -1 (she's to the left) to 1 (to the right).</summary>
+		public float LockerShadowSide;
 
 		/// <summary>Closeness, eased so effects don't pop.</summary>
 		public float SmoothCloseness { get; private set; }
@@ -96,7 +100,7 @@ namespace ScreamAndRun.Common.Players
 			float tiles = BaseDetectionTiles;
 			if (CrouchingStill)
 				tiles *= 0.5f;
-			tiles *= MathHelper.Lerp(0.45f, 1f, MathHelper.Clamp(brightness / 0.5f, 0f, 1f));
+			tiles *= MathHelper.Lerp(0.6f, 1f, MathHelper.Clamp(brightness / 0.5f, 0f, 1f));
 			tiles *= 1f + Noise * 1.5f;
 			DetectionRadius = Math.Max(tiles, 5f) * 16f;
 		}

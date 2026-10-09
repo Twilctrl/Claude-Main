@@ -21,6 +21,8 @@ namespace ScreamAndRun.Common.Audio
 		public static SoundStyle LockerOpen { get; private set; }
 		public static SoundStyle LockerClose { get; private set; }
 		public static SoundStyle GiveUp { get; private set; }
+		public static SoundStyle Footstep { get; private set; }
+		public static SoundStyle Knock { get; private set; }
 
 		private static readonly string[] AudioExtensions = { ".ogg", ".wav", ".mp3" };
 		private static bool hasCustomMusic;
@@ -37,6 +39,8 @@ namespace ScreamAndRun.Common.Audio
 			LockerOpen = Pick(mod, "LockerOpen", SoundID.DoorOpen);
 			LockerClose = Pick(mod, "LockerClose", SoundID.DoorClosed);
 			GiveUp = Pick(mod, "GiveUp", SoundID.Item6 with { Pitch = -0.4f });
+			Footstep = Pick(mod, "Footstep", SoundID.Run with { Pitch = -0.3f, MaxInstances = 4 });
+			Knock = Pick(mod, "Knock", SoundID.Dig with { Pitch = -0.2f, Volume = 1f });
 
 			hasCustomMusic = HasAudioFile(mod, "Assets/Music/Theme");
 		}

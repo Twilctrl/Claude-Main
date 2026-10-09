@@ -37,6 +37,8 @@ with one of these names (`.ogg`, `.wav` or `.mp3`):
 | `Jumpscare` | She catches you. |
 | `LockerOpen` / `LockerClose` | Getting in and out of a locker, and when she rips it open. |
 | `GiveUp` | You survived. |
+| `Footstep` | Each of her steps while she's near the locker you're hiding in (played positionally). |
+| `Knock` | She bangs on / rattles your locker while standing right outside it. |
 
 Example: `Sounds/Heartbeat.ogg`.
 

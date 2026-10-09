@@ -29,6 +29,7 @@ namespace ScreamAndRun.Common.UI
 		private static Color bannerColor;
 		private static int bannerTicks, bannerDuration;
 		private static int warningTicks;
+		private static int shakeTicks;
 		private static int jumpscareTicks;
 		private const int JumpscareDuration = 70;
 
@@ -43,6 +44,9 @@ namespace ScreamAndRun.Common.UI
 		public static void FlashWarning(int ticks) => warningTicks = ticks;
 
 		public static void TriggerJumpscare() => jumpscareTicks = JumpscareDuration;
+
+		/// <summary>A short camera jolt, e.g. when she bangs on your locker.</summary>
+		public static void Shake(int ticks) => shakeTicks = Math.Max(shakeTicks, ticks);
 
 		public override void Load() {
 			if (Main.dedServ)
@@ -65,6 +69,8 @@ namespace ScreamAndRun.Common.UI
 				bannerTicks--;
 			if (warningTicks > 0)
 				warningTicks--;
+			if (shakeTicks > 0)
+				shakeTicks--;
 			if (jumpscareTicks > 0)
 				jumpscareTicks--;
 		}
@@ -123,7 +129,7 @@ namespace ScreamAndRun.Common.UI
 				c = Math.Max(c, 0.8f);
 
 			if (hp.Hiding)
-				DrawLockerView(sb, pixel, w, h);
+				DrawLockerView(sb, pixel, w, h, hp);
 
 			// Vignette: the clear hole shrinks and darkens as she gets closer.
 			Texture2D vig = vignette.Value;
@@ -159,23 +165,48 @@ namespace ScreamAndRun.Common.UI
 				sb.Draw(pixel, new Rectangle(0, 0, w, h), new Color(150, 0, 0) * 0.18f);
 		}
 
-		/// <summary>Inside a locker you only see out through the vents.</summary>
-		private static void DrawLockerView(SpriteBatch sb, Texture2D pixel, int w, int h) {
-			Color dark = Color.Black * 0.9f;
-			int slitW = (int)(w * 0.45f);
-			int slitH = Math.Max(6, h / 60);
-			int gap = slitH * 2;
+		/// <summary>
+		/// Inside a locker you trade sight for safety: the screen is solid black except for the
+		/// vents, and even through those the view is dim. Her shadow crosses the vents on the side
+		/// she's on, and if she stops right outside, sometimes you see her eyes.
+		/// </summary>
+		private static void DrawLockerView(SpriteBatch sb, Texture2D pixel, int w, int h, HauntPlayer hp) {
+			int slitW = (int)(w * 0.3f);
+			int slitH = Math.Max(5, h / 75);
+			int gap = slitH * 3;
 			const int slits = 4;
 			int totalH = slits * slitH + (slits - 1) * gap;
 			int x0 = (w - slitW) / 2;
 			int y0 = (h - totalH) / 2 - h / 10;
 
-			sb.Draw(pixel, new Rectangle(0, 0, w, y0), dark);
-			sb.Draw(pixel, new Rectangle(0, y0 + totalH, w, h - y0 - totalH), dark);
-			sb.Draw(pixel, new Rectangle(0, y0, x0, totalH), dark);
-			sb.Draw(pixel, new Rectangle(x0 + slitW, y0, w - x0 - slitW, totalH), dark);
+			// Solid walls around and between the vents.
+			sb.Draw(pixel, new Rectangle(0, 0, w, y0), Color.Black);
+			sb.Draw(pixel, new Rectangle(0, y0 + totalH, w, h - y0 - totalH), Color.Black);
+			sb.Draw(pixel, new Rectangle(0, y0, x0, totalH), Color.Black);
+			sb.Draw(pixel, new Rectangle(x0 + slitW, y0, w - x0 - slitW, totalH), Color.Black);
 			for (int i = 0; i < slits - 1; i++)
-				sb.Draw(pixel, new Rectangle(x0, y0 + slitH + i * (slitH + gap), slitW, gap), dark);
+				sb.Draw(pixel, new Rectangle(x0, y0 + slitH + i * (slitH + gap), slitW, gap), Color.Black);
+
+			for (int i = 0; i < slits; i++) {
+				var slit = new Rectangle(x0, y0 + i * (slitH + gap), slitW, slitH);
+				sb.Draw(pixel, slit, Color.Black * 0.45f); // dim even through the vents
+
+				if (hp.LockerShadow > 0f) {
+					int bandW = (int)(slitW * 0.45f);
+					int bandX = (int)(x0 + slitW * (0.5f + hp.LockerShadowSide * 0.5f) - bandW / 2f);
+					var band = Rectangle.Intersect(new Rectangle(bandX, slit.Y, bandW, slit.Height), slit);
+					sb.Draw(pixel, band, Color.Black * (0.95f * hp.LockerShadow));
+				}
+			}
+
+			// Right outside: her eyes in the second vent, now and then.
+			if (hp.LockerShadow > 0.85f && Main.GlobalTimeWrappedHourly % 3f < 1.6f) {
+				int eyeY = y0 + slitH + gap + slitH / 2 - 2;
+				int cx = (int)(x0 + slitW * (0.5f + hp.LockerShadowSide * 0.5f));
+				int eye = Math.Max(3, slitH / 2);
+				sb.Draw(pixel, new Rectangle(cx - eye * 3, eyeY, eye, eye), new Color(230, 10, 30));
+				sb.Draw(pixel, new Rectangle(cx + eye * 2, eyeY, eye, eye), new Color(230, 10, 30));
+			}
 		}
 
 		// ---------------------------------------------------------------- HUD
@@ -214,6 +245,14 @@ namespace ScreamAndRun.Common.UI
 			Utils.DrawBorderString(sb, Language.GetTextValue("Mods.ScreamAndRun.UI." + phaseKey), new Vector2(x, y), TextRed, 1f, 0.5f, 0f);
 			y += 28f;
 
+			// Inside a locker you get nothing but the clock: listen for her instead.
+			if (hp.Hiding) {
+				Utils.DrawBorderString(sb, Language.GetTextValue("Mods.ScreamAndRun.UI.Hiding"), new Vector2(x, uiH * 0.8f), new Color(170, 170, 180), 0.85f, 0.5f, 0f);
+				if (warningTicks > 0 && warningTicks / 6 % 2 == 0)
+					Utils.DrawBorderStringBig(sb, "!", new Vector2(x, uiH * 0.42f), TextRed, 2f, 0.5f, 0.5f);
+				return;
+			}
+
 			// Proximity warning.
 			float c = hp.SmoothCloseness;
 			string distKey = c > 0.85f ? "Behind" : c > 0.6f ? "Close" : c > 0.3f ? "Near" : "Far";
@@ -248,14 +287,6 @@ namespace ScreamAndRun.Common.UI
 				tags.Add(Language.GetTextValue("Mods.ScreamAndRun.UI.Dark"));
 			if (tags.Count > 0)
 				Utils.DrawBorderString(sb, string.Join("  -  ", tags), new Vector2(x, y), new Color(150, 170, 220), 0.75f, 0.5f, 0f);
-
-			if (hp.Hiding) {
-				float danger = Math.Max(hp.HideTicks / (float)Tsubaki.MaxHideTicks, hp.SearchPressure / (float)(hp.SeenEntering ? Tsubaki.LockerSearchLimitSeen : Tsubaki.LockerSearchLimitUnseen));
-				Utils.DrawBorderString(sb, Language.GetTextValue("Mods.ScreamAndRun.UI.Hiding"), new Vector2(x, uiH * 0.72f), Color.White, 0.9f, 0.5f, 0f);
-				var hideBar = new Rectangle((int)(x - 100), (int)(uiH * 0.72f) + 26, 200, 6);
-				sb.Draw(pixel, hideBar, Color.Black * 0.7f);
-				sb.Draw(pixel, new Rectangle(hideBar.X, hideBar.Y, (int)(hideBar.Width * MathHelper.Clamp(danger, 0f, 1f)), hideBar.Height), TextRed);
-			}
 
 			if (warningTicks > 0 && warningTicks / 6 % 2 == 0)
 				Utils.DrawBorderStringBig(sb, "!", new Vector2(x, uiH * 0.42f), TextRed, 2f, 0.5f, 0.5f);
@@ -328,6 +359,8 @@ namespace ScreamAndRun.Common.UI
 			float strength = c > 0.6f ? (c - 0.6f) / 0.4f * 3f : 0f;
 			if (jumpscareTicks > 20)
 				strength = Math.Max(strength, 8f);
+			if (shakeTicks > 0)
+				strength = Math.Max(strength, shakeTicks * 0.5f);
 			if (strength > 0f)
 				Main.screenPosition += Main.rand.NextVector2Circular(strength, strength);
 		}

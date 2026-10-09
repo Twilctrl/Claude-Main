@@ -81,7 +81,9 @@ namespace ScreamAndRun.Common.AI
 				if (IsSolid(x + dx, y - 1))
 					return true;
 			}
-			return false;
+			// Ledge corners just below her feet on either side: lets her pull herself up a step
+			// even with no wall to climb, which is most of the surface.
+			return IsStandable(x - 1, y + H) || IsStandable(x + W, y + H);
 		}
 
 		/// <summary>From a node, fall straight down to the first node with a floor under it.</summary>

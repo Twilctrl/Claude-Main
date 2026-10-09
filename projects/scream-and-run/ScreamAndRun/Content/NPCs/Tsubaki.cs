@@ -30,7 +30,7 @@ namespace ScreamAndRun.Content.NPCs
 
 		// Base speeds in pixels per tick, before the config multiplier.
 		private const float StalkSpeed = 1.1f;
-		private const float DriftSpeed = 1.8f;
+		private const float RoamSpeed = 1.7f;
 		private const float SearchSpeed = 2.1f;
 		private const float HuntSpeed = 3.4f;
 		private const float FrenzySpeed = 4.4f;
@@ -53,7 +53,12 @@ namespace ScreamAndRun.Content.NPCs
 		private int searchTicks;
 		private Vector2 wanderPoint;
 		private int wanderTimer;
-		private int stalkSide = 1;
+		private int pauseTicks;
+		private int wanderAge;
+		private Vector2? currentGoal;
+
+		private int footstepTimer;
+		private int knockTimer = 120;
 
 		private readonly List<Point> path = new();
 		private int pathIndex;
@@ -194,7 +199,9 @@ namespace ScreamAndRun.Content.NPCs
 				return; // relocated this tick
 
 			Vector2? goal = ChooseGoal(player, hp, phase, dist, out float speed);
+			currentGoal = goal;
 			MoveToward(goal, speed * config.SpeedMultiplier, player);
+			UpdateLockerCues(hp);
 			NPC.alpha = 0;
 		}
 
@@ -260,6 +267,45 @@ namespace ScreamAndRun.Content.NPCs
 			return false;
 		}
 
+		/// <summary>
+		/// What you notice from inside a locker: her footsteps nearby (positioned, so you can tell
+		/// which side), her shadow across the vents, and knocking when she stops right outside.
+		/// </summary>
+		private void UpdateLockerCues(HauntPlayer hp) {
+			if (!hp.Hiding) {
+				hp.LockerShadow = 0f;
+				return;
+			}
+			Vector2 offset = NPC.Center - hp.HideCenter;
+			float lockerDist = offset.Length();
+
+			// Shadow over the vents: strongest when she's level with the locker and close.
+			bool level = Math.Abs(offset.Y) < 4 * Tile;
+			hp.LockerShadow = level ? MathHelper.Clamp(1f - (Math.Abs(offset.X) - Tile) / (6 * Tile), 0f, 1f) : 0f;
+			hp.LockerShadowSide = MathHelper.Clamp(offset.X / (6 * Tile), -1f, 1f);
+
+			float moving = NPC.velocity.Length();
+			if (lockerDist < 16 * Tile && moving > 0.4f) {
+				if (--footstepTimer <= 0) {
+					footstepTimer = (int)MathHelper.Clamp(40f / moving, 9f, 30f);
+					float volume = MathHelper.Lerp(1f, 0.25f, lockerDist / (16 * Tile));
+					SoundEngine.PlaySound(ScreamAudio.Footstep with { Volume = volume, Pitch = ScreamAudio.Footstep.Pitch + Main.rand.NextFloat(-0.1f, 0.1f) }, NPC.Center);
+				}
+			}
+
+			// Standing right outside: she knocks, rattles the door, and you feel it.
+			if (lockerDist < 3 * Tile && moving < 0.5f) {
+				if (--knockTimer <= 0) {
+					knockTimer = Main.rand.Next(150, 260);
+					SoundEngine.PlaySound(ScreamAudio.Knock, hp.HideCenter);
+					HauntUISystem.Shake(14);
+				}
+			}
+			else {
+				knockTimer = Math.Max(knockTimer, 60);
+			}
+		}
+
 		/// <summary>Frenzy teleport: a loud cue, a short wind-up, then she appears behind you.</summary>
 		private bool UpdateTelegraph(Player player, HauntPlayer hp, HauntPhase phase, float dist) {
 			if (telegraphTicks > 0) {
@@ -302,11 +348,18 @@ namespace ScreamAndRun.Content.NPCs
 				farTicks = 0;
 			}
 
-			bool wantsToMove = path.Count > 0 && pathIndex < path.Count;
+			// Stuck = trying to get somewhere and not moving, whether or not a path was found.
+			bool wantsToMove = currentGoal is Vector2 g && Vector2.Distance(NPC.Center, g) > 3 * Tile;
 			if (++stuckTimer >= 120) {
 				stuckTimer = 0;
 				if (wantsToMove && Vector2.Distance(NPC.position, stuckAnchor) < Tile && dist > 4 * Tile) {
-					if (++stuckStrikes >= 2) {
+					stuckStrikes++;
+					if (stuckStrikes == 1) {
+						// First try somewhere else; the goal may just be unreachable.
+						wanderTimer = 0;
+						repathTimer = 0;
+					}
+					else {
 						stuckStrikes = 0;
 						Relocate(player, 20, 35);
 						return true;
@@ -329,19 +382,15 @@ namespace ScreamAndRun.Content.NPCs
 			}
 
 			if (phase == HauntPhase.Stalking) {
+				// She pretends not to know where you are: roam, drifting closer over time, never charging.
 				speed = StalkSpeed;
-				if (dist < 12 * Tile) {
+				float keepAway = MathHelper.Lerp(30f, 12f, HauntEventSystem.StalkProgress) * Tile;
+				if (dist < keepAway && CanSeeIgnoringPhase(player, hp)) {
 					// Close enough. Stand still and stare.
 					NPC.direction = NPC.spriteDirection = player.Center.X > NPC.Center.X ? 1 : -1;
 					return null;
 				}
-				if (--wanderTimer <= 0) {
-					wanderTimer = Main.rand.Next(4 * 60, 7 * 60);
-					if (Main.rand.NextBool(3))
-						stalkSide = -stalkSide;
-				}
-				float offset = MathHelper.Lerp(55f, 16f, HauntEventSystem.StalkProgress) * Tile;
-				return player.Center + new Vector2(stalkSide * offset, 0f);
+				return Roam(player, dist, pull: 0.35f, keepAway);
 			}
 
 			if (HasTrack) {
@@ -359,17 +408,53 @@ namespace ScreamAndRun.Content.NPCs
 				return wanderPoint;
 			}
 
-			// Lost you: drift around where you probably are.
-			speed = frenzy ? DriftSpeed * 1.4f : DriftSpeed;
-			if (--wanderTimer <= 0) {
-				wanderTimer = Main.rand.Next(4 * 60, 6 * 60);
-				float side = Main.rand.NextBool() ? 1f : -1f;
-				wanderPoint = player.Center + new Vector2(side * Main.rand.NextFloat(8f, 22f) * Tile, 0f);
+			// Lost you: roam, drifting toward where you probably are.
+			speed = frenzy ? RoamSpeed * 1.4f : RoamSpeed;
+			return Roam(player, dist, pull: frenzy ? 0.65f : 0.5f, keepAway: 0f);
+		}
+
+		/// <summary>
+		/// Wanders like a normal NPC: walks to a spot, sometimes stops to look around, then picks
+		/// another. Each spot is pulled toward a rough guess of where the player is (never the exact
+		/// position), so she drifts your way without homing in. Returns null while she's paused.
+		/// </summary>
+		private Vector2? Roam(Player player, float dist, float pull, float keepAway) {
+			if (pauseTicks > 0) {
+				pauseTicks--;
+				if (pauseTicks % 50 == 0 && Main.rand.NextBool())
+					NPC.direction = NPC.spriteDirection = -NPC.direction; // looks around
+				return null;
 			}
-			// The point follows the player loosely, so she keeps closing in.
-			wanderPoint = Vector2.Lerp(wanderPoint, player.Center, 0.002f);
+
+			// "Arrived" also covers a target she can't get any closer to, but only after giving the path
+			// half a second, so an unreachable target can't make her re-plan every tick.
+			wanderAge++;
+			bool pathDone = pathIndex >= path.Count && wanderAge > 30;
+			bool arrived = Vector2.Distance(NPC.Center, wanderPoint) < 2 * Tile || pathDone;
+			if (--wanderTimer <= 0 || arrived) {
+				if (arrived && Main.rand.NextBool(3)) {
+					pauseTicks = Main.rand.Next(40, 130);
+					wanderTimer = 0;
+					return null;
+				}
+				wanderTimer = Main.rand.Next(3 * 60, 6 * 60);
+				// Far away: she heads your way more firmly so she never loses the thread entirely.
+				float p = dist > 50 * Tile ? Math.Max(pull, 0.75f) : pull;
+				Vector2 roughGuess = player.Center + new Vector2(Main.rand.NextFloat(-14f, 14f), Main.rand.NextFloat(-6f, 6f)) * Tile;
+				Vector2 point = Vector2.Lerp(NPC.Center, roughGuess, p);
+				// Plus a sideways meander, so she doesn't walk a straight line at you.
+				point += new Vector2(Main.rand.NextFloat(-8f, 8f), Main.rand.NextFloat(-3f, 3f)) * Tile;
+				if (keepAway > 0f && Vector2.Distance(point, player.Center) < keepAway)
+					point = player.Center + Vector2.Normalize(point - player.Center + new Vector2(0.01f, 0f)) * keepAway;
+				wanderPoint = point;
+				wanderAge = 0;
+				repathTimer = 0;
+			}
 			return wanderPoint;
 		}
+
+		private bool CanSeeIgnoringPhase(Player player, HauntPlayer hp) =>
+			!hp.Hiding && Collision.CanHitLine(NPC.position, NPC.width, NPC.height, player.position, player.width, player.height);
 
 		// ---------------------------------------------------------------- movement
 		private static Point PositionToNode(Vector2 position) =>
