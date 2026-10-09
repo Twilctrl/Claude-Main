@@ -422,6 +422,14 @@ def jumpscare():
     _splatter(d, rng, 420, 820, 260, 160, [BLOOD_K, BLOOD_K_DARK, (220, 30, 60, 255)])
     _splatter(d, rng, 1500, 420, 160, 55, [BLOOD_K, BLOOD_K_DARK])
 
+    # darken toward the corners (the middle stays pink), so she stands out of the gloom
+    vig = Image.new("L", (W, H), 180)                     # corners fully dark...
+    vd = ImageDraw.Draw(vig)
+    for k in range(60):                                   # ...easing to clear in the middle
+        inset = k * 9
+        vd.ellipse([-260 + inset, -300 + inset, W + 260 - inset, H + 300 - inset], fill=int(180 * (1 - k / 60) ** 2))
+    img.paste(Image.new("RGBA", (W, H), (36, 0, 10, 255)), (0, 0), vig.filter(ImageFilter.GaussianBlur(40)))
+
     cx = 960
     # back hair
     _shape(img, lambda m: m.polygon([(cx - 330, 260), (cx - 420, 700), (cx - 470, 1080), (cx + 470, 1080),
@@ -483,15 +491,20 @@ def jumpscare():
         ed = ImageDraw.Draw(eye)
         ed.ellipse(white, fill=(255, 255, 255, 255))
         ed.ellipse([ex - 92, ey - 92, ex + 92, ey - 30], fill=(226, 218, 226, 255))   # lid shadow
-        for k in range(32):                                        # iris: dark top to bright bottom
-            t = k / 31
+        vein_rng = random.Random(ex)
+        for _ in range(9):                                         # faint red veins creeping in from the edge
+            a = vein_rng.uniform(0, math.tau)
+            x0, y0 = ex + math.cos(a) * 92, ey + math.sin(a) * 90
+            x1, y1 = ex + math.cos(a) * 62 + vein_rng.randint(-8, 8), ey + math.sin(a) * 60 + vein_rng.randint(-8, 8)
+            ed.line([(x0, y0), (x1, y1)], fill=(230, 120, 130, 255), width=3)
+        # a manic stare: smaller iris floating in more white
+        for k in range(28):                                        # iris: dark top to bright bottom
+            t = k / 27
             col = tuple(int(a + (b - a) * t) for a, b in zip((70, 0, 10), (255, 50, 64))) + (255,)
-            ed.ellipse([ex - 64 + k * 0.6, ey - 96 + k * 2.4, ex + 64 - k * 0.6, ey + 80], fill=col)
-        ed.ellipse([ex - 64, ey - 96, ex + 64, ey + 80], outline=(60, 0, 8, 255), width=5)
-        _heart(ed, ex, ey + 2, 30, (40, 0, 6, 255))                # yandere heart pupil
-        ed.ellipse([ex - 50, ey - 70, ex - 8, ey - 24], fill=(255, 255, 255, 255))     # main highlight
-        ed.ellipse([ex + 22, ey + 34, ex + 40, ey + 52], fill=(255, 255, 255, 255))
-        ed.arc([ex - 50, ey + 20, ex + 50, ey + 74], 20, 160, fill=(255, 140, 150, 255), width=6)  # glow
+            ed.ellipse([ex - 50 + k * 0.5, ey - 66 + k * 2.2, ex + 50 - k * 0.5, ey + 62], fill=col)
+        ed.ellipse([ex - 50, ey - 66, ex + 50, ey + 62], outline=(60, 0, 8, 255), width=5)
+        _heart(ed, ex, ey + 2, 17, (30, 0, 4, 255))                # pinprick heart pupil
+        ed.ellipse([ex - 36, ey - 46, ex - 14, ey - 24], fill=(255, 255, 255, 255))    # small highlight
         img.paste(eye, (0, 0), ImageChops.multiply(eye.getchannel("A"), eye_mask))
         # thick upper lash line: a filled crescent, flicked at the outer corner
         lash = [(ex - 100, ey - 40), (ex - 70, ey - 86), (ex - 20, ey - 104), (ex + 30, ey - 104),
@@ -502,6 +515,16 @@ def jumpscare():
         d.line([(ex - 86, ey + 74), (ex - 20, ey + 92), (ex + 40, ey + 88)] if side < 0 else
                [(ex - 40, ey + 88), (ex + 20, ey + 92), (ex + 86, ey + 74)], fill=LINE, width=5)   # lower lash
         d.line([(ex - side * 30, ey + 108), (ex + side * 60, ey + 100)], fill=(214, 160, 160, 255), width=3)  # eyebag
+
+    # the bangs' shadow reaches down over the top of her eyes
+    gloom = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    gd = ImageDraw.Draw(gloom)
+    for k in range(40):
+        gd.line([(cx - 260, 470 + k * 3), (cx + 260, 470 + k * 3)], fill=(60, 0, 20, int(120 * (1 - k / 40))), width=3)
+    img.paste(gloom, (0, 0), ImageChops.multiply(gloom.getchannel("A"), face_mask))
+    # a thin tear of blood from her right eye
+    d.line([(cx + 150, 676), (cx + 156, 720), (cx + 150, 770), (cx + 154, 812)], fill=BLOOD_K, width=7, joint="curve")
+    d.ellipse([cx + 144, 802, cx + 164, 826], fill=BLOOD_K)
 
     # tiny nose, then a smaller open grin with a fang and blood drool
     d.line([(cx + 6, 700), (cx + 14, 716)], fill=(214, 150, 150, 255), width=5)
