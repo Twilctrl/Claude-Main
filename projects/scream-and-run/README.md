@@ -124,9 +124,11 @@ Her notice radius starts at **45 tiles**, then:
 - A vignette that tightens and pulses red as she gets closer (the presence range is 60 tiles).
 - A heartbeat that speeds up from ~0.8 to ~3.5 beats/s with proximity, and races when she's found your locker.
 - Distortion when she's near: torn scanlines, static, red flicker and camera shake (client config toggle).
-- **Jumpscare** when she catches you: her gory face (hollow socket, bloodshot eye, slit smile) fills the screen,
-  blood splatters burst across it and spread, and the screen pulses red. Turn off the white flash and shake in
-  the client config.
+- **Jumpscare** when she catches you: a guro-kawaii "album cover" fills the screen. She's drawn anime-style,
+  with heart pupils, a fanged grin, blood drool, stitches, a bandaid and a dashed "cut here" line on her neck.
+  It has a drippy ONRYO logo and ずっと一緒だよ ("we'll be together forever") down the side. Blood splatters
+  burst across the screen and spread, and the screen pulses red. Turn off the white flash and shake in the
+  client config.
 - HUD at the top center: countdown, phase, a **presence bar** (far / near / close / RIGHT BEHIND YOU),
   her awareness (lost you / following your trail / sees you), a noise meter, and crouch/darkness tags.
   All of it except the clock is hidden while you're in a locker.

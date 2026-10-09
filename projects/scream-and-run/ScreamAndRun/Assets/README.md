@@ -16,8 +16,8 @@ size, then rebuild the mod.
 | `Tiles/HidingLocker.png` | 36 x 54 | 2x3 tile sheet: 16x16 tiles with 2px padding. |
 | `UI/Vignette.png` | any square | White with alpha. Transparent center, opaque edges. It's tinted when drawn. |
 | `UI/BloodSplat.png` | any | Splatter with transparency. Used on the map and minimap. |
-| `UI/Jumpscare.png` | any | Full-screen jumpscare image. It's scaled to cover the screen, so square-ish works best. |
-| `../icon.png` | 80 x 80 | Mod icon in the mod list. |
+| `UI/Jumpscare.png` | 960 x 540 (any 16:9) | Full-screen jumpscare image, scaled to cover the screen. 16:9 avoids cropping on widescreen. |
+| `../icon.png` | 80 x 80 | Mod icon in the mod list. The generator crops it from the jumpscare face. |
 
 If you change a frame size or count, update `Main.npcFrameCount` / hitbox in `Content/NPCs/Onryo.cs`.
 
