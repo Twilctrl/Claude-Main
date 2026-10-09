@@ -84,28 +84,53 @@ def draw_onryo(d, oy, frame):
     for tx in range(9, 22, 2):           # ragged tips
         px(d, tx, y + 39 + (tx % 3), HAIR)
 
-    # --- legs: black thigh-highs, a sliver of skin, loafers
+    # --- far arm: hangs at her side behind the torso (shaded, it's further away),
+    # swinging opposite to the knife arm while she walks
+    back_swing = {1: -1, 3: 1}.get(frame, 0)
+    rect(d, 11, y + 21, 12, y + 28 + back_swing, BLOUSE_SHADE)          # sleeve
+    rect(d, 13, y + 22, 13, y + 28, (120, 120, 138, 255))               # shadow fold between arm and body
+    rect(d, 11, y + 27 + back_swing, 12, y + 28 + back_swing, NAVY)     # cuff
+    rect(d, 11, y + 29 + back_swing, 12, y + 30 + back_swing, SKIN_SHADE)   # hand
+
+    # --- legs: a sliver of skin under the hem, black thigh-highs tapering thigh > knee > ankle,
+    # shaped loafers pointing forward. The far leg is a shade darker for depth.
     def leg(lx, lifted, front):
-        top = y + 40
+        sock = SOCK if front else (8, 6, 10, 255)
+        skin = SKIN if front else SKIN_SHADE
+        top = y + 41
         bottom = y + 50 - lifted
-        rect(d, lx, top, lx + 2, top + 1, SKIN if front else SKIN_SHADE)       # skin above the socks
-        rect(d, lx, top + 2, lx + 2, bottom, SOCK)
-        px(d, lx + (2 if front else 0), top + 3, SOCK_HI)
-        rect(d, lx - 1, bottom + 1, lx + 3, bottom + 3, LOAFER)
-        rect(d, lx + 2, bottom + 1, lx + 3, bottom + 1, LOAFER_HI)
+        rect(d, lx, top, lx + 2, top, skin)                         # zettai ryouiki
+        rect(d, lx, top + 1, lx + 2, top + 5 - lifted, sock)       # thigh, 3 wide
+        rect(d, lx + 1, top + 6 - lifted, lx + 2, bottom, sock)    # calf and ankle, 2 wide
+        px(d, lx, top + 6 - lifted, sock)                          # knee
+        px(d, lx + 2, top + 2, SOCK_HI)                            # shine on the thigh
+        rect(d, lx, bottom + 1, lx + 3, bottom + 1, LOAFER)        # loafer: upper
+        rect(d, lx, bottom + 2, lx + 4, bottom + 2, LOAFER)        #          toe pointing forward
+        rect(d, lx, bottom + 3, lx + 4, bottom + 3, OUTLINE)       #          sole
+        px(d, lx + 3, bottom + 1, LOAFER_HI)
     leg(16 + back_dx, lift, False)
     leg(21 + front_dx, 0, True)
 
-    # --- pleated skirt with a white trim stripe
-    rect(d, 13, y + 32, 28, y + 40, NAVY)
-    for x in range(14, 28, 3):
-        rect(d, x, y + 33, x, y + 40, NAVY_DARK)
-        px(d, x + 1, y + 33, NAVY_HI)
-    rect(d, 13, y + 38, 28, y + 38, WHITE)
+    # --- pleated A-line skirt: narrow at the waist, flaring to a zigzag pleated hem
+    skirt_rows = {32: (16, 25), 33: (16, 25), 34: (15, 26), 35: (15, 26), 36: (14, 27),
+                  37: (14, 27), 38: (13, 28), 39: (13, 28), 40: (12, 29)}
+    for row, (x0, x1) in skirt_rows.items():
+        rect(d, x0, y + row, x1, y + row, NAVY)
+    for x in range(12, 30, 2):                                  # pleat points along the hem
+        px(d, x, y + 41, NAVY)
+    for k in (-3, -1, 1, 3):                                    # pleats fanning out from the waist
+        x_top = 20.5 + k * 1.5
+        x_bottom = 20.5 + k * 2.6
+        d.line([(x_top, y + 33), (x_bottom, y + 40)], fill=NAVY_DARK)
+        px(d, int(x_top) + 1, y + 33, NAVY_HI)
+    rect(d, 13, y + 39, 28, y + 39, WHITE)                      # trim stripe near the hem
 
     # --- sailor blouse
-    rect(d, 14, y + 20, 27, y + 32, WHITE)
-    rect(d, 14, y + 29, 27, y + 32, BLOUSE_SHADE)          # shading under the chest
+    # shoulders and chest full width, then tapering in to a narrow waist
+    blouse_rows = {**{r: (14, 27) for r in range(20, 27)}, 27: (15, 26), 28: (15, 26),
+                   29: (16, 25), 30: (16, 25), 31: (16, 25), 32: (16, 25)}
+    for row, (x0, x1) in blouse_rows.items():
+        rect(d, x0, y + row, x1, y + row, BLOUSE_SHADE if row >= 29 else WHITE)   # shading under the chest
     rect(d, 12, y + 20, 18, y + 25, NAVY)                 # collar (back flap)
     rect(d, 12, y + 24, 18, y + 24, WHITE)                # collar stripe
     rect(d, 19, y + 21, 25, y + 22, NAVY)                 # front collar
@@ -113,17 +138,22 @@ def draw_onryo(d, oy, frame):
     rect(d, 21, y + 26, 23, y + 29, RIBBON)
     px(d, 22, y + 30, RIBBON)
     px(d, 21, y + 23, BLOOD_HI)
-    for bx, by in ((17, 27), (25, 30), (15, 31)):        # blood flecks
+    for bx, by in ((17, 27), (24, 30), (17, 31)):        # blood flecks
         px(d, bx, by, BLOOD)
 
-    # --- head
-    rect(d, 16, y + 7, 27, y + 19, SKIN)
-    rect(d, 16, y + 17, 18, y + 19, SKIN_SHADE)            # jaw shadow
+    # --- head: anime taper. Full cranium, then the jaw narrows evenly on both sides to a small
+    # pointed chin centred under the eyes, like the jumpscare portrait.
+    face_rows = {7: (16, 27), 8: (16, 27), 9: (16, 27), 10: (16, 27), 11: (16, 27), 12: (16, 27),
+                 13: (16, 27), 14: (16, 27), 15: (16, 27), 16: (17, 26), 17: (18, 25), 18: (19, 24),
+                 19: (20, 23), 20: (21, 22)}
+    for row, (x0, x1) in face_rows.items():
+        rect(d, x0, y + row, x1, y + row, SKIN)
+    rect(d, 20, y + 21, 23, y + 21, SKIN_SHADE)             # short neck under the chin
     rect(d, 15, y + 3, 28, y + 8, HAIR)                    # hime-cut bangs, straight across
     for bx in (17, 20, 23, 26):
         px(d, bx, y + 9, HAIR)                             # bang points
     rect(d, 20, y + 4, 25, y + 4, HAIR_MID)                # shine
-    rect(d, 14, y + 4, 17, y + 21, HAIR)                   # side lock, to the chin
+    rect(d, 14, y + 4, 16, y + 21, HAIR)                   # side lock, straight down to the collar
     rect(d, 15, y + 8, 15, y + 19, HAIR_MID)
     # big red bow at the back of the head
     rect(d, 9, y + 3, 12, y + 6, RIBBON)
@@ -131,30 +161,32 @@ def draw_onryo(d, oy, frame):
     rect(d, 12, y + 6, 14, y + 9, EYE_DARK)
     rect(d, 10, y + 12, 11, y + 16, RIBBON)                # tails
 
-    # eyes: lash line, white, red iris, dark pupil
-    for ex in (20, 24):
+    # eyes: anime style, both 2px wide and mirrored around the centre of the face.
+    # Lash line on top (extending one pixel outward), red iris dark at the top, white highlight.
+    for ex, outward in ((18, -1), (24, 1)):
         if tele:
-            # heart eyes: two bumps on top, a point below
-            px(d, ex, y + 11, EYE)
-            px(d, ex + 2, y + 11, EYE)
-            rect(d, ex, y + 12, ex + 2, y + 12, EYE)
-            px(d, ex + 1, y + 13, EYE)
+            # heart eyes
+            rect(d, ex, y + 11, ex + 1, y + 12, EYE)
+            px(d, ex if outward < 0 else ex + 1, y + 13, EYE)
         else:
-            rect(d, ex, y + 11, ex + 2, y + 11, OUTLINE)    # lashes
-            rect(d, ex, y + 12, ex + 2, y + 13, SCLERA)
-            rect(d, ex + 1, y + 12, ex + 2, y + 13, EYE)
-            px(d, ex + 2, y + 13, EYE_DARK)
+            lash_x0 = ex - 1 if outward < 0 else ex
+            rect(d, lash_x0, y + 10, lash_x0 + 2, y + 10, OUTLINE)
+            rect(d, ex, y + 11, ex + 1, y + 11, EYE_DARK)
+            rect(d, ex, y + 12, ex + 1, y + 13, EYE)
+            px(d, ex, y + 11, SCLERA)                      # highlight
     # blush + a heart-print bandaid on the cheek
-    px(d, 19, y + 15, SKIN_BLUSH)
-    px(d, 26, y + 15, SKIN_BLUSH)
+    px(d, 18, y + 15, SKIN_BLUSH)
+    px(d, 25, y + 15, SKIN_BLUSH)
     rect(d, 25, y + 14, 27, y + 14, (246, 214, 180, 255))
     px(d, 26, y + 14, RIBBON)
     if tele:
-        rect(d, 21, y + 16, 25, y + 16, BLOOD)             # too-wide smile
-        px(d, 20, y + 15, BLOOD)
-        px(d, 26, y + 15, BLOOD)
+        rect(d, 19, y + 17, 24, y + 17, BLOOD)             # too-wide grin, corners up
+        px(d, 18, y + 16, BLOOD)
+        px(d, 25, y + 16, BLOOD)
+        px(d, 21, y + 18, SCLERA)                          # fang
     else:
-        rect(d, 22, y + 16, 23, y + 16, (170, 110, 120, 255))
+        rect(d, 21, y + 17, 22, y + 17, (150, 40, 56, 255))   # small smile with a fang, centred
+        px(d, 21, y + 18, SCLERA)
 
     # --- arm + knife
     if tele:
