@@ -69,18 +69,20 @@ Place a few lockers first, then read the letter.
 - **Start.** The sky goes dark red, the music changes, and "She noticed you." appears. She spawns
   40-60 tiles away, out of sight. Only one event runs at a time. **Single-player only**: the letter
   won't work in multiplayer.
-- **Phase 1, Stalking** (first quarter, max 90 s): she paces at walking speed on one side of you,
-  gradually closing from ~55 to ~16 tiles. When she's within 12 tiles she just stands and stares.
-  Touching her still kills you.
+- **Phase 1, Stalking** (first quarter, max 90 s): she pretends not to know where you are. She roams like a
+  normal NPC (walks a stretch, stops and looks around, picks a new spot), and each spot drifts toward your
+  rough area. She keeps her distance, from ~30 tiles down to ~12 by the end of the phase. If she can see you
+  inside that distance, she just stands and stares. Touching her still kills you.
 - **Phase 2, Hunting:** she heads for the **last place she saw or heard you**, faster than you can
   run without speed gear. If you're out of her line of sight for **4 s**, she loses you, searches
-  around that spot for 8 s, then drifts around your general area until she finds you again.
+  around that spot for 8 s, then goes back to roaming toward your rough area until she spots you again.
 - **Phase 3, Frenzy** (last 60 s, or the last third on short runs): faster, keeps track 6 s, and every
   8-11 s she **screams (loud audio cue + red strobe + "!")**, winds up for 1.25 s, and **teleports
   9-13 tiles behind you**.
-- **Movement:** she never phases through blocks. A grid pathfinder lets her walk floors and
-  **crawl up walls and along ceilings**, through open space only. She drops through platforms. If she's
-  stuck for ~4 s, or you get 120+ tiles away (Magic Mirror, etc.), she reappears out of sight closer to you.
+- **Movement:** she never phases through blocks. A grid pathfinder lets her walk floors, step up ledges, and
+  **crawl up walls and along ceilings**, through open space only. She drops through platforms. If she
+  stops making progress for 2 s she picks another route; after 4 s, or if you get 120+ tiles away (Magic
+  Mirror, etc.), she reappears out of sight closer to you.
 - **Can't be killed:** no damage, no knockback, immune to every debuff, minions ignore her, and she
   never despawns until the event ends. If something deletes her anyway, she respawns.
 - **Death:** contact kills via `KillMe`, skipping defense, armor, i-frames and dodges, with a custom
@@ -92,10 +94,10 @@ Place a few lockers first, then read the letter.
 
 ### Detection
 
-Her notice radius starts at **30 tiles**, then:
+Her notice radius starts at **45 tiles**, then:
 
 - **Crouching still** (hold Down, not moving, on the ground): × 0.5
-- **Light**: × 0.45 in full darkness, scaling up to × 1 in bright light. Your own torch counts!
+- **Light**: × 0.6 in full darkness, scaling up to × 1 in bright light. Your own torch counts!
 - **Noise** (0-100%, fades over ~4 s): × (1 + 1.5 × noise). Mining, swinging or shooting, and running
   all add noise. At **50%+ noise she hears you through walls** within her radius.
 - In Hunting she needs line of sight *and* range to spot you. Once tracking, her sight range is 1.5×.
@@ -103,11 +105,18 @@ Her notice radius starts at **30 tiles**, then:
 ### Hiding Locker
 
 - **Right-click** to get in, **Jump** or right-click to get out. Inside you're invisible to her
-  and can't move or use items. Your view shrinks to the vent slits.
+  and can't move or use items.
+- **You trade sight for safety.** The screen goes solid black except for four dim vent slits, and the HUD
+  shows only the clock: no presence bar, no awareness, no noise meter. You have to listen:
+  - **Footsteps** when she walks within ~16 tiles, positioned left/right so you can tell her side.
+  - **Her shadow** crosses the vents on the side she's on as she passes the locker.
+  - **Knocking**: when she stops right outside she bangs or rattles the door, with a small jolt. Sometimes her
+    **red eyes** show in a vent.
+  - The heartbeat never drops below a nervous pace while you're inside.
 - If she's within 7 tiles of your locker, she builds suspicion. It takes **6 s if she saw you get in, 12 s if
   not**. When it fills, or once you've been inside **40 s total** (getting out and back in doesn't reset that quickly),
   she knows. She walks straight to the locker, and when she reaches it she rips it open (jumpscare and death,
-  even with one-shot off). The HUD bar shows how close you are to that.
+  even with one-shot off). There's no meter for this: footsteps getting louder and not passing are your warning.
 
 ### Atmosphere and UI
 
@@ -116,6 +125,7 @@ Her notice radius starts at **30 tiles**, then:
 - Distortion when she's near: torn scanlines, static, red flicker and camera shake (client config toggle).
 - HUD at the top center: countdown, phase, a **presence bar** (far / near / close / RIGHT BEHIND YOU),
   her awareness (lost you / following your trail / sees you), a noise meter, and crouch/darkness tags.
+  All of it except the clock is hidden while you're in a locker.
 - **Map:** during the event the minimap is covered in blood (the overlay map style switches to the minimap),
   and the fullscreen map is painted over completely: no hover text, and no map icons, so no pylon teleports.
 
