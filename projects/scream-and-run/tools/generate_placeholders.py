@@ -44,7 +44,7 @@ def rect(d, x0, y0, x1, y1, c):
     d.rectangle([x0, y0, x1, y1], fill=c)
 
 
-# ---------------------------------------------------------------- Tsubaki
+# ---------------------------------------------------------------- Onryo
 # 6 frames, 40x56 each. Drawn facing right, then mirrored: Terraria expects NPC
 # sprites to face LEFT and flips them itself when they walk right.
 #   0 idle, 1-4 walk cycle, 5 "telegraph" (knife raised, wide eyes, smile).
@@ -69,7 +69,7 @@ def px(d, x, y, c):
     d.point((x, y), fill=c)
 
 
-def draw_tsubaki(d, oy, frame):
+def draw_onryo(d, oy, frame):
     tele = frame == 5
     # Walk cycle: (back leg x-offset, front leg x-offset, back leg lift)
     back_dx, front_dx, lift = {0: (0, 0, 0), 1: (-2, 2, 1), 2: (0, 0, 0), 3: (2, -2, 1), 4: (0, 0, 0), 5: (-1, 1, 0)}[frame]
@@ -190,13 +190,13 @@ def add_outline(img, color):
                     break
 
 
-def tsubaki():
+def onryo():
     img = Image.new("RGBA", (FRAME_W, FRAME_H * FRAMES), (0, 0, 0, 0))
     d = ImageDraw.Draw(img)
     for f in range(FRAMES):
-        draw_tsubaki(d, f * FRAME_H, f)
+        draw_onryo(d, f * FRAME_H, f)
     add_outline(img, OUTLINE)
-    save(img.transpose(Image.FLIP_LEFT_RIGHT), "NPCs", "Tsubaki.png")
+    save(img.transpose(Image.FLIP_LEFT_RIGHT), "NPCs", "Onryo.png")
 
 
 # ---------------------------------------------------------------- items
@@ -307,48 +307,106 @@ def blood_splat():
 
 
 def jumpscare():
+    """The face you see when she catches you. Deliberately gory."""
     rng = random.Random(77)
     img = Image.new("RGBA", (256, 256), (0, 0, 0, 255))
     d = ImageDraw.Draw(img)
-    d.ellipse([16, -6, 240, 290], fill=HAIR)                       # hair mass
-    for _ in range(40):                                           # loose strands
-        x = rng.randint(20, 236)
-        d.line([(x, 20), (x + rng.randint(-12, 12), 256)], fill=(30, 22, 40, 255), width=1)
-    d.ellipse([58, 40, 198, 232], fill=SKIN)                      # face
-    d.ellipse([58, 150, 198, 232], fill=SKIN_SHADE)
-    d.ellipse([62, 140, 194, 226], fill=SKIN)
-    bangs = [(54, 30), (202, 30), (202, 92)]
-    for k in range(8):                                            # bangs hanging in points
-        x = 202 - (k + 1) * 18.5
-        bangs += [(x + 9, 104 if k % 2 else 98), (x, 86)]
-    bangs += [(54, 92)]
+    DEAD_SKIN = (204, 200, 190, 255)
+    DEAD_SHADE = (150, 148, 140, 255)
+    BRUISE = (96, 70, 96, 255)
+    VEIN = (110, 90, 120, 255)
+    GORE = (90, 0, 6, 255)
+    GORE_DARK = (40, 0, 4, 255)
+    GUM = (150, 40, 50, 255)
+    TOOTH = (226, 214, 180, 255)
+
+    # hair: a wet, matted mass with clumped strands
+    d.ellipse([12, -10, 244, 296], fill=HAIR)
+    for _ in range(46):
+        x = rng.randint(16, 240)
+        d.line([(x, 10), (x + rng.randint(-14, 14), 256)], fill=(30, 22, 40, 255), width=rng.choice((1, 1, 2)))
+
+    # face: grey dead skin in a diamond: narrow forehead, wide cheekbones, pointed chin
+    face = [(92, 40), (164, 40), (194, 96), (206, 140), (184, 196), (152, 230), (128, 246),
+            (104, 230), (72, 196), (50, 140), (62, 96)]
+    d.polygon(face, fill=DEAD_SHADE)
+    # lighter centre so the cheekbones and jaw edges read as shadow
+    d.polygon([(96, 44), (160, 44), (188, 98), (198, 140), (178, 192), (148, 224), (128, 238),
+               (108, 224), (78, 192), (58, 140), (68, 98)], fill=DEAD_SKIN)
+    d.polygon([(184, 150), (198, 142), (180, 196), (156, 224)], fill=DEAD_SHADE)     # hollow under the cheekbones
+    d.polygon([(72, 150), (58, 142), (76, 196), (100, 224)], fill=DEAD_SHADE)
+    for ex in (100, 156):                                         # sunken, bruised under-eyes
+        d.ellipse([ex - 30, 112, ex + 30, 170], fill=BRUISE)
+        d.ellipse([ex - 32, 98, ex + 32, 160], fill=DEAD_SKIN)
+    for _ in range(14):                                           # veins
+        x, y = rng.randint(70, 186), rng.randint(60, 220)
+        pts = [(x, y)]
+        for _ in range(4):
+            x += rng.randint(-6, 6)
+            y += rng.randint(2, 7)
+            pts.append((x, y))
+        d.line(pts, fill=VEIN, width=1)
+
+    # left eye: an empty socket, bleeding
+    d.ellipse([74, 108, 126, 154], fill=GORE)
+    d.ellipse([80, 114, 120, 148], fill=GORE_DARK)
+    d.ellipse([88, 120, 112, 142], fill=(0, 0, 0, 255))
+    # right eye: huge, bloodshot, pinprick pupil
+    d.ellipse([130, 104, 184, 156], fill=SCLERA)
+    for _ in range(16):
+        a = rng.uniform(0, math.tau)
+        r0, r1 = 12, 26
+        d.line([(157 + math.cos(a) * r0, 130 + math.sin(a) * r0),
+                (157 + math.cos(a) * r1 + rng.randint(-2, 2), 130 + math.sin(a) * r1 + rng.randint(-2, 2))],
+               fill=BLOOD_HI, width=1)
+    d.ellipse([145, 118, 169, 142], fill=EYE)
+    d.ellipse([155, 128, 159, 132], fill=(0, 0, 0, 255))
+    d.ellipse([162, 120, 166, 124], fill=(255, 255, 255, 255))
+    d.arc([128, 100, 186, 160], 190, 350, fill=OUTLINE, width=4)
+
+    # Glasgow smile: mouth slit ear to ear, teeth showing through the torn cheeks
+    smile = [(68, 166), (86, 186), (128, 198), (170, 186), (188, 166),
+             (184, 176), (170, 202), (128, 214), (86, 202), (72, 176)]
+    d.polygon(smile, fill=GORE_DARK)
+    d.polygon([(70, 176), (84, 190), (128, 202), (172, 190), (186, 176),
+               (172, 198), (128, 208), (84, 198)], fill=GUM)
+    for tx in range(78, 178, 6):                                  # upper teeth, uneven
+        top = 182 + abs(tx - 128) // 12
+        d.rectangle([tx, top, tx + 4, top + rng.randint(5, 8)], fill=TOOTH)
+    for tx in range(88, 168, 7):                                  # lower teeth
+        d.rectangle([tx, 200, tx + 4, 205], fill=TOOTH)
+    d.line(smile + [smile[0]], fill=BLOOD, width=2)
+
+    # her hime-cut bangs, wet and stuck together, plus the torn bow
+    bangs = [(52, 24), (204, 24), (204, 96)]
+    for k in range(8):
+        x = 204 - (k + 1) * 19
+        bangs += [(x + 9, 106 if k % 2 else 100), (x, 88)]
+    bangs += [(52, 96)]
     d.polygon(bangs, fill=HAIR)
-    d.polygon([(40, 60), (70, 60), (66, 240), (40, 256)], fill=HAIR)              # side locks
-    d.polygon([(186, 60), (216, 60), (216, 256), (190, 240)], fill=HAIR)
-    d.polygon([(196, 18), (236, 4), (232, 44)], fill=RIBBON)                      # bow
-    d.polygon([(196, 18), (214, 50), (176, 42)], fill=RIBBON)
-    d.ellipse([190, 14, 204, 28], fill=EYE_DARK)
-    for ex in (100, 156):                                         # eyes, wide open
-        d.ellipse([ex - 25, 106, ex + 25, 152], fill=SCLERA)
-        d.ellipse([ex - 15, 110, ex + 15, 148], fill=EYE)
-        d.ellipse([ex - 10, 115, ex + 10, 143], fill=EYE_DARK)
-        d.ellipse([ex - 3, 125, ex + 3, 133], fill=(0, 0, 0, 255))
-        d.ellipse([ex + 4, 117, ex + 9, 122], fill=(255, 255, 255, 255))    # glint
-        d.arc([ex - 27, 102, ex + 27, 156], 190, 350, fill=OUTLINE, width=4)  # lash line
-        for k in range(5):
-            lx = ex - 22 + k * 11
-            d.line([(lx, 106), (lx - 3, 98)], fill=OUTLINE, width=2)
-    d.ellipse([70, 158, 92, 168], fill=SKIN_BLUSH)                # blush
-    d.ellipse([164, 158, 186, 168], fill=SKIN_BLUSH)
-    d.chord([84, 176, 172, 204], 0, 180, fill=(50, 0, 6, 255))     # thin, too-wide smile
-    for tx in range(98, 160, 7):                                  # small even teeth
-        d.rectangle([tx, 190, tx + 4, 194], fill=(236, 230, 220, 255))
-    d.arc([84, 176, 172, 204], 0, 180, fill=BLOOD, width=2)
-    d.line([(84, 190), (76, 184)], fill=BLOOD, width=2)           # corners pulled up
-    d.line([(172, 190), (180, 184)], fill=BLOOD, width=2)
-    rect(d, 100, 135, 102, 175, BLOOD)                            # tears of blood
-    rect(d, 157, 140, 159, 185, BLOOD)
-    rect(d, 120, 205, 123, 245, BLOOD)                            # drip from the smile
+    for k in range(8):                                            # blood dripping off the tips
+        x = 204 - (k + 1) * 19 + 9
+        tip = 106 if k % 2 else 100
+        rect(d, x - 1, tip, x + 1, tip + rng.randint(6, 26), BLOOD)
+    d.polygon([(196, 16), (238, 2), (230, 30), (222, 24), (226, 44)], fill=RIBBON)     # torn bow
+    d.polygon([(196, 16), (210, 52), (186, 40), (180, 46)], fill=RIBBON)
+    d.ellipse([189, 9, 203, 23], fill=EYE_DARK)
+    rect(d, 226, 44, 227, 70, BLOOD)
+
+    # gashes: cheek and jaw, dark centre with a wet edge
+    for (x0, y0, x1, y1) in ((150, 160, 192, 150), (72, 150, 90, 190), (110, 230, 144, 222)):
+        d.line([(x0, y0), (x1, y1)], fill=BLOOD_HI, width=5)
+        d.line([(x0, y0), (x1, y1)], fill=GORE_DARK, width=2)
+
+    # blood pouring from the hairline, the socket and the mouth
+    for x, top, length in ((92, 150, 90), (100, 150, 70), (108, 152, 104), (157, 156, 60), (128, 210, 46), (110, 206, 50)):
+        rect(d, x, top, x + 3, min(255, top + length), BLOOD)
+        d.ellipse([x - 2, min(252, top + length) - 3, x + 5, min(255, top + length) + 3], fill=BLOOD)
+
+    # spray across the whole image
+    for _ in range(140):
+        x, y, r = rng.randint(0, 255), rng.randint(0, 255), rng.choice((1, 1, 1, 2, 3))
+        d.ellipse([x - r, y - r, x + r, y + r], fill=rng.choice((BLOOD, BLOOD_HI, GORE)))
     save(img, "UI", "Jumpscare.png")
 
 
@@ -367,7 +425,7 @@ def icon():
 
 
 if __name__ == "__main__":
-    tsubaki()
+    onryo()
     love_letter()
     locker_item()
     locker_tile()

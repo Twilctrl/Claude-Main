@@ -32,6 +32,7 @@ namespace ScreamAndRun.Common.UI
 		private static int shakeTicks;
 		private static int jumpscareTicks;
 		private const int JumpscareDuration = 70;
+		private static int jumpscareSeed;
 
 		private static readonly Color TextRed = new(230, 40, 60);
 
@@ -43,7 +44,10 @@ namespace ScreamAndRun.Common.UI
 
 		public static void FlashWarning(int ticks) => warningTicks = ticks;
 
-		public static void TriggerJumpscare() => jumpscareTicks = JumpscareDuration;
+		public static void TriggerJumpscare() {
+			jumpscareTicks = JumpscareDuration;
+			jumpscareSeed = Main.rand.Next();
+		}
 
 		/// <summary>A short camera jolt, e.g. when she bangs on your locker.</summary>
 		public static void Shake(int ticks) => shakeTicks = Math.Max(shakeTicks, ticks);
@@ -361,6 +365,25 @@ namespace ScreamAndRun.Common.UI
 			float scale = Math.Max(w / (float)face.Width, h / (float)face.Height) * (1.05f + elapsed * 0.006f);
 			Vector2 shake = flash ? Main.rand.NextVector2Circular(14f, 14f) * fade : Vector2.Zero;
 			sb.Draw(face, new Vector2(w / 2f, h / 2f) + shake, null, Color.White * fade, 0f, face.Size() / 2f, scale, SpriteEffects.None, 0f);
+
+			// Blood hits the screen in quick bursts and spreads, the same pattern for the whole scare.
+			Texture2D splat = bloodSplat.Value;
+			var rng = new Random(jumpscareSeed);
+			float screenScale = Math.Max(w, h) / (float)splat.Width;
+			for (int i = 0; i < 12; i++) {
+				int appearAt = i < 4 ? 0 : 2 + i * 2;
+				var pos = new Vector2((float)rng.NextDouble() * w, (float)rng.NextDouble() * h);
+				float size = screenScale * (0.25f + (float)rng.NextDouble() * 0.45f);
+				float rotation = (float)(rng.NextDouble() * MathHelper.TwoPi);
+				if (elapsed < appearAt)
+					continue;
+				float grow = Math.Min(1f, (elapsed - appearAt + 1) / 5f);
+				sb.Draw(splat, pos, null, Color.White * fade * 0.95f, rotation, splat.Size() / 2f, size * (0.6f + 0.4f * grow), SpriteEffects.None, 0f);
+			}
+			// A pulsing red wash under the flash.
+			float pulse = 0.5f + 0.5f * (float)Math.Sin(elapsed * 0.6f);
+			sb.Draw(pixel, new Rectangle(0, 0, w, h), new Color(120, 0, 0) * (0.18f * pulse * fade));
+
 			if (flash && elapsed < 5)
 				sb.Draw(pixel, new Rectangle(0, 0, w, h), Color.White * (1f - elapsed / 5f));
 		}

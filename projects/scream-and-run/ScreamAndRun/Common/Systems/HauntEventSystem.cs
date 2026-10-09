@@ -29,7 +29,7 @@ namespace ScreamAndRun.Common.Systems
 	}
 
 	/// <summary>
-	/// Owns the event: the countdown, the phases, spawning Tsubaki and ending everything.
+	/// Owns the event: the countdown, the phases, spawning Onryo and ending everything.
 	/// Single-player only (the Love Letter refuses to work in multiplayer).
 	/// </summary>
 	public class HauntEventSystem : ModSystem
@@ -67,12 +67,12 @@ namespace ScreamAndRun.Common.Systems
 		/// <summary>0 at the start of the event, 1 once stalking ends.</summary>
 		public static float StalkProgress => StalkTicks <= 0 ? 1f : MathHelper.Clamp(ElapsedTicks / (float)StalkTicks, 0f, 1f);
 
-		public static Tsubaki Boss {
+		public static Onryo Boss {
 			get {
 				if (bossIndex < 0 || bossIndex >= Main.maxNPCs)
 					return null;
 				NPC npc = Main.npc[bossIndex];
-				return npc.active && npc.ModNPC is Tsubaki t ? t : null;
+				return npc.active && npc.ModNPC is Onryo t ? t : null;
 			}
 		}
 
@@ -80,7 +80,7 @@ namespace ScreamAndRun.Common.Systems
 			!Active
 			&& Main.netMode == NetmodeID.SinglePlayer
 			&& !player.dead
-			&& !NPC.AnyNPCs(ModContent.NPCType<Tsubaki>());
+			&& !NPC.AnyNPCs(ModContent.NPCType<Onryo>());
 
 		public static void Start(Player player) {
 			if (!CanStart(player))
@@ -104,7 +104,7 @@ namespace ScreamAndRun.Common.Systems
 				return;
 			Active = false;
 			Player player = Main.LocalPlayer;
-			Tsubaki boss = Boss;
+			Onryo boss = Boss;
 			bossIndex = -1;
 
 			switch (reason) {
@@ -131,15 +131,15 @@ namespace ScreamAndRun.Common.Systems
 		/// <summary>Spawn her out of the player's sight, roughly minTiles to maxTiles away.</summary>
 		private static void SpawnBoss(Player player, int minTiles, int maxTiles) {
 			Vector2 pos;
-			if (!Tsubaki.TryFindSpot(player, player.Center, minTiles, maxTiles, requireHidden: true, out pos)
-				&& !Tsubaki.TryFindSpot(player, player.Center, minTiles / 2, maxTiles, requireHidden: false, out pos)) {
+			if (!Onryo.TryFindSpot(player, player.Center, minTiles, maxTiles, requireHidden: true, out pos)
+				&& !Onryo.TryFindSpot(player, player.Center, minTiles / 2, maxTiles, requireHidden: false, out pos)) {
 				// Nowhere sensible (e.g. a solid-block test world): drop her in to the side anyway.
 				pos = player.Center + new Vector2(Main.rand.NextBool() ? 50 * 16 : -50 * 16, -64);
 			}
 			// pos is the top-left of her hitbox; NewNPC wants the bottom-center.
-			int x = (int)pos.X + Tsubaki.HitboxWidth / 2;
-			int y = (int)pos.Y + Tsubaki.HitboxHeight;
-			bossIndex = NPC.NewNPC(player.GetSource_FromThis(), x, y, ModContent.NPCType<Tsubaki>());
+			int x = (int)pos.X + Onryo.HitboxWidth / 2;
+			int y = (int)pos.Y + Onryo.HitboxHeight;
+			bossIndex = NPC.NewNPC(player.GetSource_FromThis(), x, y, ModContent.NPCType<Onryo>());
 			if (bossIndex >= Main.maxNPCs)
 				bossIndex = -1;
 		}
