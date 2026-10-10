@@ -27,7 +27,7 @@ TRACKING = -40  # font units (1000/em)
 
 INK = "#0b0a0a"    # background
 PAPER = "#f4f0ec"  # letters on dark
-RED = "#e11d2e"    # the flame
+RED = "#b8122f"    # the flame (crimson)
 
 # Flame proportions, relative to the i's stem width.
 FLAME_W = 1.12
