@@ -1,0 +1,1168 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Infernis Trailer</title>
+<!--@ASSETS@-->
+<style>
+/* Layout: one fixed 1920x1080 stage, scaled to fit the frame, with a slim control bar below. */
+:root {
+  --ink: #070606;
+  --panel: #131010;
+  --line: rgba(244, 240, 236, .12);
+  --paper: #f4f0ec;
+  --dim: #8f8783;
+  --crimson: #b8122f;
+  --crimson-hi: #e0284a;
+  --sand: #e2c48f;
+  --gold: #d6b25e;
+  --sans: Geist, "Helvetica Neue", Arial, sans-serif;
+  --mono: GeistMono, ui-monospace, Menlo, Consolas, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body { margin: 0; background: var(--ink); color: var(--paper); font-family: var(--sans); }
+
+/* ---------- player ---------- */
+.player { min-height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding-inline: 16px; padding-block: 20px; }
+#frame { position: relative; width: 100%; max-width: min(1600px, calc((100vh - 110px) * 16 / 9)); aspect-ratio: 16 / 9; overflow: hidden; border-radius: 14px; background: #000; box-shadow: 0 30px 90px rgba(0, 0, 0, .7), 0 0 0 1px var(--line); }
+#stage { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0; overflow: hidden; background: var(--ink); }
+.big-play { position: absolute; left: 0; right: 0; bottom: 10%; margin-inline: auto; width: max-content; height: max-content; display: flex; align-items: center; gap: 12px; padding: 14px 24px 14px 18px; border-radius: 999px; border: 1px solid rgba(255, 255, 255, .18); background: rgba(10, 8, 8, .6); color: var(--paper); font: 500 16px var(--sans); letter-spacing: -.01em; cursor: pointer; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+.big-play svg { width: 26px; height: 26px; }
+.big-play small { color: var(--dim); font-weight: 400; }
+.big-play:hover { border-color: rgba(255, 255, 255, .35); }
+.big-play:focus-visible, .bar button:focus-visible, .bar input:focus-visible { outline: 2px solid var(--crimson-hi); outline-offset: 2px; }
+.bar { width: 100%; max-width: min(1600px, calc((100vh - 110px) * 16 / 9)); display: flex; align-items: center; gap: 12px; font: 400 13px var(--mono); color: var(--dim); }
+.bar button { flex: none; height: 34px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--line); background: #110e0e; color: var(--paper); font: 500 13px var(--sans); cursor: pointer; }
+.bar button:hover { border-color: rgba(255, 255, 255, .3); }
+#scrub { flex: 1; min-width: 60px; accent-color: var(--crimson); }
+#clock { flex: none; font-variant-numeric: tabular-nums; }
+@media (max-width: 560px) { #fsBtn { display: none; } .bar { gap: 8px; } }
+body.render .player { padding: 0; display: block; }
+body.render #frame { width: 1920px; height: 1080px; max-width: none; border-radius: 0; box-shadow: none; }
+body.render .bar, body.render .big-play { display: none; }
+
+/* ---------- shared stage pieces ---------- */
+.scene { position: absolute; inset: 0; display: none; overflow: hidden; }
+.layer { position: absolute; inset: 0; pointer-events: none; }
+.ch { display: inline-block; white-space: pre; will-change: transform, opacity; }
+#amb { background: radial-gradient(ellipse 70% 55% at 50% 100%, rgba(184, 18, 47, .22), transparent 70%); opacity: 0; }
+#vig { background: radial-gradient(ellipse 75% 70% at 50% 50%, transparent 55%, rgba(0, 0, 0, .62) 100%); }
+#grain { width: 1920px; height: 1080px; mix-blend-mode: overlay; opacity: .09; image-rendering: pixelated; }
+#black { background: #000; opacity: 0; }
+#wipe { left: -40%; width: 180%; background: linear-gradient(90deg, transparent 0, #6e0a1b 18%, var(--crimson) 50%, #6e0a1b 82%, transparent 100%); transform: translateX(-200%) skewX(-18deg); }
+
+.caret { display: inline-block; width: 3px; height: 1.1em; background: var(--crimson-hi); vertical-align: -0.18em; margin-left: 4px; box-shadow: 0 0 8px var(--crimson-hi); }
+.pp { position: absolute; left: 960px; top: 84px; display: flex; align-items: center; gap: 14px; padding: 16px 26px 16px 22px; border-radius: 18px; background: rgba(20, 17, 17, .9); border: 1px solid var(--line); font-size: 26px; letter-spacing: -.01em; color: #efe9e4; white-space: nowrap; box-shadow: 0 20px 50px rgba(0, 0, 0, .5); }
+.pp::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: #3ddc84; box-shadow: 0 0 10px #3ddc84; }
+.kname { position: absolute; left: 120px; bottom: 110px; display: flex; flex-direction: column; gap: 14px; }
+.kname b { font-weight: 600; font-size: 76px; letter-spacing: -.045em; line-height: 1; color: var(--paper); }
+.kname span { font-size: 27px; color: var(--dim); letter-spacing: -.01em; }
+.kname.mono b { font-family: var(--mono); font-weight: 500; font-size: 64px; letter-spacing: -.03em; }
+
+/* ---------- 1 · pill ---------- */
+.pill { position: absolute; left: 960px; top: 540px; height: 120px; border-radius: 999px; overflow: hidden; display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(180deg, #d8304b 0%, #b8122f 55%, #8e0c22 100%);
+  box-shadow: 0 2px 0 rgba(255, 255, 255, .28) inset, 0 0 0 1px rgba(255, 255, 255, .08) inset, 0 0 60px rgba(224, 40, 74, .55), 0 0 200px rgba(184, 18, 47, .45); }
+.pill-txt { font-size: 76px; font-weight: 500; font-style: oblique 9deg; letter-spacing: -.025em; color: #fff; white-space: nowrap; text-shadow: 0 0 22px rgba(255, 200, 205, .7); }
+.sheen { position: absolute; top: -30%; bottom: -30%; left: 0; width: 150px; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .6), transparent); }
+.pill-wash { position: absolute; inset: 0; background: var(--paper); opacity: 0; }
+
+/* ---------- 2 · prompt ---------- */
+#s2 { perspective: 1600px; }
+.cam { position: absolute; inset: 0; transform-origin: 960px 540px; transform-style: preserve-3d; }
+.greet { position: absolute; left: 0; right: 0; top: 318px; margin: 0; text-align: center; font-weight: 400; font-size: 58px; letter-spacing: -.03em; color: #efe9e4; }
+.box { position: absolute; left: 460px; top: 540px; width: 1000px; height: 170px; margin-top: -85px; border-radius: 26px; background: #141111; border: 1px solid var(--line); box-shadow: 0 30px 80px rgba(0, 0, 0, .6); overflow: hidden; }
+.box-in { position: absolute; left: 0; top: 0; width: 1000px; height: 170px; padding: 30px 34px; }
+.box-text { font-size: 31px; color: #efe9e4; letter-spacing: -.012em; white-space: nowrap; }
+.box-bar { position: absolute; left: 34px; right: 26px; bottom: 22px; display: flex; align-items: center; gap: 18px; font: 400 19px var(--mono); color: var(--dim); }
+.box-bar .ic { font: 300 30px var(--sans); }
+.model { margin-left: auto; display: flex; align-items: center; gap: 9px; }
+.model i { width: 9px; height: 9px; border-radius: 50%; background: #3ddc84; box-shadow: 0 0 10px #3ddc84; }
+.send { width: 46px; height: 46px; border-radius: 50%; background: #2a2424; color: #efe9e4; display: grid; place-items: center; font: 500 24px var(--sans); }
+.chips { position: absolute; left: 0; right: 0; top: 668px; display: flex; justify-content: center; gap: 14px; }
+.chips span { padding: 11px 22px; border: 1px solid var(--line); border-radius: 999px; font-size: 21px; color: #cfc7c2; background: #0f0d0d; }
+.think { position: absolute; left: 0; right: 0; top: 600px; text-align: center; font-size: 28px; letter-spacing: -.01em; color: transparent; background: linear-gradient(90deg, #5a524f 0%, #5a524f 40%, #fff 50%, #5a524f 60%, #5a524f 100%); background-size: 300% 100%; -webkit-background-clip: text; background-clip: text; opacity: 0; }
+.ring { position: absolute; left: 960px; top: 540px; border-radius: 50%; border: 3px solid var(--crimson-hi); box-shadow: 0 0 40px var(--crimson-hi), inset 0 0 40px rgba(224, 40, 74, .6); opacity: 0; }
+
+/* ---------- 3 · CerberOS ---------- */
+.root { position: absolute; inset: 0; }
+.floor { position: absolute; left: -50%; width: 200%; top: 600px; height: 1100px; transform-origin: 50% 0; transform: perspective(900px) rotateX(74deg);
+  background-image: linear-gradient(rgba(184, 18, 47, .5) 1.5px, transparent 1.5px), linear-gradient(90deg, rgba(184, 18, 47, .5) 1.5px, transparent 1.5px); background-size: 90px 90px;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 25%, transparent 85%); mask-image: linear-gradient(to bottom, transparent 0%, #000 25%, transparent 85%); }
+.diagram { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; overflow: visible; transform-origin: 960px 600px; }
+.wire { fill: none; stroke: rgba(244, 240, 236, .42); stroke-width: 2.5; }
+.ringc { fill: rgba(184, 18, 47, 0); stroke: var(--paper); stroke-width: 2.5; }
+.nl { font: 500 30px var(--mono); fill: var(--paper); text-anchor: middle; }
+.ns { font: 400 15px var(--mono); fill: var(--dim); text-anchor: middle; }
+.gatebox { fill: #150f10; stroke: var(--crimson-hi); stroke-width: 2.5; }
+.gl { font: 500 30px var(--mono); fill: var(--paper); text-anchor: middle; }
+.gs { font: 400 16px var(--mono); fill: var(--dim); text-anchor: middle; }
+.pulse { fill: #ff5a72; }
+.ktitle { position: absolute; left: 0; top: 0; font-weight: 600; font-size: 200px; letter-spacing: -.05em; line-height: 1; white-space: nowrap; transform-origin: 0 0; perspective: 800px; }
+.ktitle .ch { transform-origin: 50% 80%; }
+.ksub { position: absolute; left: 124px; top: 186px; font: 400 22px var(--mono); color: var(--dim); white-space: pre; }
+.cards3d { position: absolute; inset: 0; perspective: 1900px; }
+.rig { position: absolute; left: 1120px; top: 560px; transform-style: preserve-3d; }
+.card { position: absolute; border-radius: 18px; overflow: hidden; box-shadow: 0 40px 120px rgba(0, 0, 0, .75), 0 0 0 1px rgba(255, 255, 255, .1); }
+.card-sheen { position: absolute; top: -20%; bottom: -20%; width: 260px; left: 0; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .16), transparent); }
+.wall { width: 960px; height: 540px; left: -700px; top: -430px; }
+.wall img { width: 100%; height: 100%; display: block; }
+.tui { width: 1000px; height: 620px; left: -380px; top: -220px; background: #0b0909; font: 400 17px/26px var(--mono); color: #c8c0b8; padding: 22px 26px; }
+.tui-head b { color: var(--gold); letter-spacing: .08em; font-weight: 600; }
+.tui-head b em { color: #a8141e; font-style: normal; }
+.tui-head span { color: #8a807a; margin-left: 10px; }
+.tui-stat { display: flex; gap: 26px; color: #b7c57a; font-weight: 500; }
+.tui-stat i { display: inline-block; width: 10px; height: 10px; background: #b7c57a; margin-right: 8px; }
+.tui-panes { display: grid; grid-template-columns: 290px 1fr; gap: 10px; margin-top: 18px; height: 382px; }
+.pane { position: relative; border: 1.5px solid #8e1420; padding: 14px 8px 8px; }
+.pane em { position: absolute; top: -14px; left: 12px; background: #0b0909; padding: 0 6px; color: var(--gold); font-style: normal; font-weight: 600; }
+.row { position: relative; height: 26px; padding: 0 6px; white-space: pre; z-index: 1; }
+.row.on { color: #fff; font-weight: 600; }
+.row .tag { position: absolute; right: 8px; color: #6f6763; }
+.row .tag b { color: #b7c57a; font-weight: 500; }
+.row.model { color: var(--gold); }
+.hl { position: absolute; left: 8px; right: 8px; height: 26px; background: #a8141e; z-index: 0; }
+.tui-foot { margin-top: 16px; color: #c8c0b8; }
+.tui-foot b { color: #e0284a; }
+.cards-glow { position: absolute; left: 520px; top: 760px; width: 1200px; height: 300px; border-radius: 50%; background: radial-gradient(closest-side, rgba(184, 18, 47, .55), transparent); filter: blur(30px); }
+
+/* ---------- 4 · Feather ---------- */
+.world { position: absolute; left: 0; top: 0; width: 3400px; height: 1080px; transform-origin: 0 0; }
+.world svg { position: absolute; left: 0; top: 0; overflow: visible; }
+.draw { fill: #141010; fill-opacity: 0; stroke: var(--paper); stroke-width: 3; }
+.draw.chip { stroke-width: 2.5; }
+.draw.red { stroke: var(--crimson-hi); }
+.chipl { font: 500 19px var(--mono); fill: var(--paper); text-anchor: middle; }
+.chips2 { font: 400 14px var(--mono); fill: var(--dim); text-anchor: middle; }
+.lbl { font: 500 28px var(--sans); fill: var(--paper); text-anchor: middle; letter-spacing: -.02em; }
+.lbl2 { font: 400 18px var(--mono); fill: var(--dim); text-anchor: middle; }
+.wire2 { fill: none; stroke: rgba(244, 240, 236, .55); stroke-width: 3; }
+.wl { font: 400 20px var(--mono); fill: var(--dim); text-anchor: middle; }
+.gp { fill: var(--gold); }
+.scr { fill: #0c0a0a; }
+.ledring { fill: none; stroke-width: 3; }
+.lap-screen { position: absolute; left: 2276px; top: 326px; width: 668px; height: 398px; padding: 18px 26px; font: 400 25px/1.55 var(--mono); color: #e9e3de; }
+.lap-bar { display: flex; align-items: center; gap: 8px; color: var(--dim); font-size: 15px; margin-bottom: 18px; }
+.lap-bar i { width: 11px; height: 11px; border-radius: 50%; background: #3a3332; }
+.lap-bar span { margin-left: 10px; }
+.lap-screen pre { margin: 0; font: inherit; white-space: pre-wrap; }
+.lap-screen .q { color: var(--dim); }
+
+/* ---------- 5 · Scream and Run ---------- */
+.s5glow { position: absolute; inset: 0; background: radial-gradient(ellipse 55% 55% at 70% 66%, rgba(110, 6, 22, .38), transparent 70%); }
+.ecg { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; overflow: visible; }
+#ecgPath { fill: none; stroke: var(--crimson-hi); stroke-width: 4; stroke-linejoin: round; filter: drop-shadow(0 0 8px rgba(224, 40, 74, .9)); }
+#ecgHead { fill: #fff; filter: drop-shadow(0 0 12px #ff4060); }
+.onryo { position: absolute; left: 0; top: 0; width: 240px; height: 336px; background-repeat: no-repeat; background-size: 240px 2016px; image-rendering: pixelated; filter: brightness(.82) drop-shadow(0 0 36px rgba(184, 18, 47, .55)); }
+.timer { position: absolute; left: 960px; top: 96px; font: 500 64px var(--mono); letter-spacing: .02em; color: var(--paper); font-variant-numeric: tabular-nums; }
+.phase { position: absolute; left: 140px; top: 330px; font-weight: 600; font-size: 112px; letter-spacing: -.05em; color: var(--paper); white-space: nowrap; transform-origin: 0 50%; text-shadow: -3px 0 rgba(255, 30, 70, .55), 3px 0 rgba(60, 200, 255, .3); }
+.phase.run { font-size: 300px; top: 230px; color: var(--crimson-hi); text-shadow: 0 0 60px rgba(224, 40, 74, .7), -6px 0 rgba(255, 60, 90, .6), 6px 0 rgba(60, 200, 255, .3); }
+.s5title { position: absolute; left: 140px; top: 360px; font-weight: 600; font-size: 150px; letter-spacing: -.05em; white-space: nowrap; }
+.s5sub { position: absolute; left: 146px; top: 560px; font-size: 30px; color: var(--dim); letter-spacing: -.01em; }
+.letter { position: absolute; left: 0; top: 0; width: 168px; height: 120px; background-size: 168px 120px; image-rendering: pixelated; filter: drop-shadow(0 10px 30px rgba(0, 0, 0, .6)); }
+.vig-red { position: absolute; inset: 0; background: radial-gradient(ellipse 72% 68% at 50% 50%, transparent 45%, rgba(96, 0, 14, .8) 100%); opacity: 0; pointer-events: none; }
+
+/* ---------- 6 · plugins ---------- */
+.s6head { position: absolute; left: 120px; top: 92px; display: flex; gap: 22px; align-items: baseline; font: 400 21px var(--mono); color: var(--dim); }
+.s6head b { color: var(--paper); font-weight: 500; }
+.plug { position: absolute; inset: 0; }
+.plug-in { position: absolute; inset: 0; transform-origin: 960px 540px; }
+.pf-input { position: absolute; left: 510px; top: 480px; width: 900px; height: 96px; border-radius: 24px; background: #141111; border: 1px solid var(--line); display: flex; align-items: center; padding: 0 28px; font-size: 32px; color: #efe9e4; white-space: nowrap; overflow: hidden; box-shadow: 0 30px 70px rgba(0, 0, 0, .55); }
+.pf-chip { display: inline-flex; align-items: center; height: 52px; padding: 0 20px; border-radius: 14px; background: rgba(184, 18, 47, .22); border: 1.5px solid var(--crimson-hi); color: #ffd9de; font-size: 26px; white-space: nowrap; box-shadow: 0 0 24px rgba(224, 40, 74, .35); }
+.pf-fly { position: absolute; left: 0; top: 0; }
+.pf-msg { position: absolute; right: 510px; top: 330px; display: flex; align-items: center; gap: 14px; padding: 14px 18px 14px 14px; border-radius: 22px; background: #1d1818; font-size: 28px; color: #efe9e4; white-space: nowrap; }
+.pf-msg .pf-chip { height: 44px; font-size: 22px; padding: 0 16px; }
+.tree { position: absolute; left: 560px; top: 300px; font: 400 36px/64px var(--mono); color: #cfc7c2; }
+.tr { position: relative; height: 64px; white-space: pre; z-index: 1; }
+.trhl { position: absolute; left: 540px; width: 460px; height: 64px; border-radius: 12px; background: rgba(244, 240, 236, .08); border: 1px solid rgba(244, 240, 236, .2); }
+.crumb { position: absolute; width: 12px; height: 12px; border-radius: 50%; background: var(--crimson-hi); box-shadow: 0 0 12px var(--crimson-hi); }
+.note { position: absolute; left: 1080px; top: 470px; width: 640px; padding: 26px 30px; border-radius: 20px; background: #f1ece4; color: #1a1414; transform-origin: 0 0; box-shadow: 0 30px 80px rgba(0, 0, 0, .6); }
+.note b { display: block; font: 500 20px var(--mono); color: var(--crimson); margin-bottom: 10px; }
+.note p { margin: 0; font-size: 32px; line-height: 1.3; letter-spacing: -.015em; }
+.pin { position: absolute; left: 1060px; top: 430px; width: 56px; height: 56px; }
+.tile { position: absolute; width: 250px; height: 112px; border-radius: 14px; background: #131010; border: 1px solid var(--line); padding: 16px; font: 400 18px var(--mono); color: #cfc7c2; }
+.tile small { display: block; font-size: 14px; color: #6f6763; margin-top: 8px; }
+.tile.ok { border-color: rgba(120, 220, 160, .7); box-shadow: 0 0 30px rgba(61, 220, 132, .25); }
+.tile.no { border-color: var(--crimson-hi); box-shadow: 0 0 30px rgba(224, 40, 74, .45); }
+.fence { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; overflow: visible; }
+.fence rect { fill: rgba(224, 40, 74, .05); stroke: var(--crimson-hi); stroke-width: 3; stroke-dasharray: 18 12; }
+.fence text { font: 500 18px var(--mono); fill: var(--crimson-hi); }
+.deny { position: absolute; left: 1290px; top: 640px; font: 500 22px var(--mono); color: var(--crimson-hi); white-space: nowrap; }
+.edit-dot { position: absolute; width: 18px; height: 18px; margin: -9px; border-radius: 50%; background: #fff; box-shadow: 0 0 18px #fff, 0 0 40px var(--crimson-hi); }
+.printer { position: absolute; left: 720px; top: 862px; width: 480px; height: 36px; border-radius: 12px; background: #1d1818; border: 1px solid var(--line); box-shadow: 0 20px 50px rgba(0, 0, 0, .6); }
+.printer::after { content: ""; position: absolute; left: 24px; right: 24px; top: 16px; height: 4px; border-radius: 2px; background: #050404; }
+.receipt { position: absolute; left: 750px; bottom: 204px; width: 420px; height: 0; overflow: hidden; background: #efeae2; color: #1b1515; display: flex; flex-direction: column; justify-content: flex-start; transform-origin: 50% 100%; box-shadow: 0 30px 70px rgba(0, 0, 0, .55); }
+.receipt pre { margin: 0; padding: 20px 24px 22px; font: 500 18.5px/1.5 var(--mono); }
+
+/* ---------- 7 · code ---------- */
+#s7 { perspective: 1400px; }
+.code { position: absolute; left: 200px; top: 250px; transform-style: preserve-3d; font: 400 44px/68px var(--mono); color: #d9d2cc; white-space: pre; }
+.cl { position: relative; height: 68px; text-shadow: -2px 0 rgba(255, 30, 70, .35), 2px 0 rgba(60, 200, 255, .22); }
+.cl .k { color: #ff6b85; }
+.cl .s { color: var(--sand); }
+.cl .c { color: #7d7471; }
+.cl .f { color: #f4f0ec; font-weight: 500; }
+.circ { position: absolute; left: 0; top: 0; overflow: visible; }
+.circ path { fill: none; stroke: var(--crimson-hi); stroke-width: 5; stroke-linecap: round; filter: drop-shadow(0 0 10px rgba(224, 40, 74, .9)); }
+.ibeam { position: absolute; width: 4px; height: 60px; background: var(--sand); box-shadow: 0 0 10px var(--sand); }
+
+/* ---------- 8 · statement ---------- */
+.horizon { position: absolute; left: -10%; right: -10%; bottom: -380px; height: 760px; border-radius: 50%; background: radial-gradient(closest-side, rgba(224, 40, 74, .95), rgba(184, 18, 47, .55) 35%, rgba(120, 8, 24, .2) 65%, transparent 100%); filter: blur(20px); transform-origin: 50% 100%; }
+.stmt { position: absolute; left: 0; right: 0; top: 470px; text-align: center; font: 400 58px var(--mono); letter-spacing: -.02em; color: var(--paper); white-space: pre; text-shadow: 0 0 30px rgba(255, 255, 255, .15); }
+.stmt em { font-style: normal; color: #f0405c; }
+
+/* ---------- 9 · reveal ---------- */
+.wm-wrap { position: absolute; left: 0; top: 0; width: 1240px; transform-origin: 0 0; }
+.wm-wrap svg { display: block; width: 100%; height: auto; overflow: visible; }
+.wm-wrap #i1-flame, .wm-wrap #i2-flame { transform-box: fill-box; transform-origin: 50% 100%; }
+.tagline { position: absolute; left: 0; right: 0; top: 712px; text-align: center; font-size: 36px; font-weight: 400; letter-spacing: -.02em; color: #a9a19c; white-space: pre; }
+</style>
+</head>
+<body>
+<main class="player">
+  <div id="frame">
+    <div id="stage">
+      <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+        <filter id="mbA" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur id="mbAg" stdDeviation="0 0"/></filter>
+        <filter id="mbB" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur id="mbBg" stdDeviation="0 0"/></filter>
+        <filter id="mbC" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur id="mbCg" stdDeviation="0 0"/></filter>
+      </defs></svg>
+      <div class="layer" id="amb"></div>
+
+      <!-- 1 · glowing pill -->
+      <section class="scene" id="s1">
+        <div class="pill" id="pill"><span class="pill-txt" id="pillTxt">localhost</span><i class="sheen" id="pillSheen"></i><i class="pill-wash" id="pillWash"></i></div>
+      </section>
+
+      <!-- 2 · the prompt -->
+      <section class="scene" id="s2"><div class="cam" id="s2cam">
+        <h2 class="greet" id="greet">What should we make tonight?</h2>
+        <div class="box" id="box"><div class="box-in" id="boxIn">
+          <div class="box-text"><span id="ptext"></span><i class="caret" id="pcaret"></i></div>
+          <div class="box-bar"><span class="ic">+</span><span class="model"><i></i>local model ⌄</span><span class="send" id="send">↑</span></div>
+        </div></div>
+        <div class="chips" id="chips"><span>Build</span><span>Code</span><span>Write</span><span>Play</span><span>Automate</span></div>
+        <div class="think" id="think">Thinking</div>
+        <div class="ring" id="ring"></div>
+      </div></section>
+
+      <!-- 3 · CerberOS -->
+      <section class="scene" id="s3"><div class="root" id="s3root">
+        <div class="floor" id="s3floor"></div>
+        <svg class="diagram" id="s3dia" viewBox="0 0 1920 1080">
+          <path class="wire" id="w1" d="M560,486 C560,610 960,600 960,722"/>
+          <path class="wire" id="w2" d="M960,486 L960,722"/>
+          <path class="wire" id="w3" d="M1360,486 C1360,610 960,600 960,722"/>
+          <g id="n1"><circle class="ringc" cx="560" cy="400" r="86"/><text class="nl" x="560" y="404">NPU</text><text class="ns" x="560" y="432">Hailo-10H</text></g>
+          <g id="n2"><circle class="ringc" cx="960" cy="400" r="86"/><text class="nl" x="960" y="404">CPU</text><text class="ns" x="960" y="432">Ollama</text></g>
+          <g id="n3"><circle class="ringc" cx="1360" cy="400" r="86"/><text class="nl" x="1360" y="404">REMOTE</text><text class="ns" x="1360" y="432">your LAN</text></g>
+          <g id="gate"><rect class="gatebox" x="770" y="722" width="380" height="110" rx="22"/><text class="gl" x="960" y="776">gate :11434</text><text class="gs" x="960" y="808">Ollama + OpenAI API</text></g>
+          <g id="pulses"></g>
+        </svg>
+        <div class="cards-glow" id="cardsGlow"></div>
+        <div class="cards3d"><div class="rig" id="rig">
+          <div class="card wall" id="wall"><img id="wallImg" alt=""><i class="card-sheen" id="wallSheen"></i></div>
+          <div class="card tui" id="tui">
+            <div class="tui-head"><b><em>▓▓▒░</em> C E R B E R O S <em>░▒▓▓</em></b><span>local AI for Raspberry Pi 5 + Hailo-10H</span></div>
+            <div class="tui-stat"><span><i></i>NPU · Hailo-10H</span><span><i></i>CPU · Ollama</span><span><i></i>REMOTE</span><span><i></i>GATE :11434</span></div>
+            <div class="tui-panes">
+              <div class="pane"><em>Categories</em><div class="hl" id="catHl"></div><div id="catRows"></div></div>
+              <div class="pane"><em>general conversation and writing</em><div class="hl" id="itemHl"></div><div id="itemRows"></div></div>
+            </div>
+            <div class="tui-foot"><b>llm · pipx</b><br>Simon Willison's llm: prompts from the shell, logs every conversation to SQLite.</div>
+            <i class="card-sheen" id="tuiSheen"></i>
+          </div>
+        </div></div>
+        <div class="ktitle" id="s3title">CerberOS</div>
+        <div class="ksub" id="s3sub"></div>
+      </div></section>
+
+      <!-- 4 · Feather LLM Keyboard -->
+      <section class="scene" id="s4"><div class="root" id="s4root">
+        <div class="world" id="s4world">
+          <svg viewBox="0 0 3400 1080" width="3400" height="1080">
+            <g id="pi">
+              <rect class="draw" x="340" y="400" width="380" height="250" rx="22"/>
+              <g id="gpio"></g>
+              <rect class="draw chip" x="392" y="480" width="112" height="112" rx="8"/>
+              <text class="chipl" x="448" y="542">BCM2712</text>
+              <rect class="draw chip red" x="536" y="470" width="150" height="132" rx="10"/>
+              <text class="chipl" x="611" y="530">Hailo-10H</text><text class="chips2" x="611" y="556">40 TOPS</text>
+              <text class="lbl" x="530" y="712">Raspberry Pi 5</text><text class="lbl2" x="530" y="746">hailo-ollama · llama3.2</text>
+            </g>
+            <path class="wire2" id="fw1" d="M720,525 C880,525 930,470 1050,470 S1260,525 1380,525"/>
+            <text class="wl" id="fwl1" x="1050" y="440">UART · 115200 baud</text>
+            <g id="feather">
+              <rect class="draw" x="1380" y="480" width="240" height="90" rx="14"/>
+              <circle id="led" cx="1428" cy="525" r="11" fill="#ff3b3b"/>
+              <circle id="ledRing" class="ledring" cx="1428" cy="525" r="11" stroke="#3ddc84"/>
+              <rect class="draw chip" x="1490" y="503" width="44" height="44" rx="5"/>
+              <rect class="draw chip" x="1620" y="510" width="22" height="30" rx="4"/>
+              <text class="lbl" x="1500" y="628">Feather RP2350</text>
+            </g>
+            <path class="wire2" id="fw2" d="M1642,525 C1800,525 1840,700 1960,760 S2120,786 2190,786"/>
+            <text class="wl" id="fwl2" x="1880" y="840">USB HID · no drivers</text>
+            <g id="laptop">
+              <rect class="draw" x="2250" y="300" width="720" height="450" rx="22"/>
+              <rect class="scr" id="lapScr" x="2270" y="320" width="680" height="410" rx="10" fill-opacity="0"/>
+              <path class="draw" d="M2180,770 L3040,770 L3000,806 L2220,806 Z"/>
+              <text class="lbl" x="2610" y="866">your laptop</text>
+            </g>
+            <g id="fpulses"></g>
+          </svg>
+          <div class="lap-screen" id="lapScreen"><div class="lap-bar"><i></i><i></i><i></i><span>notes.txt</span></div><pre id="lapText"></pre></div>
+        </div>
+      </div>
+        <div class="pp" id="s4pp"><span id="s4ppTxt"></span><i class="caret"></i></div>
+        <div class="kname" id="s4name"><b>Feather LLM Keyboard</b><span>Your local model, typing into any laptop as a USB keyboard.</span></div>
+      </section>
+
+      <!-- 5 · Scream and Run -->
+      <section class="scene" id="s5"><div class="root" id="s5root">
+        <div class="s5glow" id="s5glow"></div>
+        <svg class="ecg" viewBox="0 0 1920 1080"><path id="ecgPath"/><circle id="ecgHead" r="7"/></svg>
+        <div class="onryo" id="onryo" role="img" aria-label="Onryo"></div>
+        <div class="timer" id="timer">5:00</div>
+        <div class="phase" id="ph1">She's watching.</div>
+        <div class="phase" id="ph2">She's hunting you.</div>
+        <div class="phase run" id="ph3">RUN.</div>
+        <div class="s5title" id="s5title">Scream and Run</div>
+        <div class="s5sub" id="s5sub">A tModLoader horror mod. Hide, stay quiet, survive five minutes.</div>
+        <div class="letter" id="letter" role="img" aria-label="Love Letter"></div>
+      </div>
+        <div class="pp" id="s5pp"><span id="s5ppTxt"></span><i class="caret"></i></div>
+        <div class="vig-red" id="vigRed"></div>
+      </section>
+
+      <!-- 6 · plugins -->
+      <section class="scene" id="s6">
+        <div class="s6head" id="s6head"><span>+ plugins for coding agents</span><b id="s6count">1 / 4</b></div>
+        <div class="plug" id="pg1"><div class="plug-in">
+          <div class="pf-msg" id="pfMsg"><span class="pf-chip">Explain before you edit.</span><span>fix the login bug</span></div>
+          <div class="pf-input" id="pfIn"><span id="pfPad" style="display:inline-block;width:0"></span><span id="pfTxt"></span><i class="caret" id="pfCaret"></i></div>
+          <span class="pf-chip pf-fly" id="pfChip">Explain before you edit.</span>
+          <div class="kname mono"><b>prompt-prefix</b><span>Your standing instructions, at the start of every prompt.</span></div>
+        </div></div>
+        <div class="plug" id="pg2"><div class="plug-in">
+          <div class="trhl" id="trhl"></div>
+          <div class="tree" id="tree"></div>
+          <svg class="pin" id="pin" viewBox="0 0 56 56"><circle cx="28" cy="20" r="14" fill="#e0284a"/><circle cx="23" cy="15" r="4" fill="#ff9aab"/><path d="M28 34 L28 54" stroke="#f4f0ec" stroke-width="3" stroke-linecap="round"/></svg>
+          <div class="note" id="note"><b>src/billing/**</b><p>Amounts are integer cents. Never use floats here.</p></div>
+          <div class="kname mono"><b>breadcrumbs</b><span>Notes pinned to files, seen the moment the agent opens them.</span></div>
+        </div></div>
+        <div class="plug" id="pg3"><div class="plug-in">
+          <svg class="fence" viewBox="0 0 1920 1080"><rect id="fenceRect" x="438" y="262" width="566" height="436" rx="24"/><text id="fenceTxt" x="452" y="248">fence: src/api/** tests/api/</text></svg>
+          <div id="tiles"></div>
+          <div class="edit-dot" id="dotA"></div><div class="edit-dot" id="dotB"></div>
+          <div class="deny" id="deny">✕ outside the fence</div>
+          <div class="kname mono"><b>scope-fence</b><span>Keeps the agent's edits inside the paths a task is about.</span></div>
+        </div></div>
+        <div class="plug" id="pg4"><div class="plug-in" id="pg4in">
+          <div class="receipt" id="receipt"><pre id="receiptTxt"></pre></div>
+          <div class="printer"></div>
+          <div class="kname mono"><b>session-receipt</b><span>An itemised, till-style receipt of what a session did.</span></div>
+        </div></div>
+        <div class="pp" id="s6pp"><span id="s6ppTxt"></span><i class="caret"></i></div>
+      </section>
+
+      <!-- 7 · code close-up -->
+      <section class="scene" id="s7">
+        <div class="code" id="code"></div>
+      </section>
+
+      <!-- 8 · statement -->
+      <section class="scene" id="s8">
+        <div class="horizon" id="horizon"></div>
+        <div class="stmt" id="stmt"></div>
+      </section>
+
+      <!-- 9 · the candle -->
+      <section class="scene" id="s9">
+        <div class="wm-wrap" id="wmWrap"><!--@WORDMARK@--></div>
+        <div class="tagline" id="tagline">AI that never leaves the room.</div>
+      </section>
+
+      <div class="layer" id="wipe"></div>
+      <div class="layer" id="black"></div>
+      <div class="layer" id="vig"></div>
+      <canvas class="layer" id="grain"></canvas>
+    </div>
+    <button class="big-play" id="bigPlay" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="#b8122f"/><path d="M10 8 L16 12 L10 16 Z" fill="#fff"/></svg>Play trailer <small>0:55 · sound on</small></button>
+  </div>
+  <div class="bar">
+    <button id="playBtn" type="button">Play</button>
+    <input id="scrub" type="range" min="0" max="55.2" step="0.01" value="0" aria-label="Seek">
+    <span id="clock">0:00 / 0:55</span>
+    <button id="muteBtn" type="button">Mute</button>
+    <button id="fsBtn" type="button">Full screen</button>
+  </div>
+</main>
+
+<script>
+"use strict";
+const DUR = 55.2;
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const clamp = (x, a = 0, b = 1) => (x < a ? a : x > b ? b : x);
+const lerp = (a, b, p) => a + (b - a) * p;
+const E = {
+  lin: p => p,
+  inC: p => p * p * p,
+  outC: p => 1 - Math.pow(1 - p, 3),
+  ioC: p => (p < .5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2),
+  outQ: p => 1 - Math.pow(1 - p, 5),
+  inX: p => (p === 0 ? 0 : Math.pow(2, 10 * p - 10)),
+  outX: p => (p === 1 ? 1 : 1 - Math.pow(2, -10 * p)),
+  ioX: p => (p === 0 ? 0 : p === 1 ? 1 : p < .5 ? Math.pow(2, 20 * p - 10) / 2 : (2 - Math.pow(2, -20 * p + 10)) / 2),
+  outB: p => { const c1 = 1.70158, c3 = c1 + 1; return 1 + c3 * Math.pow(p - 1, 3) + c1 * Math.pow(p - 1, 2); },
+  outB2: p => { const c1 = 2.6, c3 = c1 + 1; return 1 + c3 * Math.pow(p - 1, 3) + c1 * Math.pow(p - 1, 2); },
+};
+const seg = (t, a, b, e = E.lin) => e(clamp((t - a) / (b - a)));
+function hash(a, b = 0, c = 0) {
+  let h = Math.imul(a | 0, 374761393) ^ Math.imul(b | 0, 668265263) ^ Math.imul(c | 0, 1442695041);
+  h = Math.imul(h ^ (h >>> 13), 1274126177);
+  return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+}
+function put(el, o) {
+  const t = [];
+  if (o.pre) t.push(o.pre);
+  if (o.x || o.y || o.z) t.push(`translate3d(${(o.x || 0).toFixed(2)}px,${(o.y || 0).toFixed(2)}px,${(o.z || 0).toFixed(2)}px)`);
+  if (o.rx) t.push(`rotateX(${o.rx.toFixed(3)}deg)`);
+  if (o.ry) t.push(`rotateY(${o.ry.toFixed(3)}deg)`);
+  if (o.rz) t.push(`rotateZ(${o.rz.toFixed(3)}deg)`);
+  if (o.sk) t.push(`skewX(${o.sk.toFixed(3)}deg)`);
+  if (o.s !== undefined && o.s !== 1) t.push(`scale(${o.s.toFixed(4)})`);
+  if (o.sx !== undefined || o.sy !== undefined) t.push(`scale(${(o.sx ?? 1).toFixed(4)},${(o.sy ?? 1).toFixed(4)})`);
+  el.style.transform = t.join(' ');
+  if (o.o !== undefined) el.style.opacity = clamp(o.o).toFixed(3);
+  if (o.blur !== undefined || o.f !== undefined) {
+    const f = [];
+    if (o.f) f.push(o.f);
+    if (o.blur > .05) f.push(`blur(${o.blur.toFixed(2)}px)`);
+    el.style.filter = f.length ? f.join(' ') : 'none';
+  }
+}
+// Directional motion blur through one of three SVG filters.
+function mblur(el, id, amt, vertical = false, extra = '') {
+  const g = document.getElementById(id + 'g');
+  if (Math.abs(amt) < .3) { el.style.filter = extra || 'none'; return; }
+  const a = Math.abs(amt).toFixed(1);
+  g.setAttribute('stdDeviation', vertical ? `0 ${a}` : `${a} 0`);
+  el.style.filter = `url(#${id}) ${extra}`;
+}
+function split(el) {
+  const txt = el.textContent;
+  el.textContent = '';
+  return [...txt].map(c => { const s = document.createElement('span'); s.className = 'ch'; s.textContent = c; el.appendChild(s); return s; });
+}
+function stagger(chs, t, t0, gap, dur, fn) { chs.forEach((c, i) => fn(c, clamp((t - t0 - i * gap) / dur), i)); }
+function typer(text, cps, seed = 1) {
+  const times = []; let acc = 0;
+  for (let i = 0; i < text.length; i++) {
+    times.push(acc);
+    const c = text[i];
+    acc += (1 / cps) * (.6 + hash(i, seed) * .8) * (c === ' ' ? 1.25 : 1) * (/[.,]/.test(c) ? 2.4 : 1);
+  }
+  return { text, times, total: acc, count(lt) { let n = 0; while (n < times.length && times[n] <= lt) n++; return n; } };
+}
+const GLYPHS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789#%&*+=<>/\\[]{}$@';
+function scramble(text, p, t, seed = 0, tail = 7) {
+  const n = text.length, head = p * (n + tail), fr = Math.floor(t * 24);
+  let out = '';
+  for (let i = 0; i < n; i++) {
+    const c = text[i];
+    if (c === ' ' || c === '\n') { out += c; continue; }
+    if (i < head - tail) out += c;
+    else if (i < head) out += GLYPHS[Math.floor(hash(i, fr, seed) * GLYPHS.length)];
+    else out += ' ';
+  }
+  return out;
+}
+function draw(path, p) {
+  if (!path._len) path._len = path.getTotalLength();
+  path.style.strokeDasharray = path._len;
+  path.style.strokeDashoffset = (path._len * (1 - clamp(p))).toFixed(2);
+}
+const pulseAt = (t, beats, k = 9) => beats.reduce((a, b) => a + (t >= b ? Math.exp(-(t - b) * k) : 0), 0);
+// Piecewise camera keys: [[t, {x, y, s}], ...]; scale interpolates in log space.
+function keys(t, ks, ease = E.ioC) {
+  if (t <= ks[0][0]) return ks[0][1];
+  for (let i = 1; i < ks.length; i++) {
+    const [t1, b] = ks[i], [t0, a] = ks[i - 1];
+    if (t <= t1) {
+      const p = ease((t - t0) / (t1 - t0));
+      return { x: lerp(a.x, b.x, p), y: lerp(a.y, b.y, p), s: Math.exp(lerp(Math.log(a.s), Math.log(b.s), p)) };
+    }
+  }
+  return ks[ks.length - 1][1];
+}
+function typePill(pp, txtEl, ty, lt, t0, inAt, outAt) {
+  const pin = seg(lt, inAt, inAt + .35, E.outX), pout = seg(lt, outAt, outAt + .3, E.inC);
+  put(pp, { pre: 'translateX(-50%)', y: lerp(-30, 0, pin) - 20 * pout, s: lerp(.92, 1, pin), o: pin * (1 - pout), blur: 8 * (1 - pin) + 8 * pout });
+  txtEl.textContent = ty.text.slice(0, ty.count(lt - t0));
+}
+
+const SCENES = [];
+function scene(id, t0, dur, init, update) { SCENES.push({ id, t0, t1: t0 + dur, el: document.getElementById(id), init, update, on: null }); }
+
+/* ======================= 1 · pill ======================= */
+scene('s1', 0, 3.2, function () {
+  this.pill = $('#pill'); this.txt = $('#pillTxt'); this.sheen = $('#pillSheen'); this.wash = $('#pillWash');
+  this.tw = this.txt.offsetWidth + 120;
+  this.chs = split(this.txt);
+}, function (lt) {
+  const appear = seg(lt, .25, .7, E.outB2), open = seg(lt, .7, 1.3, E.ioX), close = seg(lt, 2.45, 3.0, E.ioX);
+  let w = lerp(34, this.tw, open), h = lerp(34, 120, open);
+  if (close > 0) { w = lerp(this.tw, 1000, close); h = lerp(120, 2, close); }
+  this.pill.style.width = w + 'px'; this.pill.style.height = h + 'px';
+  const drift = 1 + .05 * seg(lt, 1.2, 2.6, E.outC);
+  put(this.pill, { pre: 'translate(-50%,-50%)', s: Math.max(.001, appear) * drift, o: Math.min(1, appear * 2) });
+  stagger(this.chs, lt, .95, .032, .45, (c, p) => put(c, { y: (1 - E.outC(p)) * 40, o: p, blur: (1 - p) * 10 }));
+  this.txt.style.opacity = 1 - seg(lt, 2.35, 2.6);
+  put(this.sheen, { pre: 'skewX(-20deg)', x: lerp(-260, this.tw + 120, seg(lt, 1.55, 2.25, E.ioC)) });
+  this.wash.style.opacity = seg(lt, 2.45, 2.85);
+});
+
+/* ======================= 2 · prompt ======================= */
+const PROMPT = 'Build an operating system that runs AI on a Raspberry Pi.';
+const ringR = p => lerp(14, 1350, E.ioC(clamp(p)));
+scene('s2', 2.95, 4.65, function () {
+  this.cam = $('#s2cam'); this.box = $('#box'); this.boxIn = $('#boxIn'); this.ptext = $('#ptext'); this.caret = $('#pcaret');
+  this.send = $('#send'); this.think = $('#think'); this.ring = $('#ring');
+  this.greet = split($('#greet')); this.chips = $$('#chips span');
+  this.ty = typer(PROMPT, 36, 3);
+}, function (lt) {
+  const open = seg(lt, 0, .55, E.outX);
+  const collapse = seg(lt, 3.4, 3.8, E.inX);
+  let bw = 1000, bh = lerp(2, 170, open);
+  if (collapse > 0) { bw = lerp(1000, 26, collapse); bh = lerp(170, 26, collapse); }
+  Object.assign(this.box.style, { width: bw + 'px', height: bh + 'px', marginTop: -bh / 2 + 'px', left: 960 - bw / 2 + 'px' });
+  this.box.style.background = collapse > .6 ? '#e0284a' : '#141111';
+  this.box.style.boxShadow = collapse > .6 ? '0 0 40px #e0284a, 0 0 120px rgba(184,18,47,.8)' : '';
+  const dotPulse = 1 + .55 * Math.sin(Math.PI * seg(lt, 3.8, 4.0));
+  const gone = seg(lt, 3.95, 4.05);
+  put(this.box, { s: collapse > 0 ? dotPulse : 1, o: seg(lt, 0, .2) * (1 - gone) });
+  put(this.boxIn, { x: (bw - 1000) / 2, y: (bh - 170) / 2, o: seg(lt, .3, .6) * (1 - seg(lt, 3.4, 3.55)) });
+  const out = seg(lt, 3.3, 3.7, E.inC);
+  stagger(this.greet, lt, .25, .02, .5, (c, p) => put(c, { y: (1 - E.outC(p)) * 34 - out * 60, o: p * (1 - out), blur: (1 - p) * 10 + out * 10 }));
+  stagger(this.chips, lt, .6, .07, .45, (c, p) => put(c, { y: (1 - p) * 20 + out * 50, s: lerp(.7, 1, E.outB(p)), o: p * (1 - out), blur: out * 8 }));
+  const n = this.ty.count(lt - 1.0);
+  this.ptext.textContent = PROMPT.slice(0, n);
+  const typing = lt > 1.0 && n < PROMPT.length;
+  this.caret.style.opacity = typing || Math.floor(lt * 2.4) % 2 === 0 ? 1 : 0;
+  const press = seg(lt, 3.05, 3.35);
+  this.send.style.background = press > 0 ? '#e0284a' : '#2a2424';
+  this.send.style.boxShadow = press > 0 ? '0 0 24px #e0284a' : 'none';
+  put(this.send, { s: 1 - .18 * Math.sin(Math.PI * press) });
+  const th = seg(lt, 3.55, 3.75) * (1 - seg(lt, 3.9, 4.05));
+  this.think.style.opacity = th;
+  this.think.style.backgroundPosition = `${lerp(100, 0, seg(lt, 3.55, 4.05)) * 3}% 0`;
+  put(this.think, { y: 30 });
+  const rp = seg(lt, 3.95, 4.65);
+  const r = ringR(rp);
+  Object.assign(this.ring.style, { width: 2 * r + 'px', height: 2 * r + 'px', borderWidth: lerp(6, 1.5, rp) + 'px' });
+  put(this.ring, { pre: 'translate(-50%,-50%)', o: rp > 0 ? 1 - rp * .7 : 0 });
+  put(this.cam, { s: lerp(1, 1.07, seg(lt, 0, 3.4, E.ioC)), rx: lerp(12, 0, seg(lt, 0, 1.4, E.outC)) });
+});
+
+/* ======================= 3 · CerberOS ======================= */
+const CATS = ['01 · Chatbots', '02 · Coding', '03 · Reasoning', '04 · Vision', '05 · Voice', '06 · Agents & RAG', '07 · Models', '08 · System'];
+const ITEMS = [
+  ['► Terminal chat', '<b>[ready]</b>', 0], ['► Open WebUI', '[get]', 0], ['► llm (CLI)', '[get]', 0],
+  ['♦ Llama 3.2 1B (NPU)', '[US] [npu] [pull]', 1], ['♦ Gemma 3 1B', '<b>[US] [cpu] [have]</b>', 1], ['♦ Llama 3.2 3B', '[US] [cpu] [pull]', 1],
+  ['♦ Hermes 3 3B', '<b>[US] [cpu] [have]</b>', 1], ['♦ Granite 4.0 Micro 3B', '[US] [cpu] [pull]', 1], ['♦ Gemma 3 270M', '[US] [cpu] [pull]', 1],
+  ['♦ Phi-4 Mini', '<b>[US] [cpu] [have]</b>', 1], ['♦ Qwen 2.5 1.5B (NPU)', '<b>[CN] [npu] [have]</b>', 1],
+];
+scene('s3', 6.9, 7.6, function () {
+  this.root = $('#s3root'); this.floor = $('#s3floor'); this.dia = $('#s3dia');
+  this.rings = $$('#s3dia .ringc'); this.labels = $$('#s3dia text').filter(t => !t.closest('#gate'));
+  this.wires = ['#w1', '#w2', '#w3'].map(s => $(s)); this.gate = $('#gate');
+  const pg = $('#pulses');
+  this.pulses = [];
+  for (let i = 0; i < 9; i++) { const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle'); c.setAttribute('r', 6); c.setAttribute('class', 'pulse'); c.style.filter = 'drop-shadow(0 0 8px #ff4060)'; pg.appendChild(c); this.pulses.push(c); }
+  this.title = $('#s3title'); this.tchs = split(this.title);
+  this.tW = this.title.offsetWidth; this.tH = this.title.offsetHeight;
+  this.sub = $('#s3sub'); this.subText = 'Raspberry Pi 5 + Hailo-10H · 21 local models · no cloud';
+  this.rig = $('#rig'); this.wall = $('#wall'); this.tui = $('#tui'); this.glow = $('#cardsGlow');
+  this.wallSheen = $('#wallSheen'); this.tuiSheen = $('#tuiSheen');
+  $('#wallImg').src = ASSETS.wallpaper;
+  $('#catRows').innerHTML = CATS.map((c, i) => `<div class="row${i === 0 ? ' on' : ''}">${c}</div>`).join('');
+  $('#itemRows').innerHTML = ITEMS.map(([a, b, m]) => `<div class="row${m ? ' model' : ''}">${a}<span class="tag">${b}</span></div>`).join('');
+  this.catHl = $('#catHl'); this.itemHl = $('#itemHl');
+  this.itemRows = $$('#itemRows .row');
+}, function (lt) {
+  // circle wipe in from the prompt's ring
+  this.el.style.clipPath = lt < .7 ? `circle(${ringR(lt / .7)}px at 960px 540px)` : 'none';
+  // title: flip in letter by letter, then shrink into the corner
+  const mv = seg(lt, 1.15, 1.7, E.ioX);
+  const sc = lerp(1, .3, mv);
+  const cx = lerp(960 - this.tW / 2, 120, mv), cy = lerp(540 - this.tH / 2 - 20, 92, mv);
+  put(this.title, { x: cx, y: cy, s: sc });
+  stagger(this.tchs, lt, .12, .045, .55, (c, p) => put(c, { rx: lerp(-95, 0, E.outB(p)), y: (1 - p) * 30, o: Math.min(1, p * 2.5), blur: (1 - p) * 8 }));
+  this.sub.textContent = scramble(this.subText, seg(lt, 1.6, 2.4), lt, 3);
+  // diagram builds
+  const B = seg(lt, 3.4, 4.3, E.ioX);
+  put(this.dia, { x: lerp(0, -520, B), y: lerp(0, -40, B), s: lerp(lerp(.94, 1, seg(lt, 1.2, 3.4, E.outC)), .6, B), o: 1 - .55 * B, blur: 2.5 * B });
+  this.rings.forEach((r, i) => { const p = seg(lt, 1.2 + i * .12, 1.8 + i * .12, E.outC); draw(r, p); r.style.fill = `rgba(184,18,47,${(.14 * seg(lt, 1.7 + i * .12, 2.1 + i * .12)).toFixed(3)})`; });
+  this.labels.forEach((l, i) => { l.style.opacity = seg(lt, 1.55 + (i >> 1) * .12, 1.9 + (i >> 1) * .12); });
+  this.wires.forEach((w, i) => draw(w, seg(lt, 1.7 + i * .08, 2.25 + i * .08, E.ioC)));
+  const gp = seg(lt, 2.1, 2.5, E.outB);
+  this.gate.style.transformBox = 'fill-box'; this.gate.style.transformOrigin = '50% 50%';
+  this.gate.style.transform = `scale(${Math.max(.001, gp)})`; this.gate.style.opacity = Math.min(1, gp * 2);
+  const pv = seg(lt, 2.35, 2.6);
+  this.pulses.forEach((c, k) => {
+    const w = this.wires[k % 3], ph = ((lt * .85 + Math.floor(k / 3) / 3 + (k % 3) * .11) % 1);
+    if (!w._len) w._len = w.getTotalLength();
+    const pt = w.getPointAtLength(ph * w._len);
+    c.setAttribute('cx', pt.x.toFixed(1)); c.setAttribute('cy', pt.y.toFixed(1));
+    c.style.opacity = (pv * Math.sin(Math.PI * ph)).toFixed(3);
+  });
+  put(this.floor, { pre: 'perspective(900px) rotateX(74deg)', o: .55 * seg(lt, .6, 1.6) });
+  this.floor.style.backgroundPosition = `0 ${(lt * 70).toFixed(1)}px`;
+  // cards fly in and the rig orbits
+  const wIn = seg(lt, 3.45, 4.4, E.outX), tIn = seg(lt, 3.7, 4.65, E.outX);
+  put(this.wall, { x: lerp(1500, 0, wIn), z: lerp(-900, -260, wIn), ry: lerp(-50, 0, wIn), o: seg(lt, 3.45, 3.7) });
+  put(this.tui, { x: lerp(1700, 0, tIn), z: lerp(300, 60, tIn), ry: lerp(-40, 0, tIn), o: seg(lt, 3.7, 3.95) });
+  const orbit = seg(lt, 3.45, 7.4, E.outC);
+  put(this.rig, { ry: lerp(-34, -12, orbit), rx: lerp(9, 4, orbit), x: lerp(60, -40, orbit) });
+  put(this.glow, { o: .9 * seg(lt, 3.8, 4.6), s: lerp(.8, 1, orbit) });
+  put(this.wallSheen, { pre: 'skewX(-18deg)', x: lerp(-400, 1300, seg(lt, 5.0, 5.9, E.ioC)) });
+  put(this.tuiSheen, { pre: 'skewX(-18deg)', x: lerp(-400, 1350, seg(lt, 5.25, 6.15, E.ioC)) });
+  const idx = Math.floor(clamp((lt - 4.7) / .19, 0, 10.99));
+  this.itemHl.style.top = (14 + idx * 26) + 'px';
+  this.itemRows.forEach((r, i) => r.classList.toggle('on', i === idx));
+  this.catHl.style.top = '14px';
+  // exit: whip pan left
+  const whip = seg(lt, 7.1, 7.6, E.inC);
+  const v = whip > 0 ? 260 * seg(lt, 7.1, 7.6) : 0;
+  put(this.root, { x: -2600 * whip });
+  mblur(this.root, 'mbA', v);
+});
+
+/* ======================= 4 · Feather ======================= */
+const HAIKU_Q = '> Write a haiku about USB\n\n';
+const HAIKU = 'Small wire, quiet hum,\nletters fall like summer rain,\nno drivers needed.';
+scene('s4', 14.0, 7.4, function () {
+  this.root = $('#s4root'); this.world = $('#s4world');
+  const g = $('#gpio');
+  for (let r = 0; r < 2; r++) for (let i = 0; i < 20; i++) { const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle'); c.setAttribute('cx', 382 + i * 15.5); c.setAttribute('cy', 420 + r * 15); c.setAttribute('r', 4); c.setAttribute('class', 'gp'); g.appendChild(c); }
+  this.gpio = [...g.children];
+  this.piDraw = $$('#pi .draw'); this.piText = $$('#pi text');
+  this.fDraw = $$('#feather .draw'); this.fText = $$('#feather text');
+  this.lDraw = $$('#laptop .draw'); this.lText = $$('#laptop text'); this.scr = $('#lapScr');
+  this.w1 = $('#fw1'); this.w2 = $('#fw2'); this.wl1 = $('#fwl1'); this.wl2 = $('#fwl2');
+  this.led = $('#led'); this.ledRing = $('#ledRing');
+  const fp = $('#fpulses'); this.fp = [];
+  for (let i = 0; i < 14; i++) { const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle'); c.setAttribute('r', 7); c.setAttribute('fill', '#ffffff'); c.style.filter = 'drop-shadow(0 0 10px #ff4060)'; fp.appendChild(c); this.fp.push(c); }
+  this.lapScreen = $('#lapScreen'); this.lapText = $('#lapText');
+  this.pp = $('#s4pp'); this.ppTxt = $('#s4ppTxt'); this.ty = typer('Make my Pi type on my laptop.', 34, 5);
+  this.ty2 = typer(HAIKU, 26, 9);
+  this.name = $('#s4name'); this.nb = split(this.name.querySelector('b')); this.ns = this.name.querySelector(':scope > span');
+}, function (lt) {
+  // whip in from the right
+  const arr = seg(lt, 0, .5, E.outC);
+  put(this.root, { x: 2600 * (1 - arr) });
+  mblur(this.root, 'mbA', lt < .5 ? 220 * (1 - seg(lt, 0, .5)) : 0);
+  typePill(this.pp, this.ppTxt, this.ty, lt, .35, .2, 1.75);
+  // draw the boards
+  this.piDraw.forEach((d, i) => { draw(d, seg(lt, .28 + i * .12, 1.1 + i * .12, E.ioC)); d.style.fillOpacity = seg(lt, .9, 1.4); });
+  this.gpio.forEach((c, i) => { c.style.opacity = seg(lt, .6 + (i % 20) * .02, .8 + (i % 20) * .02); });
+  this.piText.forEach((t, i) => { t.style.opacity = seg(lt, .9 + i * .06, 1.2 + i * .06); });
+  draw(this.w1, seg(lt, 1.35, 2.0, E.ioC)); this.wl1.style.opacity = seg(lt, 1.8, 2.1);
+  this.fDraw.forEach((d, i) => { draw(d, seg(lt, 1.85 + i * .08, 2.4 + i * .08, E.ioC)); d.style.fillOpacity = seg(lt, 2.2, 2.6); });
+  this.fText.forEach(t => { t.style.opacity = seg(lt, 2.2, 2.5); });
+  draw(this.w2, seg(lt, 2.25, 2.85, E.ioC)); this.wl2.style.opacity = seg(lt, 2.6, 2.9) * (1 - seg(lt, 3.9, 4.3));
+  this.lDraw.forEach((d, i) => { draw(d, seg(lt, 2.5 + i * .1, 3.15 + i * .1, E.ioC)); d.style.fillOpacity = seg(lt, 2.9, 3.3); });
+  this.lText.forEach(t => { t.style.opacity = seg(lt, 3.0, 3.3); });
+  this.scr.style.fillOpacity = seg(lt, 2.9, 3.3);
+  // LED: red (disarmed) -> green (armed) -> blue (typing)
+  const armed = lt >= 3.05, typing = lt >= 3.45 && lt < 5.75;
+  this.led.setAttribute('fill', typing ? '#3b82ff' : armed ? '#3ddc84' : '#ff3b3b');
+  this.led.style.opacity = seg(lt, 2.2, 2.5);
+  this.led.style.filter = `drop-shadow(0 0 ${typing ? 16 : 10}px ${typing ? '#3b82ff' : armed ? '#3ddc84' : '#ff3b3b'})`;
+  const rip = seg(lt, 3.05, 3.6, E.outC);
+  this.ledRing.setAttribute('r', (11 + rip * 46).toFixed(1));
+  this.ledRing.style.opacity = rip > 0 ? 1 - rip : 0;
+  // data pulses along both wires
+  const flow = seg(lt, 2.0, 2.3) * (1 - seg(lt, 5.8, 6.1));
+  const sp = typing ? 1.25 : .6;
+  this.fp.forEach((c, k) => {
+    const w = k < 7 ? this.w1 : this.w2;
+    if (!w._len) w._len = w.getTotalLength();
+    const ph = ((lt * sp + (k % 7) / 7) % 1);
+    const pt = w.getPointAtLength(ph * w._len);
+    c.setAttribute('cx', pt.x.toFixed(1)); c.setAttribute('cy', pt.y.toFixed(1));
+    c.style.opacity = (flow * (k < 7 ? 1 : seg(lt, 2.8, 3.1)) * Math.sin(Math.PI * ph)).toFixed(3);
+  });
+  // laptop typing
+  const n = this.ty2.count(lt - 3.55);
+  const q = lt > 3.3 ? HAIKU_Q.slice(0, Math.floor(clamp((lt - 3.3) / .25) * HAIKU_Q.length)) : '';
+  this.lapText.innerHTML = `<span class="q">${q.replace('>', '&gt;')}</span>${HAIKU.slice(0, n)}<i class="caret" style="opacity:${Math.floor(lt * 2.5) % 2 || (n > 0 && n < HAIKU.length) ? 1 : 0}"></i>`;
+  this.lapScreen.style.opacity = seg(lt, 3.1, 3.3) * (1 - seg(lt, 6.55, 6.85));
+  // camera
+  const cam = keys(lt, [[0, { x: 560, y: 545, s: 1.25 }], [.9, { x: 560, y: 545, s: 1.18 }], [3.1, { x: 1690, y: 560, s: .6 }], [3.6, { x: 1760, y: 560, s: .6 }], [5.6, { x: 2440, y: 610, s: 1.18 }], [6.4, { x: 2470, y: 600, s: 1.3 }], [7.4, { x: 2610, y: 525, s: 4.5 }]]);
+  put(this.world, { pre: `translate(${(960 - cam.x * cam.s).toFixed(1)}px,${(540 - cam.y * cam.s).toFixed(1)}px) scale(${cam.s.toFixed(4)})` });
+  // title
+  stagger(this.nb, lt, 4.3, .025, .5, (c, p) => put(c, { y: (1 - E.outC(p)) * 60, o: p, blur: (1 - p) * 10 }));
+  put(this.ns, { y: 16 * (1 - seg(lt, 4.7, 5.2, E.outC)), o: seg(lt, 4.7, 5.2) });
+  put(this.name, { o: 1 - seg(lt, 6.3, 6.7), blur: 10 * seg(lt, 6.3, 6.7) });
+});
+
+/* ======================= 5 · Scream and Run ======================= */
+const BEATS = [1.3, 1.6, 2.3, 2.58, 3.25, 3.48, 3.9, 4.08];
+scene('s5', 21.0, 6.0, function () {
+  this.root = $('#s5root');
+  this.onryo = $('#onryo'); this.onryo.style.backgroundImage = `url(${ASSETS.onryo})`;
+  this.letter = $('#letter'); this.letter.style.backgroundImage = `url(${ASSETS.letter})`;
+  this.timer = $('#timer'); this.ph = ['#ph1', '#ph2', '#ph3'].map(s => $(s));
+  this.title = $('#s5title'); this.tchs = split(this.title); this.sub = $('#s5sub');
+  this.vig = $('#vigRed'); this.glow = $('#s5glow');
+  this.pp = $('#s5pp'); this.ppTxt = $('#s5ppTxt'); this.ty = typer("Make a horror boss you can't kill.", 34, 11);
+  // the heartbeat trace
+  const X = t => (t - 1.0) / 3.3 * 1920, Y = 762;
+  let d = `M0,${Y}`;
+  for (const b of BEATS) {
+    const x = X(b);
+    d += ` L${x - 34},${Y} L${x - 22},${Y - 16} L${x - 12},${Y} L${x - 6},${Y + 12} L${x},${Y - 150} L${x + 7},${Y + 58} L${x + 15},${Y} L${x + 38},${Y - 24} L${x + 58},${Y}`;
+  }
+  d += ` L1980,${Y}`;
+  this.ecg = $('#ecgPath'); this.ecg.setAttribute('d', d); this.head = $('#ecgHead');
+}, function (lt) {
+  typePill(this.pp, this.ppTxt, this.ty, lt, .15, .05, 1.15);
+  const glitch = seg(lt, 1.0, 1.25);
+  this.pp.style.color = glitch > 0 ? '#ff6b85' : '#efe9e4';
+  if (glitch > 0 && glitch < 1) this.pp.style.transform += ` translateX(${((hash(Math.floor(lt * 60), 3) - .5) * 30).toFixed(1)}px)`;
+  const beat = pulseAt(lt, BEATS, 7);
+  const lit = seg(lt, .9, 1.4);
+  this.vig.style.opacity = (lit * (.35 + .65 * Math.min(1, beat)) * (1 - seg(lt, 5.6, 6.2))).toFixed(3);
+  this.glow.style.opacity = (lit * (.5 + .5 * Math.min(1, beat))).toFixed(3);
+  put(this.root, { s: 1 + .012 * Math.min(1, beat) + .03 * seg(lt, 1, 6, E.lin), x: (hash(Math.floor(lt * 30), 9) - .5) * 6 * Math.min(1, beat) * (lt > 3.2 ? 2 : 1) });
+  // ECG
+  const dp = seg(lt, 1.0, 4.3);
+  draw(this.ecg, dp);
+  this.ecg.style.opacity = lit * (1 - seg(lt, 4.4, 4.9));
+  const L = this.ecg._len || this.ecg.getTotalLength();
+  const hp = this.ecg.getPointAtLength(dp * L);
+  this.head.setAttribute('cx', hp.x.toFixed(1)); this.head.setAttribute('cy', hp.y.toFixed(1));
+  this.head.style.opacity = dp > 0 && dp < 1 ? 1 : 0;
+  // Onryo walks in
+  const walk = seg(lt, 1.5, 4.3, E.lin);
+  const frame = walk > 0 && walk < 1 ? 1 + Math.floor(lt * 8) % 4 : 0;
+  this.onryo.style.backgroundPosition = `0 ${-frame * 336}px`;
+  put(this.onryo, { x: lerp(1800, 1460, E.outC(walk)), y: 762 - 336 + 4, o: seg(lt, 1.4, 2.0) * (1 - .45 * seg(lt, 4.3, 4.8)) });
+  // timer
+  const secs = 300 - Math.floor(Math.max(0, lt - 1.4) / .62);
+  this.timer.textContent = `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}`;
+  const tOn = seg(lt, 1.2, 1.5) * (1 - seg(lt, 4.15, 4.35));
+  this.timer.style.color = lt > 3.25 ? '#e0284a' : '#f4f0ec';
+  put(this.timer, { pre: 'translateX(-50%)', o: tOn * (hash(Math.floor(lt * 20), 4) > .08 ? 1 : .3) });
+  // phase words slam in on the beat
+  const slots = [[1.3, 2.3], [2.3, 3.25], [3.25, 4.2]];
+  this.ph.forEach((el, i) => {
+    const [a, b] = slots[i], p = seg(lt, a, a + .22, E.outX), q = seg(lt, b - .05, b + .05);
+    put(el, { s: lerp(i === 2 ? 1.6 : 1.35, 1, p), o: p * (1 - q), blur: (1 - p) * 20, x: i === 2 ? (hash(Math.floor(lt * 40), 2) - .5) * 14 : 0 });
+  });
+  // title card
+  stagger(this.tchs, lt, 4.25, .035, .5, (c, p) => put(c, { y: (1 - E.outB(p)) * -90, o: Math.min(1, p * 2), blur: (1 - p) * 10 }));
+  put(this.sub, { y: 18 * (1 - seg(lt, 4.75, 5.2, E.outC)), o: seg(lt, 4.75, 5.2) });
+  const lp = seg(lt, 4.6, 5.2, E.outB);
+  put(this.letter, { x: 1190 + 10 * Math.sin(lt * 2.2), y: 210 + 14 * Math.sin(lt * 1.7), rz: -8 + 6 * Math.sin(lt * 1.9), s: Math.max(.001, lp), o: Math.min(1, lp * 2) });
+});
+
+/* ======================= 6 · plugins ======================= */
+const TREE = [['src/', 0], ['api/', 1], ['billing/', 1], ['invoice.py', 2], ['tax.py', 2], ['ui/', 1], ['migrations/', 0]];
+const TILES = [
+  ['src/api/routes.ts', 1], ['src/api/pager.ts', 1], ['src/ui/App.tsx', 0], ['README.md', 0],
+  ['src/api/auth.ts', 1], ['src/api/db.ts', 1], ['src/ui/theme.css', 0], ['package.json', 0],
+  ['tests/api/pager.test.ts', 1], ['tests/api/auth.test.ts', 1], ['build.config.js', 0], ['.env', 0],
+];
+const RECEIPT = `  ~ session receipt ~
+claude-main · 2026-10-03
+     ticket 4f1c09ab
+------------------------------
+  14:02 -> 14:48       46 min
+  prompts                   7
+------------------------------
+  Read                   x 12
+  Edit                   x  9
+  Bash                   x  6
+  Grep                   x  4
+  Write                  x  2
+------------------------------
+  files changed             4
+  most handled
+    src/api/pager.py      (9)
+  longest pause        11 min
+------------------------------
+  TOOL CALLS               33
+------------------------------
+    thank you, come again`;
+const PLUG_PROMPTS = ['Put my rules in front of every prompt.', 'Leave notes on files for the next session.', "Stop the agent editing what it shouldn't.", 'Show me what this session did.'];
+scene('s6', 27.0, 10.0, function () {
+  this.head = $('#s6head'); this.count = $('#s6count');
+  this.plugs = $$('#s6 .plug').map(p => ({ el: p, inner: p.querySelector('.plug-in'), name: p.querySelector('.kname') }));
+  this.plugs.forEach(p => { p.nb = split(p.name.querySelector('b')); p.ns = p.name.querySelector(':scope > span'); });
+  this.pp = $('#s6pp'); this.ppTxt = $('#s6ppTxt'); this.tys = PLUG_PROMPTS.map((s, i) => typer(s, 40, 20 + i));
+  // 1 prompt-prefix
+  this.pfIn = $('#pfIn'); this.pfTxt = $('#pfTxt'); this.pfPad = $('#pfPad'); this.pfChip = $('#pfChip'); this.pfMsg = $('#pfMsg'); this.pfCaret = $('#pfCaret');
+  this.chipW = this.pfChip.offsetWidth;
+  this.pfT1 = typer('fix the login bug', 26, 31); this.pfT2 = typer('add a dark mode', 30, 32);
+  // 2 breadcrumbs
+  const tree = $('#tree');
+  tree.innerHTML = TREE.map(([n, d]) => `<div class="tr">${'    '.repeat(d)}${n}</div>`).join('');
+  this.trhl = $('#trhl'); this.pin = $('#pin'); this.note = $('#note');
+  this.crumbs = [];
+  [0, 2, 3].forEach(r => { const c = document.createElement('div'); c.className = 'crumb'; c.style.left = (548 + TREE[r][1] * 86) + 'px'; c.style.top = (300 + r * 64 + 26) + 'px'; $('#pg2 .plug-in').appendChild(c); this.crumbs.push(c); });
+  // 3 scope-fence
+  const tiles = $('#tiles');
+  tiles.innerHTML = TILES.map(([n, f], i) => { const c = i % 4, r = Math.floor(i / 4); return `<div class="tile" style="left:${452 + c * 272}px;top:${280 + r * 136}px">${n}<small>${f ? 'inside' : 'outside'}</small></div>`; }).join('');
+  this.tiles = $$('#tiles .tile'); this.fence = $('#fenceRect'); this.fenceTxt = $('#fenceTxt');
+  this.dotA = $('#dotA'); this.dotB = $('#dotB'); this.deny = $('#deny');
+  // 4 session-receipt
+  this.receipt = $('#receipt'); $('#receiptTxt').textContent = RECEIPT; this.pg4in = $('#pg4in');
+  this.receiptH = 0;
+}, function (lt) {
+  const head = seg(lt, .1, .5) * (1 - seg(lt, 9.6, 9.95));
+  put(this.head, { o: head, y: 10 * (1 - head) });
+  const k = clamp(Math.floor(lt / 2.5), 0, 3);
+  this.count.textContent = `${k + 1} / 4`;
+  // prompt pill retypes for each plugin
+  const ul = lt - k * 2.5;
+  typePill(this.pp, this.ppTxt, this.tys[k], ul, .12, k === 0 ? .05 : 0, 2.2);
+  this.plugs.forEach((p, i) => {
+    const u = lt - i * 2.5;
+    const vis = u > -.2 && u < 2.75;
+    p.el.style.display = vis ? 'block' : 'none';
+    if (!vis) return;
+    const pin = seg(u, 0, .45, E.outX), pout = seg(u, 2.2, 2.62, E.inC);
+    const x = lerp(380, 0, pin) - 420 * pout;
+    put(p.inner, { x, o: Math.min(pin * 1.5, 1) * (1 - pout) });
+    mblur(p.inner, 'mbB', i === 0 && u < .45 ? 0 : (u < .45 ? 40 * (1 - seg(u, 0, .45)) : 45 * seg(u, 2.2, 2.62)));
+    stagger(p.nb, u, .35, .025, .45, (c, q) => put(c, { y: (1 - E.outC(q)) * 50, o: q, blur: (1 - q) * 8 }));
+    put(p.ns, { o: seg(u, .6, 1.0), y: 12 * (1 - seg(u, .6, 1.0, E.outC)) });
+    this['plug' + i](u);
+  });
+  // whole scene recedes into the code shot at the end
+  const fade = seg(lt, 9.55, 10.0, E.inC);
+  put(this.el, { s: lerp(1, .85, fade), o: 1 - fade, blur: 10 * fade });
+});
+SCENES[SCENES.length - 1].plug0 = function (u) {
+  // type, chip snaps onto the front, send, repeat
+  const round2 = u >= 1.45;
+  const ty = round2 ? this.pfT2 : this.pfT1, t0 = round2 ? 1.5 : .25;
+  this.pfTxt.textContent = ty.text.slice(0, ty.count(u - t0));
+  const fly = round2 ? seg(u, 1.88, 2.18, E.outB) : seg(u, .85, 1.25, E.outB);
+  const chipX = 510 + 28, chipY = 480 + 22;
+  const sx = round2 ? 300 : 120, sy = round2 ? 120 : 160;
+  put(this.pfChip, { x: lerp(sx, chipX, fly), y: lerp(sy, chipY, fly), rz: lerp(-14, 0, fly), o: seg(round2 ? u - 1.0 : u, .8, .9) * (u > 1.38 && u < 1.85 ? 0 : 1) });
+  this.pfPad.style.width = (fly * (this.chipW + 14)).toFixed(1) + 'px';
+  const sent = seg(u, 1.3, 1.5, E.outC);
+  put(this.pfMsg, { y: 40 * (1 - sent), o: sent, s: lerp(.9, 1, sent) });
+  this.pfTxt.style.opacity = u > 1.3 && u < 1.45 ? 1 - seg(u, 1.3, 1.42) : 1;
+  this.pfCaret.style.opacity = Math.floor(u * 2.6) % 2 ? 1 : .2;
+};
+SCENES[SCENES.length - 1].plug1 = function (u) {
+  // highlight walks src -> billing -> invoice.py, dropping crumbs
+  const stops = [[.25, 0], [.6, 2], [.95, 3]];
+  let row = 0;
+  for (const [t, r] of stops) if (u >= t) row = r;
+  const prev = stops.filter(([t]) => u >= t);
+  const last = prev.length ? prev[prev.length - 1] : [0, 0];
+  const before = prev.length > 1 ? prev[prev.length - 2][1] : 0;
+  const mv = E.outX(clamp((u - last[0]) / .28));
+  const r = lerp(before, last[1], mv);
+  put(this.trhl, { y: 300 + r * 64, o: seg(u, .15, .3) });
+  this.crumbs.forEach((c, i) => put(c, { s: E.outB(seg(u, stops[i][0] + .1, stops[i][0] + .3)) || .001 }));
+  const drop = seg(u, 1.1, 1.45, E.outB2);
+  put(this.pin, { y: lerp(-90, 0, drop), o: seg(u, 1.1, 1.2) });
+  const unf = seg(u, 1.25, 1.65, E.outB);
+  put(this.note, { sy: Math.max(.001, unf), o: seg(u, 1.25, 1.35) });
+};
+SCENES[SCENES.length - 1].plug2 = function (u) {
+  // fence draws, an inside edit lands, an outside edit is refused
+  this.tiles.forEach((t, i) => { const p = seg(u, .1 + i * .025, .45 + i * .025, E.outC); put(t, { y: 30 * (1 - p), o: p }); });
+  draw(this.fence, seg(u, .45, 1.0, E.ioC));
+  this.fence.style.strokeDasharray = u > 1.0 ? '18 12' : this.fence.style.strokeDasharray;
+  if (u > 1.0) this.fence.style.strokeDashoffset = (-(u - 1) * 60).toFixed(1);
+  this.fenceTxt.style.opacity = seg(u, .8, 1.0);
+  const aP = seg(u, 1.0, 1.3, E.ioC), bP = seg(u, 1.35, 1.65, E.ioC);
+  const ta = { x: 452 + 272 + 125, y: 280 + 56 }, tb = { x: 452 + 3 * 272 + 125, y: 280 + 136 + 56 };
+  put(this.dotA, { x: lerp(960, ta.x, aP), y: lerp(170, ta.y, aP), o: aP > 0 && aP < 1 ? 1 : 0 });
+  const bounce = bP >= 1 ? seg(u, 1.65, 1.85, E.outC) : 0;
+  put(this.dotB, { x: lerp(960, tb.x, bP) - 120 * bounce, y: lerp(170, tb.y, bP) - 60 * bounce, o: bP > 0 ? 1 - bounce : 0 });
+  this.tiles[1].classList.toggle('ok', u > 1.3);
+  const no = u > 1.65;
+  this.tiles[7].classList.toggle('no', no);
+  this.tiles[7].style.transform = no && u < 1.95 ? `translateX(${(Math.sin(u * 90) * 8 * (1 - seg(u, 1.65, 1.95))).toFixed(1)}px)` : this.tiles[7].style.transform.replace(/translateX\([^)]*\)/, '');
+  put(this.deny, { o: seg(u, 1.65, 1.75), y: 10 * (1 - seg(u, 1.65, 1.85, E.outC)) });
+};
+SCENES[SCENES.length - 1].plug3 = function (u) {
+  // the receipt prints line by line
+  const lines = RECEIPT.split('\n').length;
+  const full = 42 + lines * 27.75;
+  const p = seg(u, .2, 2.0);
+  const step = Math.floor(p * lines) / lines;
+  const h = Math.min(full, 30 + step * (full - 30) + (hash(Math.floor(u * 30), 8) * 4));
+  this.receipt.style.height = (u < .2 ? 0 : h).toFixed(1) + 'px';
+  put(this.receipt, { rz: Math.sin(u * 3) * 1.2, x: Math.sin(u * 2.1) * 4 });
+};
+
+/* ======================= 7 · code ======================= */
+const CODE = [
+  ['c', '"""The gate: one Ollama- and OpenAI-compatible API in front of every head.'],
+  ['c', ''],
+  ['c', 'Apps that expect Ollama on @@localhost:11434@@ (Open WebUI, AnythingLLM, llm,'],
+  ['c', 'aider, Continue...) or an OpenAI-style /v1 endpoint all talk to the gate.'],
+  ['c', '"""'],
+  ['', ''],
+  ['', '<span class="k">def</span> <span class="f">resolve</span>(self, name, for_pull=<span class="k">False</span>):'],
+  ['', '    forced = <span class="k">None</span>'],
+  ['', '    <span class="k">if</span> <span class="s">"@"</span> <span class="k">in</span> name <span class="k">and</span> name.rsplit(<span class="s">"@"</span>, 1)[1] <span class="k">in</span> HEADS:'],
+  ['', '        name, forced = name.rsplit(<span class="s">"@"</span>, 1)'],
+  ['', '    entry = self.catalog.find_model(name)'],
+  ['', '    <span class="k">if</span> entry:'],
+  ['', '        <span class="k">return</span> forced <span class="k">or</span> entry.head, entry.model'],
+];
+scene('s7', 36.8, 4.0, function () {
+  const code = $('#code');
+  code.innerHTML = CODE.map(([cls, html]) => `<div class="cl"><span class="${cls}">${html.replace(/@@(.*?)@@/, '<span class="hit" id="hit">$1</span>')}</span></div>`).join('')
+    + '<svg class="circ" id="circ" width="10" height="10"><path id="circPath"/></svg><i class="ibeam" id="ibeam"></i>';
+  this.code = code; this.lines = $$('#code .cl');
+  this.plain = this.lines.map(l => l.textContent); this.html = this.lines.map(l => l.innerHTML);
+  const hit = $('#hit'), r = hit.getBoundingClientRect(), cr = code.getBoundingClientRect();
+  const sc = cr.width / code.offsetWidth || 1;
+  const hx = (r.left - cr.left) / sc, hy = (r.top - cr.top) / sc, hw = r.width / sc, hh = r.height / sc;
+  const cx = hx + hw / 2, cy = hy + hh / 2, rx = hw / 2 + 26, ry = hh / 2 + 16;
+  let d = '';
+  for (let i = 0; i <= 64; i++) {
+    const a = -Math.PI * .62 + (i / 64) * Math.PI * 2.18;
+    const wob = 1 + .04 * Math.sin(i * .7);
+    d += (i ? ' L' : 'M') + (cx + Math.cos(a) * rx * wob).toFixed(1) + ',' + (cy + Math.sin(a) * ry * wob * (1 + i / 400)).toFixed(1);
+  }
+  this.circ = $('#circPath'); this.circ.setAttribute('d', d);
+  this.ibeam = $('#ibeam'); this.ibeam.style.left = (hx + hw + 10) + 'px'; this.ibeam.style.top = (hy + 3) + 'px';
+  this.focusY = hy;
+}, function (lt) {
+  const enter = seg(lt, 0, .6, E.outX);
+  const push = seg(lt, 1.9, 3.6, E.ioC);
+  put(this.code, { x: lerp(260, -120, seg(lt, 0, 4, E.lin)) - push * 180, y: lerp(120, 0, enter) - push * 60, z: lerp(-500, 0, enter) + push * 330, ry: lerp(-30, -18, enter) + 6 * push, rx: lerp(22, 12, enter), rz: -3, o: enter * (1 - seg(lt, 3.4, 3.9)) });
+  const focus = lerp(0, this.focusY, seg(lt, .2, 1.3, E.ioC));
+  this.lines.forEach((l, i) => {
+    const p = seg(lt, .05 + i * .07, .5 + i * .07);
+    if (p < 1) l.textContent = scramble(this.plain[i], p, lt, i);
+    else if (l._done !== true) { l.innerHTML = this.html[i]; l._done = true; }
+    if (p < 1) l._done = false;
+    const dist = Math.abs(i * 68 - focus) / 68;
+    put(l, { blur: Math.min(9, dist * 1.6) + 6 * seg(lt, 3.3, 3.9), o: .35 + .65 * Math.max(0, 1 - dist * .18) });
+  });
+  draw(this.circ, seg(lt, 1.45, 2.05, E.ioC));
+  this.ibeam.style.opacity = lt > 1.3 && Math.floor(lt * 2.6) % 2 === 0 ? 1 : 0;
+});
+
+/* ======================= 8 · statement ======================= */
+const STMT = ['Your models.', 'Your hardware.', 'Your rules.'];
+scene('s8', 40.6, 4.0, function () {
+  this.hz = $('#horizon'); this.stmt = $('#stmt');
+}, function (lt) {
+  const rise = seg(lt, 0, 1.6, E.outC);
+  const breath = 1 + .04 * Math.sin(lt * 2.4);
+  put(this.hz, { sy: lerp(.3, 1, rise) * breath, o: rise * (1 - seg(lt, 3.3, 3.9)) });
+  const parts = STMT.map((s, i) => scramble(s, seg(lt, .35 + i * .7, 1.0 + i * .7), lt, 40 + i));
+  this.stmt.innerHTML = parts.map((s, i) => (i === 2 ? `<em>${s}</em>` : s)).join(' ');
+  put(this.stmt, { o: seg(lt, .3, .5) * (1 - seg(lt, 3.3, 3.8)), blur: 14 * seg(lt, 3.3, 3.8), s: lerp(1, 1.04, seg(lt, 0, 4)) });
+});
+
+/* ======================= 9 · the candle ======================= */
+scene('s9', 44.4, 10.8, function () {
+  const svg = $('#wmWrap svg');
+  const [vx, vy, vw, vh] = svg.getAttribute('viewBox').split(/\s+/).map(Number);
+  this.vb = { vx, vy, vw, vh }; this.k = 1240 / vw;
+  this.wrap = $('#wmWrap');
+  this.letters = $$('#wmWrap svg g path');
+  this.stem1 = $('#i1-stem'); this.stem2 = $('#i2-stem'); this.f1 = $('#i1-flame'); this.f2 = $('#i2-flame');
+  const NS = 'http://www.w3.org/2000/svg';
+  const defs = document.createElementNS(NS, 'defs');
+  defs.innerHTML = `<radialGradient id="glowG"><stop offset="0" stop-color="#ff3355" stop-opacity=".6"/><stop offset=".3" stop-color="#e0284a" stop-opacity=".22"/><stop offset=".65" stop-color="#b8122f" stop-opacity=".07"/><stop offset="1" stop-color="#b8122f" stop-opacity="0"/></radialGradient>
+    <radialGradient id="coreG" cx=".5" cy=".78" r=".55"><stop offset="0" stop-color="#ffe3e6" stop-opacity=".95"/><stop offset=".45" stop-color="#ff5a6e" stop-opacity=".55"/><stop offset="1" stop-color="#ff5a6e" stop-opacity="0"/></radialGradient>
+    <linearGradient id="litG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fffaf6"/><stop offset=".35" stop-color="#e9dfd9"/><stop offset=".75" stop-color="#6f6563"/><stop offset="1" stop-color="#2a2524"/></linearGradient>`;
+  svg.insertBefore(defs, svg.firstChild);
+  const s1 = this.stem1;
+  const sx = +s1.getAttribute('x'), sw = +s1.getAttribute('width');
+  this.c1 = { x: sx + sw / 2, base: -532 - sw * .5, top: -881.8, sw };
+  this.c2x = +this.stem2.getAttribute('x') + sw / 2;
+  const mk = (tag, attrs, before) => { const e = document.createElementNS(NS, tag); for (const a in attrs) e.setAttribute(a, attrs[a]); svg.insertBefore(e, before || null); return e; };
+  this.glow1 = mk('circle', { cx: this.c1.x, cy: this.c1.base - 110, r: 900, fill: 'url(#glowG)' }, svg.querySelector('g'));
+  this.glow2 = mk('circle', { cx: this.c2x, cy: this.c1.base - 110, r: 700, fill: 'url(#glowG)' }, svg.querySelector('g'));
+  this.lit = mk('rect', { x: sx, y: -532, width: sw, height: 532, fill: 'url(#litG)' }, this.f1);
+  this.core = this.f1.cloneNode(); this.core.removeAttribute('id'); this.core.setAttribute('fill', 'url(#coreG)');
+  this.core.style.transformBox = 'fill-box'; this.core.style.transformOrigin = '50% 100%'; this.f1.after(this.core);
+  this.spark = mk('circle', { cx: this.c1.x, cy: this.c1.base - 6, r: 9, fill: '#ffd0d6' });
+  this.embers = [];
+  for (let i = 0; i < 18; i++) this.embers.push(mk('circle', { r: 3 + hash(i, 77) * 4, fill: '#ff5a72' }));
+  this.jump = mk('circle', { r: 10, fill: '#ffd0d6' });
+  this.tag = $('#tagline'); this.tchs = split(this.tag);
+  // focus points (user units) and close-up scale
+  this.close = { x: this.c1.x, y: this.c1.top / 2 };
+  this.full = { x: vx + vw / 2, y: vy + vh / 2 };
+  this.s0 = (.66 * 1080) / (-this.c1.top * this.k);
+}, function (lt) {
+  const { vx, vy } = this.vb, k = this.k;
+  // camera: drift on the candle, then pull back into the wordmark
+  const pull = seg(lt, 3.8, 6.1, E.ioX);
+  const drift = lerp(1.1, 1, seg(lt, 0, 3.8, E.outC));
+  const s = Math.exp(lerp(Math.log(this.s0 * drift), Math.log(1 + .03 * seg(lt, 6.1, 10.8)), pull));
+  const fx = lerp(this.close.x, this.full.x, pull), fy = lerp(this.close.y, this.full.y, pull);
+  const sx = lerp(960, 960, pull), sy = lerp(540, 470, pull);
+  const px = (fx - vx) * k, py = (fy - vy) * k;
+  put(this.wrap, { pre: `translate(${(sx - s * px).toFixed(2)}px,${(sy - s * py).toFixed(2)}px) scale(${s.toFixed(4)})` });
+  // the candle fades up, dim
+  const ign = seg(lt, 1.8, 2.45);
+  const candleOn = seg(lt, .2, 1.2);
+  this.lit.style.opacity = (candleOn * lerp(.3, 1, ign) * (1 - seg(lt, 4.6, 6.0))).toFixed(3);
+  this.stem1.style.opacity = seg(lt, 4.6, 6.0).toFixed(3);
+  // spark, then ignition
+  const sparkOn = lt > 1.15 && lt < 2.0;
+  this.spark.style.opacity = sparkOn ? (hash(Math.floor(lt * 30), 5) > .35 ? 1 : .25) : 0;
+  this.spark.setAttribute('r', (6 + hash(Math.floor(lt * 30), 6) * 10).toFixed(1));
+  const flick = (Math.sin(lt * 23) * .035 + Math.sin(lt * 37 + 1.3) * .022 + (hash(Math.floor(lt * 15), 12) - .5) * .03) * (1 - seg(lt, 6.4, 7.4));
+  const fp = E.outB2(ign);
+  this.f1.style.transform = ign > 0 ? `skewX(${(flick * 40).toFixed(2)}deg) scale(${(lerp(.4, 1, E.outC(ign)) - flick * .6).toFixed(4)},${Math.max(.001, fp + flick).toFixed(4)})` : 'scale(0)';
+  this.core.style.transform = this.f1.style.transform;
+  this.core.style.opacity = (ign * (1 - seg(lt, 4.2, 5.6))).toFixed(3);
+  const glowA = lerp(0, 1, seg(lt, 1.85, 2.3, E.outC)) * (1 - .65 * seg(lt, 6.2, 8)) * (1 + flick * 2);
+  this.glow1.style.opacity = glowA.toFixed(3);
+  this.glow1.setAttribute('r', (lerp(500, 900, seg(lt, 1.85, 2.6, E.outC))).toFixed(0));
+  // embers drifting up from the flame
+  this.embers.forEach((e, i) => {
+    const born = 2.0 + hash(i, 1) * 3.6, life = 1.2 + hash(i, 2) * 1.2, a = (lt - born) / life;
+    if (a < 0 || a > 1) { e.style.opacity = 0; return; }
+    e.setAttribute('cx', (this.c1.x + 26 + (hash(i, 3) - .5) * 120 + Math.sin(lt * 3 + i) * 18 + a * (hash(i, 4) - .3) * 160).toFixed(1));
+    e.setAttribute('cy', (this.c1.top + 40 - a * (260 + hash(i, 5) * 260)).toFixed(1));
+    e.style.opacity = (Math.sin(Math.PI * a) * .9 * (1 - seg(lt, 5.5, 6.5))).toFixed(3);
+  });
+  // letters rise in as the camera pulls back
+  const order = [0, 1, 2, 3, 4, 6];
+  this.letters.forEach((l, i) => {
+    const p = seg(lt, 4.0 + order[i] * .1, 4.7 + order[i] * .1, E.outC);
+    l.style.transform = `translateY(${((1 - p) * 140).toFixed(1)}px)`;
+    l.style.opacity = p.toFixed(3);
+  });
+  const st2 = seg(lt, 4.45, 4.95, E.outC);
+  this.stem2.style.transformBox = 'fill-box'; this.stem2.style.transformOrigin = '50% 100%';
+  this.stem2.style.transform = `scaleY(${Math.max(.001, st2).toFixed(4)})`;
+  // an ember jumps from the first flame and lights the second
+  const jp = seg(lt, 6.0, 6.55, E.ioC);
+  const jx = lerp(this.c1.x + 28, this.c2x, jp), jy = lerp(this.c1.top, this.c1.base - 10, jp) - Math.sin(Math.PI * jp) * 380;
+  this.jump.setAttribute('cx', jx.toFixed(1)); this.jump.setAttribute('cy', jy.toFixed(1));
+  this.jump.style.opacity = jp > 0 && jp < 1 ? 1 : 0;
+  this.jump.style.filter = 'drop-shadow(0 0 12px #ff4060)';
+  const ign2 = seg(lt, 6.5, 7.0);
+  const flick2 = (Math.sin(lt * 21 + 2) * .03 + Math.sin(lt * 33) * .02) * (1 - seg(lt, 7.0, 7.8));
+  this.f2.style.transform = ign2 > 0 ? `skewX(${(flick2 * 40).toFixed(2)}deg) scale(${lerp(.4, 1, E.outC(ign2)).toFixed(4)},${Math.max(.001, E.outB2(ign2) + flick2).toFixed(4)})` : 'scale(0)';
+  this.glow2.style.opacity = (seg(lt, 6.5, 6.9, E.outC) * (1 - .6 * seg(lt, 7, 8.5))).toFixed(3);
+  // tagline
+  stagger(this.tchs, lt, 7.2, .028, .6, (c, p) => put(c, { y: (1 - E.outC(p)) * 24, o: p, blur: (1 - p) * 10 }));
+});
+
+/* ======================= global overlays ======================= */
+const grain = $('#grain'), gctx = grain.getContext('2d');
+let grainFrames = [];
+function initGrain() {
+  grain.width = 960; grain.height = 540;
+  for (let f = 0; f < 6; f++) {
+    const img = gctx.createImageData(960, 540), d = img.data;
+    let s = 1234567 + f * 7919;
+    for (let i = 0; i < d.length; i += 4) { s = (Math.imul(s, 1103515245) + 12345) | 0; const v = (s >>> 16) & 255; d[i] = d[i + 1] = d[i + 2] = v; d[i + 3] = 255; }
+    grainFrames.push(img);
+  }
+}
+const amb = $('#amb'), black = $('#black'), wipe = $('#wipe');
+function overlays(t) {
+  gctx.putImageData(grainFrames[Math.floor(t * 24) % 6], 0, 0);
+  // ambient crimson floor glow
+  const a = seg(t, 7.2, 8.5) * (1 - seg(t, 13.6, 14.1)) * .9 + seg(t, 14.5, 15.5) * (1 - seg(t, 20.6, 21.1)) * .6 + seg(t, 27.2, 28) * (1 - seg(t, 36.4, 37)) * .7;
+  amb.style.opacity = a.toFixed(3);
+  // crimson wipe between Scream and Run and the plugins
+  const w = seg(t, 26.55, 27.45, E.ioC);
+  wipe.style.transform = `translateX(${lerp(-110, 110, w).toFixed(2)}%) skewX(-18deg)`;
+  wipe.style.opacity = w > 0 && w < 1 ? 1 : 0;
+  // dips to black
+  const b = Math.max(
+    seg(t, 20.9, 21.2) * (1 - seg(t, 21.2, 21.5)),
+    seg(t, 44.1, 44.5) * (1 - seg(t, 44.5, 44.6)),
+    seg(t, 54.5, 55.15));
+  black.style.opacity = b.toFixed(3);
+}
+
+/* ======================= engine & player ======================= */
+function render(t) {
+  for (const s of SCENES) {
+    const on = t >= s.t0 && t < s.t1;
+    if (on !== s.on) { s.el.style.display = on ? 'block' : 'none'; s.on = on; }
+    if (on) s.update(t - s.t0, t);
+  }
+  overlays(t);
+}
+const RENDER = /[?&]render\b/.test(location.search);
+if (RENDER) document.body.classList.add('render');
+const stage = $('#stage'), frame = $('#frame');
+function fit() { if (!RENDER) stage.style.transform = `scale(${frame.clientWidth / 1920})`; }
+window.addEventListener('resize', fit);
+
+const audio = ASSETS.audio ? new Audio(ASSETS.audio) : null;
+if (audio) audio.preload = 'auto';
+let t = 0, playing = false, t0 = 0, p0 = 0, useAudio = false;
+const POSTER = 1.75;
+const playBtn = $('#playBtn'), scrub = $('#scrub'), clock = $('#clock'), bigPlay = $('#bigPlay'), muteBtn = $('#muteBtn');
+const fmt = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+function ui() { scrub.value = t.toFixed(2); clock.textContent = `${fmt(t)} / ${fmt(DUR)}`; playBtn.textContent = playing ? 'Pause' : 'Play'; }
+function now() { return useAudio && !audio.paused ? audio.currentTime : t0 + (performance.now() - p0) / 1000; }
+function loop() {
+  if (!playing) return;
+  t = now();
+  if (t >= DUR) { t = DUR; render(t); pause(); return; }
+  render(t); ui(); requestAnimationFrame(loop);
+}
+async function play() {
+  if (t >= DUR - .05) t = 0;
+  bigPlay.hidden = true; playing = true; t0 = t; p0 = performance.now(); useAudio = false;
+  if (audio) { try { audio.currentTime = t; await audio.play(); useAudio = true; } catch (e) { useAudio = false; } }
+  t0 = t; p0 = performance.now();
+  requestAnimationFrame(loop);
+}
+function pause() { playing = false; if (audio) audio.pause(); ui(); }
+function seek(v) { t = clamp(v, 0, DUR); t0 = t; p0 = performance.now(); if (audio) { try { audio.currentTime = t; } catch (e) {} } render(t); ui(); }
+playBtn.onclick = () => (playing ? pause() : play());
+bigPlay.onclick = play;
+scrub.oninput = () => { bigPlay.hidden = true; seek(+scrub.value); };
+muteBtn.onclick = () => { if (!audio) return; audio.muted = !audio.muted; muteBtn.textContent = audio.muted ? 'Unmute' : 'Mute'; };
+$('#fsBtn').onclick = () => { const r = frame.requestFullscreen?.(); if (r && r.catch) r.catch(() => {}); };
+document.addEventListener('fullscreenchange', () => requestAnimationFrame(fit));
+document.addEventListener('keydown', e => {
+  if (e.target.closest('input')) return;
+  if (e.code === 'Space') { e.preventDefault(); playing ? pause() : play(); }
+  if (e.code === 'ArrowRight') seek(t + 2);
+  if (e.code === 'ArrowLeft') seek(t - 2);
+});
+
+window.__ready = (async () => {
+  if (document.fonts && document.fonts.ready) await document.fonts.ready;
+  await Promise.all($$('img').map(i => (i.decode ? i.decode().catch(() => {}) : 0)));
+  initGrain();
+  for (const s of SCENES) { s.el.style.display = 'block'; }
+  for (const s of SCENES) s.init.call(s);
+  for (const s of SCENES) { s.el.style.display = 'none'; s.on = false; }
+  await Promise.all($$('img').map(i => (i.decode ? i.decode().catch(() => {}) : 0)));
+  fit();
+  t = RENDER ? 0 : POSTER;
+  render(t); ui();
+  window.__frame = tt => { render(tt); };
+  window.__duration = DUR;
+  return true;
+})();
+</script>
+</body>
+</html>
