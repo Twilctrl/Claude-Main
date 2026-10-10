@@ -31,7 +31,7 @@ const audio = path.join(__dirname, 'build', 'soundtrack.wav');
   const withAudio = fs.existsSync(audio);
   if (withAudio) ff.push('-ss', String(from), '-t', String(to - from), '-i', audio);
   ff.push('-vf', `scale=${w}:${h}:flags=lanczos,format=yuv420p`, '-c:v', 'libx264', '-preset', scale < 1 ? 'veryfast' : 'slow',
-    '-crf', scale < 1 ? '26' : '17', '-r', String(fps));
+    '-crf', scale < 1 ? '26' : '22', '-r', String(fps));
   if (withAudio) ff.push('-c:a', 'aac', '-b:a', '192k', '-shortest');
   ff.push('-movflags', '+faststart', out);
   const enc = spawn('ffmpeg', ff, { stdio: ['pipe', 'inherit', 'inherit'] });
