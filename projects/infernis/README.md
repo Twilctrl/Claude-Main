@@ -75,3 +75,35 @@ node render.cjs         # render infernis-trailer.mp4
 preview in about a minute. `--from` and `--to` render a section. Scene timings
 live in `trailer.src.html`; each `scene(id, start, duration, ...)` call is one
 shot.
+
+## No Uplink
+
+`no-uplink/infernis-no-uplink.mp4` is a second, separate edit made for mood
+rather than for pitching: 58 seconds in the style of a defense-tech launch film.
+It never says what the work is for. The copy stays understated and the visuals
+carry the rest: terrain, airframes, sensor tracks and a thermal lock.
+`no-uplink/infernis-no-uplink.html` plays it in a browser.
+
+1. **Signal.** Links to an uplink go dark one by one. "Most AI stops at the
+   edge of the network." "We start there."
+2. **Boot.** The HUD comes up, the boot log runs, and radar finds three heads.
+3. **CerberOS.** Heads and gate on a contour map. "Inference at the edge. No uplink."
+4. **Ember.** A swarm holds formation after its mesh link is jammed.
+   "Lose the link. Keep the mission."
+5. **Feather.** The bridge schematic, armed by a button press.
+   "The model can't arm itself. A human always decides."
+6. **Flare.** An infrared feed classifies two drones and a bird, then holds
+   track 07 for an operator.
+7. **Doctrine.** Hard cuts through the numbers and the plugins, ending in a wall
+   of screens.
+8. **Statement.** "The network will go dark." "Your advantage won't."
+9. **The candle.** A white-hot signature is locked on infrared, cuts to colour,
+   and pulls back into the wordmark. "No uplink required."
+
+Ember and Flare are concepts made up for this edit; they aren't projects in
+this repo. Everything else on screen comes from CerberOS and the Feather
+keyboard as they are.
+
+The pipeline is the same as the trailer's, from `projects/infernis/no-uplink`:
+`python3 build.py`, `node cues.cjs`, `python3 soundtrack.py`, `python3 build.py`,
+`node render.cjs`.
