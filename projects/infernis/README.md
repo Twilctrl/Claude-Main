@@ -107,3 +107,31 @@ keyboard as they are.
 The pipeline is the same as the trailer's, from `projects/infernis/no-uplink`:
 `python3 build.py`, `node cues.cjs`, `python3 soundtrack.py`, `python3 build.py`,
 `node render.cjs`.
+
+## The Gate
+
+`the-gate/infernis-the-gate.mp4` is a third, separate edit: 58 seconds of
+villain-coded corporate menace for a fictional AI security contractor that sits
+in front of crypto and stock trading platforms. The "evil" lives in the tone and
+the design (cold, quiet, everywhere); nothing on screen shows anyone doing
+anything wrong. `the-gate/infernis-the-gate.html` plays it in a browser.
+
+1. **Pre-market.** A candlestick chart draws itself under a ticker tape of
+   made-up symbols. "Every trade passes through something." "Usually, it's us."
+2. **The map.** At the opening bell, exchanges, brokerages, custodians, market
+   makers and wallets reroute through one crimson gate until 212 venues sit
+   behind it. "Every exchange has a gate." "We built most of them."
+3. **CerberOS Enterprise.** CerberOS pictured as a hosted product: three heads
+   under load, a live ALLOW/DENY log and four numbers. "Three heads. One gate.
+   No exceptions."
+4. **Perimeter.** scope-fence keeps an agent inside its tiles; reaches outside
+   are refused at the fence. "Your agents touch what we allow."
+5. **Audit.** session-receipt as an endless receipt tape. "We keep the receipts."
+6. **The key.** Feather as a hardware key only a person can press.
+   "Some decisions still need a hand on the key."
+7. **Numbers** and **statement.** "You've never heard of us." "You've used us today."
+8. **The candle.** The last red candle on a chart turns to wax, lights, and pulls
+   back into the wordmark. "Nothing gets past the gate."
+
+CerberOS Enterprise, the venues and every ticker symbol are made up for the
+edit. The pipeline is the same as the other two, from `projects/infernis/the-gate`.

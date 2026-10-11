@@ -34,6 +34,7 @@ body { margin: 0; background: var(--ink); color: var(--paper); font-family: var(
 .big-play svg { width: 26px; height: 26px; }
 .big-play small { color: var(--dim); font-weight: 400; }
 .big-play:hover { border-color: rgba(255, 255, 255, .35); }
+.big-play[hidden] { display: none; }
 .big-play:focus-visible, .bar button:focus-visible, .bar input:focus-visible { outline: 2px solid var(--crimson-hi); outline-offset: 2px; }
 .bar { width: 100%; max-width: min(1600px, calc((100vh - 110px) * 16 / 9)); display: flex; align-items: center; gap: 12px; font: 400 13px var(--mono); color: var(--dim); }
 .bar button { flex: none; height: 34px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--line); background: #110e0e; color: var(--paper); font: 500 13px var(--sans); cursor: pointer; }
@@ -1110,7 +1111,11 @@ function render(t) {
 const RENDER = /[?&]render\b/.test(location.search);
 if (RENDER) document.body.classList.add('render');
 const stage = $('#stage'), frame = $('#frame');
-function fit() { if (!RENDER) stage.style.transform = `scale(${frame.clientWidth / 1920})`; }
+function fit() {
+  if (RENDER) return;
+  const w = frame.clientWidth, h = frame.clientHeight, k = Math.min(w / 1920, h / 1080);
+  stage.style.transform = `translate(${((w - 1920 * k) / 2).toFixed(1)}px,${((h - 1080 * k) / 2).toFixed(1)}px) scale(${k})`;
+}
 window.addEventListener('resize', fit);
 
 const audio = ASSETS.audio ? new Audio(ASSETS.audio) : null;
@@ -1128,6 +1133,7 @@ function loop() {
   render(t); ui(); requestAnimationFrame(loop);
 }
 async function play() {
+  if (playing) return;
   if (t >= DUR - .05) t = 0;
   bigPlay.hidden = true; playing = true; t0 = t; p0 = performance.now(); useAudio = false;
   if (audio) { try { audio.currentTime = t; await audio.play(); useAudio = true; } catch (e) { useAudio = false; } }
