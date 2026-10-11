@@ -31,6 +31,7 @@ body { margin: 0; background: var(--ink); color: var(--paper); font-family: var(
 .big-play svg { width: 18px; height: 18px; }
 .big-play small { color: var(--dim); font-weight: 400; }
 .big-play:hover { border-color: rgba(255, 255, 255, .4); }
+.big-play[hidden] { display: none; }
 .big-play:focus-visible, .bar button:focus-visible, .bar input:focus-visible { outline: 2px solid var(--crimson-hi); outline-offset: 2px; }
 .bar { width: 100%; max-width: min(1600px, calc((100vh - 110px) * 16 / 9)); display: flex; align-items: center; gap: 12px; font: 400 12px var(--mono); color: var(--dim); }
 .bar button { flex: none; height: 32px; padding: 0 14px; border-radius: 3px; border: 1px solid var(--line); background: #0c0c0c; color: var(--paper); font: 500 12px var(--mono); letter-spacing: .06em; text-transform: uppercase; cursor: pointer; }
@@ -969,7 +970,11 @@ function render(t) {
 const RENDER = /[?&]render\b/.test(location.search);
 if (RENDER) document.body.classList.add('render');
 const stage = $('#stage'), frame = $('#frame');
-function fit() { if (!RENDER) stage.style.transform = `scale(${frame.clientWidth / 1920})`; }
+function fit() {
+  if (RENDER) return;
+  const w = frame.clientWidth, h = frame.clientHeight, k = Math.min(w / 1920, h / 1080);
+  stage.style.transform = `translate(${((w - 1920 * k) / 2).toFixed(1)}px,${((h - 1080 * k) / 2).toFixed(1)}px) scale(${k})`;
+}
 window.addEventListener('resize', fit);
 const audio = ASSETS.audio ? new Audio(ASSETS.audio) : null;
 if (audio) audio.preload = 'auto';
@@ -981,6 +986,7 @@ function ui() { scrub.value = t.toFixed(2); clock.textContent = `${fmt(t)} / ${f
 function now() { return useAudio && !audio.paused ? audio.currentTime : t0 + (performance.now() - p0) / 1000; }
 function loop() { if (!playing) return; t = now(); if (t >= DUR) { t = DUR; render(t); pause(); return; } render(t); ui(); requestAnimationFrame(loop); }
 async function play() {
+  if (playing) return;
   if (t >= DUR - .05) t = 0;
   bigPlay.hidden = true; playing = true; useAudio = false;
   if (audio) { try { audio.currentTime = t; await audio.play(); useAudio = true; } catch (e) { useAudio = false; } }

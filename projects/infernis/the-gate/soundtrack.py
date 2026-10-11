@@ -314,8 +314,8 @@ def score():
         place(ping(1560, 0.9), t0 + 0.3, 0.05, send=0.5)
     for t0 in (23.85, 24.45):
         place(whoosh(0.3, 800, 3000, peak=0.8, bw=0.5), t0, 0.05)
-        place(buzz(), t0 + 0.19, 0.12)
-        place(boom(0.4, 110, 55, 0.07), t0 + 0.19, 0.25)
+        place(buzz(), t0 + 0.24, 0.12)
+        place(boom(0.4, 110, 55, 0.07), t0 + 0.24, 0.25)
 
     # 5 · audit
     place(hit(), 27.0, 0.45, send=0.4)

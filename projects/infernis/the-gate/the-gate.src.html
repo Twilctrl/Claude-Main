@@ -31,6 +31,7 @@ body { margin: 0; background: var(--ink); color: var(--paper); font-family: var(
 .big-play svg { width: 18px; height: 18px; }
 .big-play small { color: var(--dim); font-weight: 400; }
 .big-play:hover { border-color: rgba(255, 255, 255, .4); }
+.big-play[hidden] { display: none; }
 .big-play:focus-visible, .bar button:focus-visible, .bar input:focus-visible { outline: 2px solid var(--crimson-hi); outline-offset: 2px; }
 .bar { width: 100%; max-width: min(1600px, calc((100vh - 110px) * 16 / 9)); display: flex; align-items: center; gap: 12px; font: 400 12px var(--mono); color: var(--dim); }
 .bar button { flex: none; height: 32px; padding: 0 14px; border-radius: 3px; border: 1px solid var(--line); background: #0c0c0c; color: var(--paper); font: 500 12px var(--mono); letter-spacing: .06em; text-transform: uppercase; cursor: pointer; }
@@ -43,7 +44,7 @@ body.render #frame { width: 1920px; height: 1080px; max-width: none; border-radi
 body.render .bar, body.render .big-play { display: none; }
 
 /* ---------- shared ---------- */
-.scene { position: absolute; inset: 0; display: none; overflow: hidden; }
+.scene { position: absolute; inset: 0; display: none; overflow: hidden; isolation: isolate; }
 .layer { position: absolute; inset: 0; pointer-events: none; }
 .ch { display: inline-block; white-space: pre; }
 #vig { background: radial-gradient(ellipse 78% 72% at 50% 50%, transparent 55%, rgba(0, 0, 0, .72) 100%); }
@@ -73,7 +74,7 @@ body.render .bar, body.render .big-play { display: none; }
 /* ---------- 1 · chart ---------- */
 .chart { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; overflow: visible; transform-origin: 960px 520px; }
 .gl { stroke: rgba(236, 234, 230, .07); stroke-width: 1; }
-.gt { font: 400 14px var(--mono); fill: var(--faint); letter-spacing: .06em; }
+.gt { font: 400 14px var(--mono); fill: var(--dim); letter-spacing: .06em; }
 .up { fill: var(--paper); stroke: var(--paper); }
 .dn { fill: var(--crimson-hi); stroke: var(--crimson-hi); }
 .wk { stroke-width: 1.5; }
@@ -104,14 +105,14 @@ body.render .bar, body.render .big-play { display: none; }
 .hd > i > s { position: absolute; left: 0; top: 0; bottom: 0; background: var(--paper); text-decoration: none; }
 .hd > span { color: var(--dim); text-align: right; font-variant-numeric: tabular-nums; }
 .hd-l { margin-bottom: 4px; }
-.console { position: absolute; left: 820px; top: 230px; width: 1000px; height: 690px; background: #0a0909; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; transform-origin: 0 50%; box-shadow: 0 50px 140px rgba(0, 0, 0, .8); }
+.console { position: absolute; left: 780px; top: 230px; width: 900px; height: 690px; background: #0a0909; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; transform-origin: 0 50%; box-shadow: 0 50px 140px rgba(0, 0, 0, .8); }
 .c-bar { display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 18px; border-bottom: 1px solid var(--line); font: 400 13px var(--mono); letter-spacing: .12em; color: var(--dim); text-transform: uppercase; }
 .c-bar > i { width: 10px; height: 10px; border-radius: 50%; background: #2a2626; }
 .c-bar > span { margin-left: 10px; }
 .kpis { display: grid; grid-template-columns: repeat(4, 1fr); border-bottom: 1px solid var(--line); }
 .kpi { padding: 20px 22px; border-right: 1px solid var(--line); display: flex; flex-direction: column; gap: 6px; }
 .kpi:last-child { border-right: 0; }
-.kpi > b { font: 400 44px var(--mono); letter-spacing: -.03em; color: var(--paper); font-variant-numeric: tabular-nums; }
+.kpi > b { min-height: 57px; font: 400 44px var(--mono); letter-spacing: -.03em; color: var(--paper); font-variant-numeric: tabular-nums; }
 .kpi > b.red { color: var(--crimson-hi); }
 .kpi > span { font: 500 12px var(--mono); letter-spacing: .14em; color: var(--dim); }
 .logwin { position: absolute; left: 0; right: 0; top: 168px; bottom: 0; overflow: hidden; -webkit-mask-image: linear-gradient(180deg, transparent, #000 14%, #000 82%, transparent); mask-image: linear-gradient(180deg, transparent, #000 14%, #000 82%, transparent); }
@@ -130,7 +131,7 @@ body.render .bar, body.render .big-play { display: none; }
 .fence { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; overflow: visible; }
 .fence rect { fill: rgba(224, 40, 74, .04); stroke: var(--crimson-hi); stroke-width: 2.5; }
 .fence text { font: 500 15px var(--mono); letter-spacing: .12em; fill: var(--crimson-hi); }
-.agent { position: absolute; left: 969px; top: 236px; width: 0; height: 0; }
+.agent { position: absolute; left: 969px; top: 250px; width: 0; height: 0; }
 .agent > i { position: absolute; left: -13px; top: -13px; width: 26px; height: 26px; border: 1.5px solid var(--paper); transform: rotate(45deg); background: rgba(236, 234, 230, .1); }
 .agent > span { position: absolute; left: 28px; top: -10px; white-space: nowrap; }
 .shot { position: absolute; width: 14px; height: 14px; margin: -7px; border-radius: 50%; background: #fff; box-shadow: 0 0 16px #fff; }
@@ -150,7 +151,7 @@ body.render .bar, body.render .big-play { display: none; }
 .pin { fill: #d6b25e; }
 .req { position: absolute; left: 1200px; top: 132px; width: 600px; padding: 22px 26px; border: 1px solid var(--line); border-radius: 10px; background: #0b0a0a; display: flex; flex-direction: column; gap: 10px; }
 .req > b { font-size: 32px; font-weight: 400; letter-spacing: -.02em; color: var(--paper); }
-.req > em { position: absolute; right: 22px; top: 20px; font: 600 15px var(--mono); letter-spacing: .14em; color: var(--paper); font-style: normal; border: 1.5px solid var(--paper); padding: 6px 10px; border-radius: 4px; opacity: 0; }
+.req > em { position: absolute; right: 24px; bottom: 16px; font: 700 24px var(--mono); letter-spacing: .14em; color: var(--crimson-hi); font-style: normal; border: 2px solid var(--crimson-hi); padding: 6px 14px; border-radius: 4px; text-transform: uppercase; opacity: 0; }
 .kstate { position: absolute; left: 560px; top: 760px; display: flex; flex-direction: column; gap: 8px; }
 .kstate > b { font: 400 44px var(--mono); letter-spacing: .02em; }
 
@@ -218,7 +219,7 @@ body.render .bar, body.render .big-play { display: none; }
       <!-- 4 · perimeter -->
       <section class="scene" id="g4">
         <div class="title" id="t4"><b>Perimeter</b><span>scope-fence. Agents stay inside the lines.</span></div>
-        <svg class="fence" viewBox="0 0 1920 1080"><rect id="fence4" x="692" y="364" width="554" height="304" rx="20"/><text id="fenceTxt" x="706" y="350">FENCE · desk-07</text></svg>
+        <svg class="fence" viewBox="0 0 1920 1080"><rect id="fence4" x="692" y="196" width="554" height="472" rx="20"/><text id="fenceTxt" x="706" y="182">FENCE · DESK-07</text></svg>
         <div id="tiles4"></div>
         <div class="agent" id="agent4"><i></i><span class="lbl">Agent · desk-07</span></div>
         <div class="shot" id="shot4"></div>
@@ -227,7 +228,7 @@ body.render .bar, body.render .big-play { display: none; }
 
       <!-- 5 · audit -->
       <section class="scene" id="g5">
-        <div class="title" id="t5"><b>Audit</b><span>session-receipt. Every action, itemised.</span></div>
+        <div class="title" id="t5"><b>Audit</b><span>session-receipt. Every action, itemized.</span></div>
         <div class="tapewin" id="tapewin"><div class="paper" id="paper"></div></div>
         <div class="big-count" id="bigc"><b id="recN">0</b><span class="lbl">Actions recorded today</span></div>
         <div class="say l" id="g5a" style="top:860px;font-size:50px">We keep <em>the receipts.</em></div>
@@ -247,7 +248,7 @@ body.render .bar, body.render .big-play { display: none; }
           <text class="kt" x="560" y="736">RP2350 · HARDWARE KEY</text>
         </svg>
         <div class="title" id="t6"><b>Feather</b><span>A hardware key the model can't press.</span></div>
-        <div class="req" id="req"><span class="lbl">Request · desk-07</span><b>Raise risk limits on 3 venues</b><span class="lbl" style="color:var(--crimson-hi)">Needs a hand</span><em id="stamp">Approved</em></div>
+        <div class="req" id="req"><span class="lbl">Request · desk-07</span><b>Raise risk limits on 3 venues</b><span class="lbl" id="reqSt" style="color:var(--crimson-hi)">Needs a hand</span><em id="stamp">Approved</em></div>
         <div class="kstate" id="kstate"><span class="lbl">State</span><b id="kstateTxt">WAITING FOR A HAND</b></div>
         <div class="say r" id="g6a" style="top:880px">Some decisions still need <em>a hand on the key.</em></div>
       </section>
@@ -384,12 +385,12 @@ scene('g1', 0, 6.0, '01 / 09   PRE-MARKET', function () {
   const S = series(64, 7, 182);
   const lo = Math.min(...S.map(s => s.l)), hi = Math.max(...S.map(s => s.h));
   const Y = p => 780 - (p - lo) / (hi - lo) * 520;
-  this.S = S; this.Y = Y; this.X = i => 140 + i * 25.6;
+  this.S = S; this.Y = Y; this.X = i => 140 + i * 24.4;
   const grid = $('#c1grid');
   for (let k = 0; k <= 5; k++) {
     const p = lo + (hi - lo) * k / 5, y = Y(p);
-    el('line', { class: 'gl', x1: 120, y1: y, x2: 1800, y2: y }, grid);
-    el('text', { class: 'gt', x: 1812, y: y + 5 }, grid).textContent = p.toFixed(2);
+    el('line', { class: 'gl', x1: 120, y1: y, x2: 1720, y2: y }, grid);
+    el('text', { class: 'gt', x: 1732, y: y + 5 }, grid).textContent = p.toFixed(2);
   }
   const g = $('#c1candles');
   this.c = S.map((s, i) => {
@@ -399,7 +400,7 @@ scene('g1', 0, 6.0, '01 / 09   PRE-MARKET', function () {
   const ma = S.map((s, i) => { const w = S.slice(Math.max(0, i - 7), i + 1); return w.reduce((a, b) => a + b.c, 0) / w.length; });
   $('#c1ma').setAttribute('d', ma.map((m, i) => `${i ? 'L' : 'M'}${this.X(i).toFixed(1)},${Y(m).toFixed(1)}`).join(' '));
   this.ma = $('#c1ma'); this.tag = $('#c1tag'); this.tagTxt = this.tag.querySelector('text');
-  this.chart = $('#chart1');
+  this.chart = $('#chart1'); this.candles = $('#c1candles'); this.gridG = $('#c1grid');
   this.a = splitKeep($('#g1a')); this.b = splitKeep($('#g1b'));
 }, function (lt) {
   const n = this.S.length;
@@ -415,11 +416,13 @@ scene('g1', 0, 6.0, '01 / 09   PRE-MARKET', function () {
   });
   draw(this.ma, seg(lt, .3, .3 + n * .05));
   const ls = this.S[last];
-  this.tag.setAttribute('transform', `translate(1812,${this.Y(ls.c).toFixed(1)})`);
+  this.tag.setAttribute('transform', `translate(1732,${this.Y(ls.c).toFixed(1)})`);
   this.tagTxt.textContent = ls.c.toFixed(2);
-  this.tag.style.opacity = seg(lt, .5, .8);
   const dim = seg(lt, 2.0, 2.6), squash = seg(lt, 5.55, 5.95, E.inC);
-  put(this.chart, { s: lerp(1.04, 1, seg(lt, 0, 6, E.outC)), sy: 1 - .98 * squash, o: (1 - .62 * dim) * (1 - seg(lt, 5.85, 6.0)) });
+  put(this.chart, { s: lerp(1.02, 1, seg(lt, 0, 6, E.outC)), sy: 1 - .98 * squash, o: 1 - seg(lt, 5.85, 6.0) });
+  const dd = (1 - .62 * dim).toFixed(3);
+  this.candles.style.opacity = dd; this.ma.style.opacity = dd; this.tag.style.opacity = (seg(lt, .5, .8) * (1 - .62 * dim)).toFixed(3);
+  this.gridG.style.opacity = (1 - .3 * dim).toFixed(3);
   stagger(this.a, lt, 2.2, .018, .5, softIn);
   stagger(this.b, lt, 3.7, .03, .5, softIn);
   const out = seg(lt, 5.4, 5.8, E.inC);
@@ -427,7 +430,7 @@ scene('g1', 0, 6.0, '01 / 09   PRE-MARKET', function () {
 });
 
 /* ======================= 2 · the map ======================= */
-const CLUSTERS = [['EXCHANGES', 360, 300], ['BROKERAGES', 1560, 300], ['WALLETS', 960, 200], ['MARKET MAKERS', 300, 690], ['CUSTODIANS', 1620, 690]];
+const CLUSTERS = [['EXCHANGES', 360, 300], ['BROKERAGES', 1560, 300], ['WALLETS', 960, 250], ['MARKET MAKERS', 300, 690], ['CUSTODIANS', 1620, 690]];
 scene('g2', 6.0, 7.5, '02 / 09   THE MAP', function () {
   this.map = $('#map2');
   this.nodes = [];
@@ -474,11 +477,12 @@ scene('g2', 6.0, 7.5, '02 / 09   THE MAP', function () {
   });
   this.venueN.textContent = String(Math.round(212 * done / this.nodes.length)).padStart(3, '0');
   put(this.count, { o: seg(lt, 1.2, 1.6), y: 10 * (1 - seg(lt, 1.2, 1.6, E.outC)) });
-  const routed = this.nodes.filter(n => lt >= n.t + .35);
   this.pulses.forEach((c, k) => {
-    if (!routed.length) { c.style.opacity = 0; return; }
-    const n = routed[Math.floor(hash(k, 31) * routed.length)];
-    const ph = (lt * .8 + hash(k, 32)) % 1;
+    // each pulse picks its spoke once per trip, from the nodes already routed when the trip began
+    const ph0 = lt * .8 + hash(k, 32), cyc = Math.floor(ph0), ph = ph0 - cyc, tStart = (cyc - hash(k, 32)) / .8;
+    const pool = this.nodes.filter(n => tStart >= n.t + .35);
+    if (!pool.length) { c.style.opacity = 0; return; }
+    const n = pool[Math.floor(hash(k, 31, cyc) * pool.length)];
     c.setAttribute('cx', lerp(n.x, 960, ph).toFixed(1)); c.setAttribute('cy', lerp(n.y, 540, ph).toFixed(1));
     c.style.opacity = (Math.sin(Math.PI * ph) * .9).toFixed(3);
   });
@@ -490,6 +494,8 @@ scene('g2', 6.0, 7.5, '02 / 09   THE MAP', function () {
   stagger(this.a, lt, 2.3, .022, .5, softIn);
   put(this.aEl, { o: 1 - seg(lt, 4.0, 4.25) });
   stagger(this.b, lt, 4.35, .03, .5, softIn);
+  const out = seg(lt, 7.05, 7.5, E.inC);
+  put(this.el, { s: lerp(1, .97, out), o: 1 - out });
 });
 
 /* ======================= 3 · CerberOS Enterprise ======================= */
@@ -498,11 +504,11 @@ const TARGETS = ['pricing@npu', 'risk@cpu', 'recon@remote', 'fx@cpu', 'settle@re
 function logLines(n) {
   const out = [];
   for (let i = 0; i < n; i++) {
-    const ms = 14221 + i * 37 + Math.floor(hash(i, 3) * 30);
+    const ms = 2900 + i * 349 + Math.floor(hash(i, 3) * 120);
     const ts = `09:30:${String(Math.floor(ms / 1000) % 60).padStart(2, '0')}.${String(ms % 1000).padStart(3, '0')}`;
     const deny = hash(i, 5) < .14;
     const who = deny ? (hash(i, 6) < .5 ? 'agent-unk ' : 'bot-3f2   ') : ACTORS[Math.floor(hash(i, 7) * ACTORS.length)].padEnd(10);
-    const tgt = deny ? (hash(i, 8) < .5 ? 'order-router' : 'ledger      ') : TARGETS[Math.floor(hash(i, 9) * TARGETS.length)].padEnd(12);
+    const tgt = deny ? (hash(i, 8) < .5 ? 'order-router ' : 'ledger       ') : TARGETS[Math.floor(hash(i, 9) * TARGETS.length)].padEnd(13);
     const tail = deny ? ['scope', 'policy', 'unsigned'][Math.floor(hash(i, 10) * 3)] : `${20 + Math.floor(hash(i, 11) * 40)}µs`;
     out.push(deny ? `<div class="deny">${ts}  <i>DENY </i>  ${who} → ${tgt}   <i>${tail}</i></div>` : `<div>${ts}  <b>ALLOW</b>  ${who} → ${tgt}   ${tail}</div>`);
   }
@@ -550,7 +556,16 @@ scene('g4', 21.0, 6.0, '04 / 09   PERIMETER', function () {
   put(this.ts, { o: seg(lt, .7, 1.2), y: 10 * (1 - seg(lt, .7, 1.2, E.outC)) });
   this.tiles.forEach((t, i) => { const p = seg(lt, .3 + i * .05, .7 + i * .05, E.outC); put(t, { y: 24 * (1 - p), o: p }); });
   const fq = seg(lt, .9, 1.5, E.ioC);
-  if (fq < 1) { draw(this.fence, fq); } else { this.fence.style.strokeDasharray = '16 10'; this.fence.style.strokeDashoffset = (-(lt - 1.5) * 50).toFixed(1); }
+  if (!this.fence._len) this.fence._len = this.fence.getTotalLength();
+  if (fq < 1) {
+    // draw the outline already dashed, so it never pops from solid to dashed
+    const L = this.fence._len, d = L * fq, a = [];
+    for (let x = 0; x < d; x += 26) a.push(Math.min(16, d - x), 10);
+    a.push(0, L);
+    this.fence.style.strokeDasharray = a.join(' '); this.fence.style.strokeDashoffset = 0;
+  } else { this.fence.style.strokeDasharray = '16 10'; this.fence.style.strokeDashoffset = (-(lt - 1.5) * 50).toFixed(1); }
+  this.fence.style.fillOpacity = fq.toFixed(3);
+  let hit = false;
   this.fenceTxt.style.opacity = seg(lt, 1.3, 1.6);
   put(this.agent, { o: seg(lt, .8, 1.1) });
   let shotOn = false;
@@ -558,21 +573,20 @@ scene('g4', 21.0, 6.0, '04 / 09   PERIMETER', function () {
     const tile = this.tiles[ti];
     const tx = parseFloat(tile.style.left) + 125, ty = parseFloat(tile.style.top) + 62;
     const p = seg(lt, t0, t0 + .3, E.ioC);
-    if (p > 0 && p < 1) { shotOn = true; this.shot.style.left = lerp(969, tx, p) + 'px'; this.shot.style.top = lerp(250, ty, p) + 'px'; }
-    if (!ok && p > 0) {
-      // refused at the fence: the shot never reaches the tile
-      const stopAt = .62;
-      if (p > stopAt && p < 1) { this.shot.style.left = lerp(969, tx, stopAt) + 'px'; this.shot.style.top = lerp(250, ty, stopAt) + 'px'; }
-    }
+    // refused shots ease to a stop on the fence line; allowed ones reach their tile
+    const q = ok ? p : p * .65;
+    if (p > 0 && p < 1) { shotOn = true; this.shot.style.left = lerp(969, tx, q) + 'px'; this.shot.style.top = lerp(250, ty, q) + 'px'; }
+    if (!ok && p > .85 && lt < t0 + .45) hit = true;
     const landed = lt >= t0 + .3;
     tile.classList.toggle(ok ? 'ok' : 'no', landed);
+    tile.querySelector(':scope > span').textContent = (!ok && landed) ? 'denied · scope' : TILES[ti][1];
     if (!ok && landed) {
-      tile.querySelector(':scope > span').textContent = 'denied · scope';
       const sh = 1 - seg(lt, t0 + .3, t0 + .6);
       tile.style.transform = `translateX(${(Math.sin(lt * 90) * 7 * sh).toFixed(1)}px)`;
     }
   });
   this.shot.style.opacity = shotOn ? 1 : 0;
+  this.fence.style.strokeWidth = hit ? 4.5 : 2.5;
   stagger(this.say, lt, 3.9, .022, .5, softIn);
   put(this.el, { o: 1 - seg(lt, 5.7, 6.0, E.inC) });
 });
@@ -583,12 +597,13 @@ function receiptText(n) {
   const out = [];
   for (let b = 0; b < n; b++) {
     out.push('~ session receipt ~', `desk-${String(7 + b).padStart(2, '0')} · ticket ${(0x4f1c09ab + b * 7919).toString(16)}`, '--------------------------------');
-    for (let k = 0; k < 9; k++) {
+    const m = 7 + (b % 4);
+    for (let k = 0; k < m; k++) {
       const s = 11 + b * 37 + k * 3;
       const [op, arg] = OPS[(b * 3 + k) % OPS.length];
-      out.push(`14:${String(2 + Math.floor(s / 60) % 50).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}  ${op}  ${arg}`);
+      out.push(`09:${String(10 + Math.floor(s / 60) % 19).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}  ${op}  ${arg}`);
     }
-    out.push('--------------------------------', `TOOL CALLS                  ${String(24 + b * 3).padStart(2, ' ')}`, '', '');
+    out.push('--------------------------------', `TOOL CALLS                  ${String(m).padStart(2, ' ')}`, '', '');
   }
   return out.join('\n');
 }
@@ -614,7 +629,7 @@ scene('g6', 32.0, 6.0, '06 / 09   THE KEY', function () {
   this.pins = [...pins.children];
   this.lines = $$('#g6 .kl'); this.kt = $('#g6 .kt'); this.led = $('#kled'); this.btn = $('#kbtn'); this.ripple = $('#kripple');
   this.t = $('#t6'); this.tb = split(this.t.querySelector(':scope > b')); this.ts = this.t.querySelector(':scope > span');
-  this.req = $('#req'); this.stamp = $('#stamp'); this.state = $('#kstateTxt'); this.kstate = $('#kstate');
+  this.req = $('#req'); this.stamp = $('#stamp'); this.reqSt = $('#reqSt'); this.state = $('#kstateTxt'); this.kstate = $('#kstate');
   this.say = splitKeep($('#g6a'));
 }, function (lt) {
   this.lines.forEach((l, i) => { if (l.id !== 'kripple') draw(l, seg(lt, .15 + i * .1, 1.1 + i * .1, E.ioC)); });
@@ -636,7 +651,10 @@ scene('g6', 32.0, 6.0, '06 / 09   THE KEY', function () {
   this.state.textContent = lt >= 2.85 ? 'AUTHORIZED · BY HAND' : 'WAITING FOR A HAND';
   this.state.style.color = lt >= 2.85 ? '#eceae6' : '#e0284a';
   put(this.kstate, { o: seg(lt, 1.2, 1.5) });
-  const st = seg(lt, 2.9, 3.15, E.outB);
+  const signed = lt >= 2.85;
+  this.reqSt.textContent = signed ? 'Signed · by hand' : 'Needs a hand';
+  this.reqSt.style.color = signed ? 'var(--dim)' : 'var(--crimson-hi)';
+  const st = seg(lt, 2.9, 3.3, E.outB);
   put(this.stamp, { s: lerp(1.6, 1, st), rz: -6, o: st });
   stagger(this.say, lt, 3.4, .02, .5, softIn);
   put(this.el, { o: 1 - seg(lt, 5.7, 6.0, E.inC) });
@@ -656,7 +674,7 @@ scene('g7', 38.0, 6.5, '07 / 09   NUMBERS', function () {
   const g = seg(lt, gridAt, gridAt + .8, E.ioX);
   const cur = Math.min(CARDS.length - 1, Math.floor(lt / per));
   this.cards.forEach((c, i) => {
-    const col = i % 4, row = Math.floor(i / 4), s = .23, gap = 24;
+    const col = i % 4, row = Math.floor(i / 4), s = .2, gap = 24;
     const tx = 960 - (4 * 1920 * s + 3 * gap) / 2 + col * (1920 * s + gap), ty = 520 - (2 * 1080 * s + gap) / 2 + row * (1080 * s + gap);
     const u = lt - i * per;
     const visible = g > 0 || (u >= 0 && i === cur);
@@ -665,12 +683,13 @@ scene('g7', 38.0, 6.5, '07 / 09   NUMBERS', function () {
     const fs = lerp(1.06, 1, seg(u, 0, .4, E.outC));
     put(c, { x: lerp((1 - fs) * 960, tx, g), y: lerp((1 - fs) * 540, ty, g), s: lerp(fs, s, g), o: 1 });
     c.style.zIndex = i === cur ? 2 : 1;
+    c.lastElementChild.style.opacity = (1 - g).toFixed(3);
   });
   put(this.el, { s: lerp(1, 1.05, seg(lt, gridAt + .8, 6.5)), o: 1 - seg(lt, 6.2, 6.5) });
 });
 
 /* ======================= 8 · statement ======================= */
-scene('g8', 44.5, 3.5, '08 / 09', function () {
+scene('g8', 44.5, 3.5, '08 / 09   STATEMENT', function () {
   this.a = splitKeep($('#g8a')); this.b = splitKeep($('#g8b'));
 }, function (lt) {
   stagger(this.a, lt, .25, .03, .55, softIn);
@@ -726,8 +745,9 @@ scene('g9', 48.0, 10.0, '', function () {
   });
   this.range = { minY, maxY };
   this.priceTag = el('g', {}, this.chart);
-  el('rect', { x: this.c1.x + 280, y: -532 - 30, width: 210, height: 60, rx: 6, fill: '#b8122f' }, this.priceTag);
-  el('text', { x: this.c1.x + 300, y: -532 + 13, fill: '#fff', 'font-family': 'GeistMono, monospace', 'font-size': 36 }, this.priceTag).textContent = '40.96';
+  // the last-price marker sits on the red candle's close (its bottom), as on a real chart
+  el('rect', { x: this.c1.x + 280, y: -30, width: 210, height: 60, rx: 6, fill: '#b8122f' }, this.priceTag);
+  el('text', { x: this.c1.x + 300, y: 13, fill: '#fff', 'font-family': 'GeistMono, monospace', 'font-size': 36 }, this.priceTag).textContent = (40.96 - .532).toFixed(2);
   // the last candle is the i: a red body (over the stem) with wicks that retract
   this.glow1 = mk('circle', { cx: this.c1.x, cy: this.c1.base - 110, r: 900, fill: 'url(#glowG)' }, firstG);
   this.glow2 = mk('circle', { cx: this.c2x, cy: this.c1.base - 110, r: 700, fill: 'url(#glowG)' }, firstG);
@@ -738,7 +758,8 @@ scene('g9', 48.0, 10.0, '', function () {
   this.core = this.f1.cloneNode(); this.core.removeAttribute('id'); this.core.setAttribute('fill', 'url(#coreG)');
   this.core.style.transformBox = 'fill-box'; this.core.style.transformOrigin = '50% 100%'; this.f1.after(this.core);
   this.spark = mk('circle', { cx: this.c1.x, cy: this.c1.base - 6, r: 9, fill: '#ffd0d6' });
-  this.jump = mk('circle', { r: 10, fill: '#ffd0d6' });
+  this.jumpGlow = mk('circle', { r: 170, fill: 'url(#glowG)' });
+  this.jump = mk('circle', { r: 22, fill: '#ffd0d6' });
   this.tag = $('#tagline'); this.tchs = split(this.tag);
   this.mid = { x: this.c1.x - 1420, y: (this.range.minY + this.range.maxY) / 2 }; this.close = { x: this.c1.x, y: this.c1.top / 2 }; this.full = { x: vx + vw / 2, y: vy + vh / 2 };
   this.sMid = Math.min(1700 / (3700 * this.k), 820 / ((this.range.maxY - this.range.minY + 200) * this.k));
@@ -770,11 +791,10 @@ scene('g9', 48.0, 10.0, '', function () {
   // the last candle: red body grows, then turns into wax as its wicks retract
   const grow = seg(lt, .15 + 16 * .06, .4 + 16 * .06, E.outC);
   const wax = seg(lt, 2.9, 3.45, E.ioC);
-  const bodyTop = lerp(0, -532, grow);
-  this.red.setAttribute('y', bodyTop.toFixed(1)); this.red.setAttribute('height', Math.max(14, -bodyTop).toFixed(1));
-  this.red.style.opacity = (1 - wax).toFixed(3);
+  this.red.setAttribute('y', '-532'); this.red.setAttribute('height', Math.max(14, 532 * grow).toFixed(1));
+  this.red.style.opacity = ((grow > 0 ? 1 : 0) * (1 - wax)).toFixed(3);
   this.lit.style.opacity = (wax * (1 - seg(lt, 6.0, 7.2))).toFixed(3);
-  this.stem1.style.opacity = seg(lt, 6.0, 7.2).toFixed(3);
+  this.stem1.style.opacity = wax >= 1 ? 1 : 0;
   this.wkUp.setAttribute('y2', lerp(-760, -532, wax).toFixed(1)); this.wkDn.setAttribute('y2', lerp(140, 0, wax).toFixed(1));
   this.wkUp.style.opacity = this.wkDn.style.opacity = (grow > 0 ? seg(grow, .4, 1) : 0) * (wax < 1 ? 1 : 0);
   // spark, then the flame
@@ -799,12 +819,13 @@ scene('g9', 48.0, 10.0, '', function () {
   const jp = seg(lt, 7.0, 7.55, E.ioC);
   const jx = lerp(this.c1.x + 28, this.c2x, jp), jy = lerp(this.c1.top, this.c1.base - 10, jp) - Math.sin(Math.PI * jp) * 380;
   this.jump.setAttribute('cx', jx.toFixed(1)); this.jump.setAttribute('cy', jy.toFixed(1));
-  this.jump.style.opacity = jp > 0 && jp < 1 ? 1 : 0; this.jump.style.filter = 'drop-shadow(0 0 12px #ff4060)';
+  this.jump.style.opacity = jp > 0 && jp < 1 ? 1 : 0; this.jump.style.filter = 'drop-shadow(0 0 60px #ff4060)';
+  this.jumpGlow.setAttribute('cx', jx.toFixed(1)); this.jumpGlow.setAttribute('cy', jy.toFixed(1)); this.jumpGlow.style.opacity = jp > 0 && jp < 1 ? 1 : 0;
   const ign2 = seg(lt, 7.5, 8.0);
   const flick2 = (Math.sin(lt * 21 + 2) * .03 + Math.sin(lt * 33) * .02) * (1 - seg(lt, 8.0, 8.8));
   this.f2.style.transform = ign2 > 0 ? `skewX(${(flick2 * 40).toFixed(2)}deg) scale(${lerp(.4, 1, E.outC(ign2)).toFixed(4)},${Math.max(.001, E.outB2(ign2) + flick2).toFixed(4)})` : 'scale(0)';
   this.glow2.style.opacity = (seg(lt, 7.5, 7.9, E.outC) * (1 - .6 * seg(lt, 8, 9.5))).toFixed(3);
-  stagger(this.tchs, lt, 8.0, .028, .55, softIn);
+  stagger(this.tchs, lt, 7.7, .016, .45, softIn);
 });
 
 /* ======================= chrome and overlays ======================= */
@@ -844,7 +865,7 @@ function overlays(t) {
   let fl = 0;
   for (const cut of [6.0, 13.5, 21.0, 27.0, 32.0, 38.0]) if (t >= cut && t < cut + .07) fl = .1;
   flash.style.opacity = fl.toFixed(3);
-  black.style.opacity = Math.max(seg(t, 47.7, 48.0) * (1 - seg(t, 48.0, 48.3)), seg(t, 57.4, 58)).toFixed(3);
+  black.style.opacity = Math.max(seg(t, 47.7, 48.0) * (1 - seg(t, 48.0, 48.3)), seg(t, 57.6, 58)).toFixed(3);
 }
 
 /* ======================= engine & player ======================= */
@@ -859,7 +880,11 @@ function render(t) {
 const RENDER = /[?&]render\b/.test(location.search);
 if (RENDER) document.body.classList.add('render');
 const stage = $('#stage'), frame = $('#frame');
-function fit() { if (!RENDER) stage.style.transform = `scale(${frame.clientWidth / 1920})`; }
+function fit() {
+  if (RENDER) return;
+  const w = frame.clientWidth, h = frame.clientHeight, k = Math.min(w / 1920, h / 1080);
+  stage.style.transform = `translate(${((w - 1920 * k) / 2).toFixed(1)}px,${((h - 1080 * k) / 2).toFixed(1)}px) scale(${k})`;
+}
 window.addEventListener('resize', fit);
 const audio = ASSETS.audio ? new Audio(ASSETS.audio) : null;
 if (audio) audio.preload = 'auto';
@@ -871,6 +896,7 @@ function ui() { scrub.value = t.toFixed(2); clock.textContent = `${fmt(t)} / ${f
 function now() { return useAudio && !audio.paused ? audio.currentTime : t0 + (performance.now() - p0) / 1000; }
 function loop() { if (!playing) return; t = now(); if (t >= DUR) { t = DUR; render(t); pause(); return; } render(t); ui(); requestAnimationFrame(loop); }
 async function play() {
+  if (playing) return;
   if (t >= DUR - .05) t = 0;
   bigPlay.hidden = true; playing = true; useAudio = false;
   if (audio) { try { audio.currentTime = t; await audio.play(); useAudio = true; } catch (e) { useAudio = false; } }
