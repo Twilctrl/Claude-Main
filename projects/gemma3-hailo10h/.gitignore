@@ -1,0 +1,20 @@
+# Upstream checkouts, the DFC wheel, and every pipeline artifact live here.
+work/
+workdir/
+
+# Proprietary Hailo material: never commit, even by accident.
+*.whl
+*.deb
+*.hef
+*.har
+*.alls
+# ...except quantization recipes this project writes itself.
+!recipes/*.alls
+
+# Large or generated model artifacts.
+*.onnx
+*.onnx.data
+*.safetensors
+*.npy
+*.npz
+*.log

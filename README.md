@@ -23,3 +23,4 @@ Personal Claude Code plugins, published as a plugin marketplace.
 | [cerberos](projects/cerberos) | CerberOS: a Raspberry Pi 5 + Hailo-10H distro for running AI models locally. Three model servers (NPU, CPU, remote) behind one Ollama/OpenAI-compatible gate, with a Kali-style categorized start menu. |
 | [scream-and-run](projects/scream-and-run) | tModLoader mod: an unkillable yandere-style horror stalker. Hide, stay quiet, and survive 5 minutes. |
 | [infernis](projects/infernis) | Logo and three edits for Infernis, a local AI hosting business: a launch trailer that shows off the projects above and lights the candle logo, No Uplink (a defense-tech style mood piece), and The Gate (a villain-coded fintech piece). |
+| [gemma3-hailo10h](projects/gemma3-hailo10h) | Work in progress: compiling Gemma 3 270M into a HEF for the Hailo-10H (Raspberry Pi AI HAT+ 2), served through hailo-ollama, using the community LLM compiler. |
