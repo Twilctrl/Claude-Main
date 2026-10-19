@@ -132,9 +132,10 @@ over in chunks and sends prompts.
   end up under the wrong token ids, and the last shard writes past the end of the
   buffer. Upstream's split (`np.linspace`) is uneven whenever the shard count doesn't
   divide the vocabulary: TinyMistral's 32005 became 16002 + 16003, and Qwen's 151936
-  in 5 shards ends in a 30388. So hailo-ollama output from those HEFs was shifted
-  regardless of model quality. Upstream's own probes concatenate outputs correctly,
-  so their numbers are unaffected. HailoRT 5.4.0 has the same code. The packing
+  in 5 shards ends in a 30388. By this reading, hailo-ollama output from those HEFs
+  was shifted regardless of model quality; not yet confirmed on hardware. Upstream's
+  own probes concatenate outputs correctly, so their numbers are unaffected.
+  HailoRT 5.4.0 has the same code. The packing
   follows the model's output order, so shard names must also sort in vocabulary
   order.
 - Four external resources are all mandatory (`common/genai/constants.hpp`):
