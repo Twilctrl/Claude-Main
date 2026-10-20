@@ -3,7 +3,7 @@
 
 The wordmark is Geist Medium, outlined, with both i's turned into candles: the
 stem is the plain dotless i and the tittle is a red flame. The mark is that
-same candle on its own, so the trailer can zoom out from it into the wordmark.
+same candle on its own, so an edit can zoom out from it into the wordmark.
 
     pip install fonttools brotli
     python3 make_brand.py
