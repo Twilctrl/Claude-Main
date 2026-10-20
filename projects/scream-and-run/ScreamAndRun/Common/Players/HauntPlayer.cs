@@ -1,14 +1,18 @@
 using System;
+using System.IO;
 using Microsoft.Xna.Framework;
 using ScreamAndRun.Common.Audio;
 using ScreamAndRun.Common.Configs;
+using ScreamAndRun.Common.Net;
 using ScreamAndRun.Common.Systems;
 using ScreamAndRun.Common.UI;
+using ScreamAndRun.Content.NPCs;
 using ScreamAndRun.Content.Tiles;
 using Terraria;
 using Terraria.Audio;
 using Terraria.DataStructures;
 using Terraria.GameInput;
+using Terraria.ID;
 using Terraria.Localization;
 using Terraria.ModLoader;
 
@@ -17,12 +21,18 @@ namespace ScreamAndRun.Common.Players
 	/// <summary>
 	/// The player's side of the event: noise, how visible they are, hiding in lockers,
 	/// the heartbeat, and dying properly when she catches them.
+	///
+	/// Multiplayer: each client measures its own player's light, noise and hiding and sends them to
+	/// the server (which has no lighting), and the server forwards them so everyone hides the player
+	/// inside a locker. Proximity, her awareness and the locker cues are worked out locally from
+	/// Onryo's synced state. Contact deaths are checked on the hunted player's own client.
 	/// </summary>
 	public class HauntPlayer : ModPlayer
 	{
 		private const float BaseDetectionTiles = 45f;
+		private const int PresenceRangeTiles = 60;
 
-		// ---- perception (read by Onryo and the UI)
+		// ---- perception: measured on the owning client, synced to the server
 		/// <summary>0 to 1. Rises when you run, attack or mine, and fades over a few seconds.</summary>
 		public float Noise { get; private set; }
 		/// <summary>How far away she can notice you, in pixels.</summary>
@@ -30,25 +40,27 @@ namespace ScreamAndRun.Common.Players
 		public bool CrouchingStill { get; private set; }
 		public bool InDarkness { get; private set; }
 
-		// ---- written by Onryo each tick
+		// ---- worked out locally from Onryo (only for the player she's hunting)
 		/// <summary>0 when she is 60+ tiles away, 1 when she's on top of you.</summary>
 		public float Closeness;
 		public bool SeenByHer;
 		public bool Tracked;
 		public bool KnowsLocker;
-		public int SearchPressure;
 		/// <summary>While hiding: 0-1, how much of her shadow falls across the vents.</summary>
 		public float LockerShadow;
 		/// <summary>While hiding: -1 (she's to the left) to 1 (to the right).</summary>
 		public float LockerShadowSide;
 
+		// ---- server-side locker search (single-player: local)
+		public int SearchPressure;
+
 		/// <summary>Closeness, eased so effects don't pop.</summary>
 		public float SmoothCloseness { get; private set; }
 
-		// ---- hiding
+		// ---- hiding (synced)
 		public bool Hiding { get; private set; }
 		public Point HidePoint { get; private set; }
-		public Vector2 HideCenter { get; private set; }
+		public Vector2 HideCenter => new(HidePoint.X * 16 + 16, HidePoint.Y * 16 + 26);
 		public bool SeenEntering { get; private set; }
 		public int HideTicks;
 
@@ -57,6 +69,10 @@ namespace ScreamAndRun.Common.Players
 		private int secondBeatTimer;
 		private PlayerDeathReason pendingKillReason;
 		private int pendingKillTicks;
+		private int catchCooldown;
+
+		private bool IsLocal => Player.whoAmI == Main.myPlayer && !Main.dedServ;
+		private bool IsHunted => HauntEventSystem.Active && HauntEventSystem.TargetIndex == Player.whoAmI;
 
 		public override void OnEnterWorld() {
 			ExitHiding(playSound: false);
@@ -68,14 +84,16 @@ namespace ScreamAndRun.Common.Players
 
 		// ---------------------------------------------------------------- noise
 		public void AddNoise(float amount) {
-			if (HauntEventSystem.Active)
+			if (IsHunted)
 				Noise = MathHelper.Clamp(Noise + amount, 0f, 1f);
 		}
 
+		/// <summary>Owning client only: lighting doesn't exist on a server.</summary>
 		private void UpdateNoiseAndVisibility() {
-			if (!HauntEventSystem.Active) {
+			if (!IsHunted) {
 				Noise = 0f;
 				DetectionRadius = BaseDetectionTiles * 16f;
+				CrouchingStill = InDarkness = false;
 				return;
 			}
 
@@ -120,9 +138,8 @@ namespace ScreamAndRun.Common.Players
 			Player.RemoveAllGrapplingHooks();
 			Hiding = true;
 			HidePoint = lockerTopLeft;
-			HideCenter = new Vector2(lockerTopLeft.X * 16 + 16, lockerTopLeft.Y * 16 + 26);
 			// If she was watching you when you got in, she knows roughly where to look.
-			SeenEntering = HauntEventSystem.Boss?.CanSeePlayer ?? false;
+			SeenEntering = IsHunted && (HauntEventSystem.Boss?.CanSeePlayer ?? false);
 			SoundEngine.PlaySound(ScreamAudio.LockerClose, HideCenter);
 		}
 
@@ -178,11 +195,11 @@ namespace ScreamAndRun.Common.Players
 		}
 
 		// ---------------------------------------------------------------- being caught
-		/// <summary>Called by Onryo on contact. Returns true if the player was killed.</summary>
-		public bool CaughtBy(NPC npc, bool inLocker) {
+		/// <summary>Owning client: she got you, from <paramref name="from"/>. Returns true if you died.</summary>
+		public bool CaughtBy(Vector2 from, bool inLocker) {
 			if (Player.dead)
 				return true;
-			int dir = npc.Center.X < Player.Center.X ? 1 : -1;
+			int dir = from.X < Player.Center.X ? 1 : -1;
 
 			string key = inLocker ? "Locker" : Main.rand.NextBool() ? "Caught1" : "Caught2";
 			PlayerDeathReason reason = PlayerDeathReason.ByCustomReason(NetworkText.FromKey("Mods.ScreamAndRun.Death." + key, Player.name));
@@ -190,8 +207,8 @@ namespace ScreamAndRun.Common.Players
 			if (inLocker || ScreamConfig.Instance.OneShot) {
 				HauntUISystem.TriggerJumpscare();
 				SoundEngine.PlaySound(ScreamAudio.Jumpscare);
-				// KillMe skips defense, armor, i-frames and dodges. If something still revives
-				// the player, we try again for a few ticks.
+				// KillMe skips defense, armor, i-frames and dodges, and syncs the death in multiplayer.
+				// If something still revives the player, we try again for a few ticks.
 				pendingKillReason = reason;
 				pendingKillTicks = 15;
 				Player.KillMe(reason, 9999.0, dir);
@@ -204,47 +221,106 @@ namespace ScreamAndRun.Common.Players
 			return Player.dead;
 		}
 
+		/// <summary>Owning client: the server says she opened your locker.</summary>
+		public void OnLockerOpened() {
+			SoundEngine.PlaySound(ScreamAudio.LockerOpen, Player.Center);
+			ExitHiding(playSound: false);
+			// Doesn't need her NPC here: the packet can arrive before her sync does.
+			CaughtBy(HauntEventSystem.Boss?.NPC.Center ?? Player.Center, inLocker: true);
+		}
+
+		/// <summary>Touch check, on the hunted player's own client (like vanilla contact damage).</summary>
+		private void CheckContact(Onryo boss) {
+			if (catchCooldown > 0) {
+				catchCooldown--;
+				return;
+			}
+			if (Hiding || Player.dead || boss.GivingUp)
+				return;
+			// Her hitbox is a little smaller than the sprite, to be fair.
+			Rectangle hitbox = boss.NPC.Hitbox;
+			hitbox.Inflate(-4, -4);
+			if (!hitbox.Intersects(Player.Hitbox))
+				return;
+
+			if (!CaughtBy(boss.NPC.Center, inLocker: false)) {
+				// One-shot is off and you survived: she backs off instead of chain-hitting you.
+				catchCooldown = 60;
+				if (ScreamNet.IsClient)
+					ScreamNet.Create(ScreamPacket.BackOff).Send();
+				else
+					boss.BackOff();
+			}
+		}
+
 		public override void Kill(double damage, int hitDirection, bool pvp, PlayerDeathReason damageSource) {
 			pendingKillTicks = 0;
 			ExitHiding(playSound: false);
-			HauntEventSystem.End(HauntEndReason.PlayerDied);
+			// The server also notices the death on its own; in single-player end straight away.
+			if (ScreamNet.Authoritative && IsHunted)
+				HauntEventSystem.End(HauntEndReason.PlayerDied);
 		}
 
 		// ---------------------------------------------------------------- per tick
 		public override void PostUpdate() {
 			if (pendingKillTicks > 0) {
 				pendingKillTicks--;
-				if (!Player.dead && pendingKillReason != null)
+				if (!Player.dead && pendingKillReason != null && IsLocal)
 					Player.KillMe(pendingKillReason, 9999.0, 0);
 			}
 
 			if (Hiding) {
-				if (Player.dead || !LockerStillThere())
+				if (IsLocal && (Player.dead || !LockerStillThere()))
 					ExitHiding(playSound: false);
-				else if (HauntEventSystem.Active)
+				else if (IsHunted)
 					HideTicks++;
 			}
 			else if (HideTicks > 0) {
 				HideTicks = Math.Max(0, HideTicks - 2); // hopping in and out doesn't reset the clock
 			}
 
+			if (!IsLocal)
+				return; // remote players: their own client measures and syncs these
+
 			UpdateNoiseAndVisibility();
-
-			if (!HauntEventSystem.Active) {
-				Closeness = 0f;
-				SeenByHer = false;
-				Tracked = false;
-				KnowsLocker = false;
-				SearchPressure = 0;
-			}
+			UpdateFromBoss();
 			SmoothCloseness = MathHelper.Lerp(SmoothCloseness, Closeness, 0.08f);
+			UpdateHeartbeat();
+		}
 
-			if (Player.whoAmI == Main.myPlayer)
-				UpdateHeartbeat();
+		/// <summary>Local player: what she's doing, as far as you can tell.</summary>
+		private void UpdateFromBoss() {
+			Onryo boss = HauntEventSystem.Boss;
+			if (!IsHunted || boss == null) {
+				Closeness = 0f;
+				SeenByHer = Tracked = KnowsLocker = false;
+				LockerShadow = 0f;
+				if (!HauntEventSystem.Active)
+					SearchPressure = 0;
+				return;
+			}
+
+			float dist = Vector2.Distance(boss.NPC.Center, Player.Center);
+			Closeness = MathHelper.Clamp(1f - dist / (PresenceRangeTiles * 16f), 0f, 1f);
+			SeenByHer = boss.CanSeePlayer;
+			Tracked = boss.HasTrack && HauntEventSystem.Phase != HauntPhase.Stalking;
+			KnowsLocker = Hiding && boss.KnowsLocker;
+
+			if (Hiding) {
+				// Her shadow over the vents: strongest when she's level with the locker and close.
+				Vector2 offset = boss.NPC.Center - HideCenter;
+				bool level = Math.Abs(offset.Y) < 4 * 16;
+				LockerShadow = level ? MathHelper.Clamp(1f - (Math.Abs(offset.X) - 16) / (6 * 16f), 0f, 1f) : 0f;
+				LockerShadowSide = MathHelper.Clamp(offset.X / (6 * 16f), -1f, 1f);
+			}
+			else {
+				LockerShadow = 0f;
+				CheckContact(boss);
+			}
 		}
 
 		private void UpdateHeartbeat() {
-			if (Main.dedServ || !HauntEventSystem.Active || Player.dead)
+			if (!IsHunted || Player.dead)
 				return;
 
 			float c = SmoothCloseness;
@@ -265,6 +341,59 @@ namespace ScreamAndRun.Common.Players
 				secondBeatTimer = Math.Max(4, heartbeatTimer / 4);
 				SoundEngine.PlaySound(ScreamAudio.Heartbeat with { Volume = (0.3f + 0.7f * c) * hidingDuck });
 			}
+		}
+
+		// ---------------------------------------------------------------- multiplayer sync
+		// Noise and radius are quantized; they're only sent when they change enough to matter.
+		private bool sentHiding;
+		private Point sentHidePoint;
+		private byte sentNoise;
+		private byte sentRadius;
+
+		private byte NoiseByte => (byte)(Noise * 255f);
+		private byte RadiusByte => (byte)Math.Min(255f, DetectionRadius / 16f);
+
+		public override void SyncPlayer(int toWho, int fromWho, bool newPlayer) => SendState(toWho, fromWho);
+
+		public override void CopyClientState(ModPlayer targetCopy) {
+			var copy = (HauntPlayer)targetCopy;
+			copy.sentHiding = Hiding;
+			copy.sentHidePoint = HidePoint;
+			copy.sentNoise = NoiseByte;
+			copy.sentRadius = RadiusByte;
+		}
+
+		public override void SendClientChanges(ModPlayer clientPlayer) {
+			var last = (HauntPlayer)clientPlayer;
+			bool changed = last.sentHiding != Hiding
+				|| last.sentHidePoint != HidePoint
+				|| Math.Abs(last.sentNoise - NoiseByte) >= 10
+				|| (last.sentNoise >= 128) != (NoiseByte >= 128) // crossing the "she can hear you" line
+				|| Math.Abs(last.sentRadius - RadiusByte) >= 2;
+			if (changed)
+				SendState(-1, Main.myPlayer);
+		}
+
+		public void SendState(int toWho, int ignoreWho) {
+			if (Main.netMode == NetmodeID.SinglePlayer)
+				return;
+			ModPacket packet = ScreamNet.Create(ScreamPacket.PlayerState);
+			packet.Write((byte)Player.whoAmI);
+			packet.Write(Hiding);
+			packet.Write((short)HidePoint.X);
+			packet.Write((short)HidePoint.Y);
+			packet.Write(SeenEntering);
+			packet.Write(NoiseByte);
+			packet.Write(RadiusByte);
+			packet.Send(toWho, ignoreWho);
+		}
+
+		public void ReadState(BinaryReader reader) {
+			Hiding = reader.ReadBoolean();
+			HidePoint = new Point(reader.ReadInt16(), reader.ReadInt16());
+			SeenEntering = reader.ReadBoolean();
+			Noise = reader.ReadByte() / 255f;
+			DetectionRadius = reader.ReadByte() * 16f;
 		}
 	}
 }

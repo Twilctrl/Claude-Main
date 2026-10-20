@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using Microsoft.Xna.Framework;
 using ScreamAndRun.Common.AI;
 using ScreamAndRun.Common.Audio;
 using ScreamAndRun.Common.Configs;
+using ScreamAndRun.Common.Net;
 using ScreamAndRun.Common.Players;
 using ScreamAndRun.Common.Systems;
 using ScreamAndRun.Common.UI;
@@ -17,6 +19,10 @@ namespace ScreamAndRun.Content.NPCs
 	/// <summary>
 	/// Onryo, the transfer student. She cannot be hurt, can't be knocked back, ignores
 	/// debuffs and never despawns on her own. HauntEventSystem spawns and removes her.
+	///
+	/// Multiplayer: her AI runs on the server, hunting the player who read the letter. The flags
+	/// clients need (sees you, tracking, knows your locker, winding up, giving up) ride along with
+	/// the vanilla NPC sync, and each client plays its own sounds and cues from them.
 	/// </summary>
 	public class Onryo : ModNPC
 	{
@@ -47,6 +53,7 @@ namespace ScreamAndRun.Content.NPCs
 		public bool HasTrack { get; private set; }
 		public bool Telegraphing => telegraphTicks > 0;
 		public bool KnowsLocker { get; private set; }
+		public bool GivingUp => givingUp;
 
 		private Vector2 lastKnown;
 		private int lostSightTicks;
@@ -58,6 +65,12 @@ namespace ScreamAndRun.Content.NPCs
 		private Vector2? currentGoal;
 
 		private int footstepTimer;
+		private bool wasTelegraphing;
+		private bool hadTrack;
+		private byte teleportSeq;
+		private byte seenTeleportSeq;
+		private int syncTimer;
+		private int lockerOpenCooldown;
 		private int knockTimer = 120;
 		private int knocksLeft;
 		private int knockGap;
@@ -130,12 +143,31 @@ namespace ScreamAndRun.Content.NPCs
 		public void BeginGiveUp() {
 			givingUp = true;
 			telegraphTicks = 0;
+			NPC.netUpdate = true;
+		}
+
+		/// <summary>Server: she touched the target and they survived (one-shot off), so she backs off.</summary>
+		public void BackOff() {
+			if (HauntEventSystem.Target is not Player player)
+				return;
+			HasTrack = false;
+			searchTicks = 0;
+			Relocate(player, 25, 40);
 		}
 
 		/// <summary>Removes her immediately, with a puff.</summary>
 		public void Vanish() {
-			Puff(30);
+			if (!Main.dedServ)
+				Puff(30);
+			Despawn();
+		}
+
+		/// <summary>Server / single-player: remove her, and tell clients right away (a netUpdate flag on an
+		/// inactive NPC is never sent).</summary>
+		private void Despawn() {
 			NPC.active = false;
+			if (ScreamNet.IsServer)
+				NetMessage.SendData(MessageID.SyncNPC, number: NPC.whoAmI);
 		}
 
 		public void OnPhaseChanged(HauntPhase phase, Player player) {
@@ -155,58 +187,109 @@ namespace ScreamAndRun.Content.NPCs
 			ClearBuffs();
 			NPC.timeLeft = NPC.activeTime;
 
+			// Sounds and cues for whoever is watching (clients and single-player).
+			if (!Main.dedServ)
+				ClientEffects();
+
 			if (givingUp) {
 				NPC.velocity *= 0.85f;
 				NPC.alpha = Math.Min(255, NPC.alpha + 4);
-				if (Main.rand.NextBool(3))
+				if (Main.rand.NextBool(3) && !Main.dedServ)
 					Dust.NewDust(NPC.position, NPC.width, NPC.height, DustID.Shadowflame, 0f, -1f);
-				if (NPC.alpha >= 255)
-					NPC.active = false;
+				if (NPC.alpha >= 255 && ScreamNet.Authoritative)
+					Despawn();
 				return;
 			}
+
+			// Everything below is the hunt itself: server and single-player only. Clients move her by
+			// her synced velocity between updates.
+			if (!ScreamNet.Authoritative)
+				return;
 
 			if (!HauntEventSystem.Active) {
-				NPC.active = false;
+				Despawn();
 				return;
 			}
 
-			NPC.target = Main.myPlayer;
-			Player player = Main.player[Main.myPlayer];
-			if (!player.active || player.dead) {
+			Player player = HauntEventSystem.Target;
+			if (player == null || !player.active || player.dead) {
 				NPC.velocity = Vector2.Zero;
 				return;
 			}
+			NPC.target = player.whoAmI;
 
 			HauntPlayer hp = player.GetModPlayer<HauntPlayer>();
 			HauntPhase phase = HauntEventSystem.Phase;
 			ScreamConfig config = ScreamConfig.Instance;
 			float dist = Vector2.Distance(NPC.Center, player.Center);
-			hp.Closeness = MathHelper.Clamp(1f - dist / (PresenceRangeTiles * Tile), 0f, 1f);
 
+			bool flagsBefore = CanSeePlayer, trackBefore = HasTrack, lockerBefore = KnowsLocker, teleBefore = Telegraphing;
 			UpdatePerception(player, hp, phase, dist);
 
-			if (UpdateLocker(player, hp))
-				return; // she opened the locker
-
-			// Contact. Her hitbox is a little smaller than the sprite, to be fair.
-			Rectangle hitbox = NPC.Hitbox;
-			hitbox.Inflate(-4, -4);
-			if (!hp.Hiding && hitbox.Intersects(player.Hitbox)) {
-				Catch(player, hp);
-				return;
+			if (!UpdateLocker(player, hp) && !UpdateTelegraph(player, hp, phase, dist) && !UpdateFarAndStuck(player, hp, dist)) {
+				Vector2? goal = ChooseGoal(player, hp, phase, dist, out float speed);
+				currentGoal = goal;
+				MoveToward(goal, speed * config.SpeedMultiplier, player);
+				NPC.alpha = 0;
 			}
 
-			if (UpdateTelegraph(player, hp, phase, dist))
-				return; // standing still, about to teleport
+			// Keep clients close: often while she moves, and at once when something they show changes.
+			bool flagsChanged = flagsBefore != CanSeePlayer || trackBefore != HasTrack || lockerBefore != KnowsLocker || teleBefore != Telegraphing;
+			if (flagsChanged || ++syncTimer >= 4) {
+				syncTimer = 0;
+				NPC.netUpdate = true;
+			}
+		}
 
-			if (UpdateFarAndStuck(player, hp, dist))
-				return; // relocated this tick
+		/// <summary>
+		/// Clients and single-player: the sounds and cues the local player notices. Driven by her synced
+		/// state, so it works the same whether her AI runs here or on a server.
+		/// </summary>
+		private void ClientEffects() {
+			bool targetIsMe = HauntEventSystem.LocalIsTarget;
 
-			Vector2? goal = ChooseGoal(player, hp, phase, dist, out float speed);
-			currentGoal = goal;
-			MoveToward(goal, speed * config.SpeedMultiplier, player);
-			UpdateLockerCues(hp);
-			NPC.alpha = 0;
+			// Teleport wind-up started: the loud warning (only the hunted player needs it).
+			if (Telegraphing && !wasTelegraphing && targetIsMe) {
+				SoundEngine.PlaySound(ScreamAudio.TeleportCue);
+				HauntUISystem.FlashWarning(75);
+			}
+			if (Telegraphing && Main.rand.NextBool(2))
+				Dust.NewDust(NPC.position, NPC.width, NPC.height, DustID.Blood);
+			wasTelegraphing = Telegraphing;
+
+			// She picked up your trail.
+			bool showsTrack = HasTrack && HauntEventSystem.Phase != HauntPhase.Stalking;
+			if (showsTrack && !hadTrack && targetIsMe)
+				SoundEngine.PlaySound(ScreamAudio.Spotted, NPC.Center);
+			hadTrack = showsTrack;
+
+			// She teleported: a puff where she lands, and the sound.
+			if (teleportSeq != seenTeleportSeq) {
+				seenTeleportSeq = teleportSeq;
+				Puff(30);
+				SoundEngine.PlaySound(ScreamAudio.Teleport, NPC.Center);
+			}
+
+			if (targetIsMe)
+				UpdateLockerCues(Main.LocalPlayer.GetModPlayer<HauntPlayer>());
+		}
+
+		// ---------------------------------------------------------------- multiplayer sync
+		public override void SendExtraAI(BinaryWriter writer) {
+			var flags = new BitsByte(CanSeePlayer, HasTrack, KnowsLocker, Telegraphing, givingUp, NPC.noTileCollide);
+			writer.Write(flags);
+			writer.Write(teleportSeq);
+		}
+
+		public override void ReceiveExtraAI(BinaryReader reader) {
+			BitsByte flags = reader.ReadByte();
+			CanSeePlayer = flags[0];
+			HasTrack = flags[1];
+			KnowsLocker = flags[2];
+			telegraphTicks = flags[3] ? Math.Max(telegraphTicks, 1) : 0; // clients only need "is winding up"
+			givingUp = flags[4];
+			NPC.noTileCollide = flags[5];
+			teleportSeq = reader.ReadByte();
 		}
 
 		private void UpdatePerception(Player player, HauntPlayer hp, HauntPhase phase, float dist) {
@@ -218,10 +301,8 @@ namespace ScreamAndRun.Content.NPCs
 			CanSeePlayer = sees && phase != HauntPhase.Stalking;
 
 			if (sees || hears) {
-				if (!HasTrack && phase != HauntPhase.Stalking) {
-					SoundEngine.PlaySound(ScreamAudio.Spotted, NPC.Center);
+				if (!HasTrack && phase != HauntPhase.Stalking)
 					searchTicks = 0;
-				}
 				HasTrack = true;
 				lastKnown = player.Center;
 				lostSightTicks = 0;
@@ -234,16 +315,14 @@ namespace ScreamAndRun.Content.NPCs
 					wanderTimer = 0;
 				}
 			}
-
-			hp.SeenByHer = CanSeePlayer;
-			hp.Tracked = HasTrack && phase != HauntPhase.Stalking;
 		}
 
 		/// <summary>Locker logic. Returns true if she opened the locker this tick.</summary>
 		private bool UpdateLocker(Player player, HauntPlayer hp) {
+			if (lockerOpenCooldown > 0)
+				lockerOpenCooldown--;
 			if (!hp.Hiding) {
 				KnowsLocker = false;
-				hp.KnowsLocker = false;
 				if (hp.SearchPressure > 0)
 					hp.SearchPressure--;
 				return false;
@@ -260,33 +339,31 @@ namespace ScreamAndRun.Content.NPCs
 				KnowsLocker = true;
 				repathTimer = 0;
 			}
-			hp.KnowsLocker = KnowsLocker;
 
-			if (KnowsLocker && lockerDist < 2.5f * Tile) {
-				SoundEngine.PlaySound(ScreamAudio.LockerOpen, hp.HideCenter);
-				hp.ExitHiding(playSound: false);
-				hp.CaughtBy(NPC, inLocker: true);
+			if (KnowsLocker && lockerDist < 2.5f * Tile && lockerOpenCooldown == 0) {
+				lockerOpenCooldown = 60;
+				if (ScreamNet.IsServer) {
+					// The hunted player's own client plays the scare and the death.
+					ModPacket packet = ScreamNet.Create(ScreamPacket.LockerOpened);
+					packet.Send(player.whoAmI);
+				}
+				else {
+					hp.OnLockerOpened();
+				}
 				return true;
 			}
 			return false;
 		}
 
 		/// <summary>
-		/// What you notice from inside a locker: her footsteps nearby (positioned, so you can tell
-		/// which side), her shadow across the vents, and knocking when she stops right outside.
+		/// Local hunted player, inside a locker: her footsteps nearby (positioned, so you can tell
+		/// which side) and knocking when she stops right outside. (Her shadow on the vents is
+		/// worked out in HauntPlayer.)
 		/// </summary>
 		private void UpdateLockerCues(HauntPlayer hp) {
-			if (!hp.Hiding) {
-				hp.LockerShadow = 0f;
+			if (!hp.Hiding || givingUp)
 				return;
-			}
-			Vector2 offset = NPC.Center - hp.HideCenter;
-			float lockerDist = offset.Length();
-
-			// Shadow over the vents: strongest when she's level with the locker and close.
-			bool level = Math.Abs(offset.Y) < 4 * Tile;
-			hp.LockerShadow = level ? MathHelper.Clamp(1f - (Math.Abs(offset.X) - Tile) / (6 * Tile), 0f, 1f) : 0f;
-			hp.LockerShadowSide = MathHelper.Clamp(offset.X / (6 * Tile), -1f, 1f);
+			float lockerDist = Vector2.Distance(NPC.Center, hp.HideCenter);
 
 			float moving = NPC.velocity.Length();
 			if (lockerDist < 16 * Tile && moving > 0.4f) {
@@ -330,8 +407,6 @@ namespace ScreamAndRun.Content.NPCs
 		private bool UpdateTelegraph(Player player, HauntPlayer hp, HauntPhase phase, float dist) {
 			if (telegraphTicks > 0) {
 				NPC.velocity *= 0.5f;
-				if (Main.rand.NextBool(2))
-					Dust.NewDust(NPC.position, NPC.width, NPC.height, DustID.Blood);
 				if (--telegraphTicks == 0) {
 					if (!hp.Hiding && TryTeleportBehind(player)) {
 						HasTrack = true;
@@ -347,9 +422,7 @@ namespace ScreamAndRun.Content.NPCs
 				return false;
 
 			if (--teleportCooldown <= 0 && dist > 10 * Tile) {
-				telegraphTicks = 75;
-				SoundEngine.PlaySound(ScreamAudio.TeleportCue);
-				HauntUISystem.FlashWarning(75);
+				telegraphTicks = 75; // clients see the flag change and play the warning
 				return true;
 			}
 			return false;
@@ -576,7 +649,8 @@ namespace ScreamAndRun.Content.NPCs
 		}
 
 		private void MoveTo(Vector2 topLeft) {
-			Puff(20);
+			if (!Main.dedServ)
+				Puff(20); // where she vanished from
 			NPC.position = topLeft;
 			NPC.velocity = Vector2.Zero;
 			NPC.oldPosition = topLeft;
@@ -585,8 +659,8 @@ namespace ScreamAndRun.Content.NPCs
 			repathTimer = 0;
 			stuckAnchor = topLeft;
 			stuckStrikes = 0;
-			Puff(20);
-			SoundEngine.PlaySound(ScreamAudio.Teleport, NPC.Center);
+			teleportSeq++; // clients (and single-player, next tick) puff and play the sound where she lands
+			NPC.netUpdate = true;
 		}
 
 		private void Relocate(Player player, int minTiles, int maxTiles) {
@@ -634,16 +708,6 @@ namespace ScreamAndRun.Content.NPCs
 			}
 			topLeft = default;
 			return false;
-		}
-
-		private void Catch(Player player, HauntPlayer hp) {
-			bool died = hp.CaughtBy(NPC, inLocker: false);
-			if (!died) {
-				// One-shot is off and you survived: she backs off instead of chain-hitting you.
-				HasTrack = false;
-				searchTicks = 0;
-				Relocate(player, 25, 40);
-			}
 		}
 
 		private void Puff(int count) {

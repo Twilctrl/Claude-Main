@@ -8,4 +8,4 @@ Craft a Love Letter and read it. Onryo, the transfer student, notices you. She c
 
 Hide in a Locker (right-click), crouch in the dark, and stay quiet. Mining, running and attacking all make noise.
 
-Single-player only. Doesn't touch any other mod's content and works alongside Calamity.
+Works in multiplayer: she hunts whoever reads the letter. Supports Boss Checklist. Doesn't touch any other mod's content and works alongside Calamity.

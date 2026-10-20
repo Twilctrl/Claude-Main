@@ -20,8 +20,10 @@ scream-and-run/
     │   ├── Audio/ScreamAudio.cs        sound registry, custom file or vanilla fallback
     │   ├── Configs/ScreamConfig.cs     server config (time, speed, one-shot) + client effects config
     │   ├── Globals/MiningNoiseGlobalTile.cs
+    │   ├── Net/ScreamNet.cs            multiplayer packets
     │   ├── Players/HauntPlayer.cs      noise, visibility, hiding, heartbeat, forced death
-    │   ├── Systems/HauntEventSystem.cs timer, phases, start/end, sky dimming
+    │   ├── Systems/HauntEventSystem.cs timer, phases, start/end, sky dimming, sync, survived flag
+    │   ├── Systems/BossChecklistIntegration.cs   optional Boss Checklist entry
     │   ├── Systems/HauntSceneEffect.cs music
     │   └── UI/HauntUISystem.cs         vignette, distortion, HUD, map blood, jumpscare
     ├── Content/
@@ -67,8 +69,8 @@ Place a few lockers first, then read the letter.
 ## How it plays
 
 - **Start.** The sky goes dark red, the music changes, and "She noticed you." appears. She spawns
-  40-60 tiles away, out of sight. Only one event runs at a time. **Single-player only**: the letter
-  won't work in multiplayer.
+  40-60 tiles away, out of sight. Only one event runs at a time. Works in single-player and
+  multiplayer; in multiplayer she hunts whoever read the letter (see [Multiplayer](#multiplayer)).
 - **Phase 1, Stalking** (first quarter, max 90 s): she pretends not to know where you are. She roams like a
   normal NPC (walks a stretch, stops and looks around, picks a new spot), and each spot drifts toward your
   rough area. She keeps her distance, from ~30 tiles down to ~12 by the end of the phase. If she can see you
@@ -159,6 +161,35 @@ global hooks are:
 Onryo is not flagged as a boss (no boss bar, no boss-alive effects), deals no contact damage
 through the normal damage pipeline (so difficulty scaling can't touch her), and isn't counted for spawn caps.
 
+## Multiplayer
+
+The server runs the event and Onryo's AI, so everyone sees the same thing. **She hunts whoever read the
+Love Letter** (one event per world at a time):
+
+- **The hunted player** gets everything: vignette, heartbeat, distortion, the proximity HUD, blood over the
+  map, locker cues and the jumpscare. Their client measures their own light level, noise and hiding (a
+  server has no lighting) and sends them to the server. Their own client also checks her touch, like vanilla
+  contact damage, so a death always matches what they saw.
+- **Everyone else** sees the dark red sky, hears the music, sees her walking around, and gets the timer plus
+  "Onryo is hunting *name*" on the HUD. She ignores them: touching her is harmless.
+- **The event ends** when the hunted player survives (they get the ribbon), dies, or leaves the server.
+  Players who join mid-event are synced in.
+- Hiding is synced, so other players don't see someone who's inside a locker.
+
+## Boss Checklist
+
+If [Boss Checklist](https://steamcommunity.com/sharedfiles/filedetails/?id=2669644269) is installed, Onryo
+gets an entry (no hard dependency; nothing changes without it):
+
+- Placed just before King Slime (progression 0.9).
+- Spawn item: the Love Letter. The spawn info explains the recipe and the lockers.
+- Collectible: Onryo's Torn Ribbon.
+- **Checked off once anyone survives her in that world.** She can't be killed, so surviving counts. The flag
+  is saved with the world and synced in multiplayer.
+- Her own head icon and Boss Log portrait. The icon isn't registered as a map boss-head, which would show
+  where she is.
+- A despawn line, if Boss Checklist's despawn messages are on: "Onryo slips back into the dark... for now."
+
 ## What's been verified, and known limitations
 
 **Verified** against tModLoader **v2026.08.3.0** (latest stable, Terraria 1.4.4.9), on Linux with the .NET 8 SDK:
@@ -173,6 +204,9 @@ through the normal damage pipeline (so difficulty scaling can't touch her), and 
   - that anything under a `/Music/` folder is registered as music.
 - The pathfinder is unit-tested against a fake tile map: climbing walls, shafts, platforms, sealed rooms,
   falling, and ~4 ms worst case.
+- **Boss Checklist** (v2.2.4, built from its source) loads alongside it on the server. A probe of Boss
+  Checklist's stored data confirmed Onryo's entry: name, progression, the "downed" check, her NPC, spawn item
+  and info, and the collectible.
 
 **Not verified:**
 
@@ -182,10 +216,13 @@ through the normal damage pipeline (so difficulty scaling can't touch her), and 
 - **Gameplay tuning:** speeds, detection numbers, timings, and whether the HUD overlaps other UI (e.g. Calamity's
   meters) at your resolution. All the numbers are constants at the top of `Onryo.cs` / `HauntPlayer.cs`.
 - **Calamity:** it wasn't loaded alongside this mod. The mod doesn't reference it, though.
+- **Multiplayer has never been played.** The server side loads cleanly, but a game client can't run here,
+  so no real two-player session has been tested: the sync, latency feel, or players joining mid-event.
+- **Boss Checklist's UI** (the checklist and Boss Log pages) hasn't been seen, only the data it stored.
 
 **Known limitations:**
 
-- **Multiplayer is unsupported.** Noise and hiding are client-side, so the event is single-player only.
+- **Only the reader is hunted in multiplayer.** Other players can't be caught, and can't be targeted instead.
 - **The map overlay is switched off during the event.** It's drawn into the world itself, where it can't be
   covered, so it's swapped for the (blood-covered) minimap and your setting is restored when the event ends. If you
   save settings mid-event, "minimap" is what gets saved.

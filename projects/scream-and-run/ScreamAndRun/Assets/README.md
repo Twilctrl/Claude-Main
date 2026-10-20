@@ -9,6 +9,7 @@ size, then rebuild the mod.
 | File | Size | Notes |
 | --- | --- | --- |
 | `NPCs/Onryo.png` | 40 x 336 | 6 frames stacked vertically, 40x56 each. **Faces left** (Terraria flips it). Frames: 0 idle, 1-4 walk cycle, 5 wind-up before a teleport. Her hitbox is 28x44, bottom-centered in the frame. |
+| `NPCs/OnryoChecklistHead.png` | 22 x 22 | Her head icon in Boss Checklist. The generator crops it from the sprite's idle frame. |
 | `Items/LoveLetter.png` | 28 x 20 | Summon item. |
 | `Items/HidingLockerItem.png` | 20 x 30 | Locker in the inventory. |
 | `Items/TornRibbon.png` | 26 x 18 | Reward item icon. |
