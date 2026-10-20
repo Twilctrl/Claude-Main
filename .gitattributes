@@ -1,0 +1,7 @@
+# The Gate's page is built by build.py (fonts, wordmark and score inlined), so
+# mark it generated: GitHub leaves it out of language stats and collapses it in diffs.
+projects/infernis/the-gate/infernis-the-gate.html linguist-generated=true
+
+# Its source is a single-page motion graphics file rather than code, so leave
+# it out of language stats too (diffs of it still show normally).
+projects/infernis/the-gate/the-gate.src.html -linguist-detectable
