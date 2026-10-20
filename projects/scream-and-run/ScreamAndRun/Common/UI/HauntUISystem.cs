@@ -82,8 +82,9 @@ namespace ScreamAndRun.Common.UI
 		// ---------------------------------------------------------------- layers
 		public override void ModifyInterfaceLayers(List<GameInterfaceLayer> layers) {
 			bool active = HauntEventSystem.Active;
+			bool hunted = HauntEventSystem.LocalIsTarget;
 
-			if (active) {
+			if (hunted) {
 				// Paint blood over the minimap right after vanilla draws it. The vanilla layer stays on
 				// because it also sets the offset that keeps the equipment panel below the minimap.
 				// (The overlay map style is switched to the minimap by HauntEventSystem.)
@@ -122,8 +123,8 @@ namespace ScreamAndRun.Common.UI
 
 		// ---------------------------------------------------------------- full-screen effects
 		private static void DrawAtmosphere(SpriteBatch sb) {
-			if (!HauntEventSystem.Active)
-				return;
+			if (!HauntEventSystem.LocalIsTarget)
+				return; // only the hunted player gets the full treatment
 			Player player = Main.LocalPlayer;
 			HauntPlayer hp = player.GetModPlayer<HauntPlayer>();
 			int w = Main.screenWidth, h = Main.screenHeight;
@@ -255,6 +256,13 @@ namespace ScreamAndRun.Common.UI
 			Utils.DrawBorderStringBig(sb, time, new Vector2(x, y), timeColor, 0.9f, 0.5f, 0f);
 			y += 44f;
 
+			if (!HauntEventSystem.LocalIsTarget) {
+				// Multiplayer bystanders: she isn't after you, but you can see the clock.
+				string name = HauntEventSystem.Target?.name ?? "";
+				Utils.DrawBorderString(sb, Language.GetTextValue("Mods.ScreamAndRun.UI.HuntingOther", name), new Vector2(x, y), TextRed, 1f, 0.5f, 0f);
+				return;
+			}
+
 			string phaseKey = phase switch {
 				HauntPhase.Stalking => "PhaseStalking",
 				HauntPhase.Frenzy => "PhaseFrenzy",
@@ -323,14 +331,14 @@ namespace ScreamAndRun.Common.UI
 		/// Pylons handle their teleport clicks while drawing, so this also stops blind map teleports.
 		/// </summary>
 		public override void PreDrawMapIconOverlay(IReadOnlyList<IMapLayer> layers, MapOverlayDrawContext mapOverlayDrawContext) {
-			if (!HauntEventSystem.Active)
+			if (!HauntEventSystem.LocalIsTarget)
 				return;
 			foreach (IMapLayer layer in layers)
 				layer.Hide();
 		}
 
 		public override void PostDrawFullscreenMap(ref string mouseText) {
-			if (!HauntEventSystem.Active)
+			if (!HauntEventSystem.LocalIsTarget)
 				return;
 			mouseText = string.Empty;
 			SpriteBatch sb = Main.spriteBatch;
@@ -392,7 +400,7 @@ namespace ScreamAndRun.Common.UI
 		public override void ModifyScreenPosition() {
 			if (!ScreamClientConfig.Instance.ScreenDistortion || Main.gamePaused)
 				return;
-			float c = HauntEventSystem.Active ? Main.LocalPlayer.GetModPlayer<HauntPlayer>().SmoothCloseness : 0f;
+			float c = HauntEventSystem.LocalIsTarget ? Main.LocalPlayer.GetModPlayer<HauntPlayer>().SmoothCloseness : 0f;
 			float strength = c > 0.6f ? (c - 0.6f) / 0.4f * 3f : 0f;
 			if (jumpscareTicks > 20)
 				strength = Math.Max(strength, 8f);

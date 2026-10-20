@@ -6,7 +6,7 @@ Items: {
 			"I've been watching you for a long time."
 			Starts a survival event. Someone noticed you, and she can't be hurt.
 			Hide, run, and survive until she gives up.
-			Single-player only
+			In multiplayer, she hunts whoever reads it.
 			'''
 	}
 
@@ -86,6 +86,7 @@ UI: {
 	PhaseStalking: She's watching.
 	PhaseHunting: She's hunting you.
 	PhaseFrenzy: RUN.
+	HuntingOther: Onryo is hunting {0}.
 	Presence: Presence
 	Far: far
 	Near: near
@@ -101,4 +102,9 @@ UI: {
 	Hiding: Hiding... (Jump to leave)
 	MapBlood: Don't look for me. I'll find you.
 	Victory: She lost interest.
+}
+
+BossChecklist: {
+	SpawnInfo: Read a [i:{0}] (3 Silk + 1 Lens at a Work Bench). She can't be hurt. Hide in [i:{1}] lockers and survive until she gives up.
+	Despawn: "{0} slips back into the dark... for now."
 }

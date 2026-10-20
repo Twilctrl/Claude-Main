@@ -30,8 +30,9 @@ namespace ScreamAndRun.Content.Items
 		public override bool CanUseItem(Player player) => HauntEventSystem.CanStart(player);
 
 		public override bool? UseItem(Player player) {
+			// The reader's own client asks; in multiplayer the server starts the event for everyone.
 			if (player.whoAmI == Main.myPlayer)
-				HauntEventSystem.Start(player);
+				HauntEventSystem.RequestStart(player);
 			return true;
 		}
 

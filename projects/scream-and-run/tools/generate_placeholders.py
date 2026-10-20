@@ -235,6 +235,18 @@ def onryo():
     save(img.transpose(Image.FLIP_LEFT_RIGHT), "NPCs", "Onryo.png")
 
 
+def onryo_checklist_head():
+    """Boss Checklist head icon: her head cropped from the sprite's idle frame. Run after onryo()."""
+    sheet = Image.open(os.path.join(TEX, "NPCs", "Onryo.png")).convert("RGBA")
+    head = sheet.crop((0, 0, FRAME_W, 24))                 # top of the idle frame: hair, bow, face
+    box = head.getbbox()
+    head = head.crop(box)
+    side = max(head.size)
+    icon = Image.new("RGBA", (side, side), (0, 0, 0, 0))
+    icon.alpha_composite(head, ((side - head.width) // 2, side - head.height))
+    save(icon, "NPCs", "OnryoChecklistHead.png")
+
+
 # ---------------------------------------------------------------- items
 def love_letter():
     img = Image.new("RGBA", (28, 20), (0, 0, 0, 0))
@@ -620,6 +632,7 @@ def icon():
 
 if __name__ == "__main__":
     onryo()
+    onryo_checklist_head()
     love_letter()
     locker_item()
     locker_tile()
