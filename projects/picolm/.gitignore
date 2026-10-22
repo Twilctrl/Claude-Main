@@ -1,4 +1,6 @@
 data/
 runs/
 *.plm
+!models/*.plm
 *.pt
+build/
