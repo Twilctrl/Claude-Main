@@ -6,9 +6,10 @@ Run from projects/picolm:
 1. Integrity: CRC/layout, and a bit-exact round trip (re-exporting the
    checkpoint in memory gives exactly what the file contains).
 2. Integer-only NumPy forward pass (tools/intref.py, reads only the file) vs
-   the PyTorch model on held-out text: max/mean logit error against the QAT
-   model and against the same weights in float, log-prob error, argmax
-   agreement, bits per character for each.
+   the PyTorch models on held-out text: max/mean logit error against the QAT
+   model it was exported from and against the float model before QAT
+   (float.pt next to the checkpoint), log-prob error, argmax agreement, and
+   bits per character for each.
 3. int32 headroom: the largest magnitude each integer operation reached.
 4. A seeded sample: the golden output the device engine must reproduce.
 Exits non-zero if the round trip differs or any integer limit is exceeded.
@@ -48,6 +49,7 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--plm", required=True)
     ap.add_argument("--ckpt", default=None, help="defaults to the checkpoint recorded in <plm>.json")
+    ap.add_argument("--float-ckpt", default=None, help="float model before QAT (default: float.pt beside --ckpt)")
     ap.add_argument("--data", default="data/tinystories")
     ap.add_argument("--n-seq", type=int, default=8)
     ap.add_argument("--seq-len", type=int, default=256)
@@ -68,8 +70,11 @@ def main():
     print(f"   vocab {h['vocab']}, d {h['d_model']}, layers {h['n_layers']}, ffn {h['d_ffn']}, "
           f"body {'int8' if h['quant_body'] == plm.Q_INT8 else 'int4'} ({info['quant']}), emb int8")
 
-    model, tok, _ = load_model(args.ckpt or info["ckpt"])
+    ckpt = args.ckpt or info["ckpt"]
+    model, tok, _ = load_model(ckpt)
     model.eval()
+    float_path = args.float_ckpt or os.path.join(os.path.dirname(ckpt), "float.pt")
+    float_model = load_model(float_path)[0].eval() if os.path.exists(float_path) else None
     diffs = plm.params_equal(export_params(model, tok, info["scales"]["s_x"]), P)
     print("== round trip: " + ("bit-exact" if not diffs else f"MISMATCH {diffs}"))
     ok &= not diffs
@@ -85,7 +90,8 @@ def main():
         x = torch.from_numpy(toks[None, :-1])
         with torch.no_grad():
             res["qat"].append(model(x, qat=True)[0][0].double().numpy())
-            res["flt"].append(model(x, qat=False)[0][0].double().numpy())
+            if float_model is not None:
+                res["flt"].append(float_model(x, qat=False)[0][0].double().numpy())
         im.reset()
         try:
             res["int"].append(np.stack([im.step(int(t)) for t in toks[:-1]]).astype(np.float64) * scale)
@@ -94,20 +100,21 @@ def main():
             return 1
         res["tgt"].append(toks[1:])
     dt = time.time() - t0
-    L = {k: np.concatenate(v) for k, v in res.items()}
+    L = {k: np.concatenate(v) for k, v in res.items() if v}
     n_tok = len(L["tgt"])
     print(f"== logits on {args.n_seq} x {args.seq_len} held-out tokens "
           f"(numpy int engine {1e3 * dt / n_tok:.2f} ms/token on this PC)")
-    for ref in ("qat", "flt"):
+    refs = [("qat", "QAT model it came from")] + ([("flt", "float model before QAT")] if "flt" in L else [])
+    for ref, name in refs:
         e = np.abs(L["int"] - L[ref])
         lp = np.abs(log_softmax(L["int"]) - log_softmax(L[ref]))
         agree = float((L["int"].argmax(-1) == L[ref].argmax(-1)).mean())
-        name = "QAT model (fake-quant)" if ref == "qat" else "same weights, float"
         print(f"   int vs {name:24s} max |dlogit| {e.max():.4f}  mean {e.mean():.4f}  "
               f"max |dlogp| {lp.max():.4f}  argmax agree {100 * agree:.2f}%")
     unit = "bits/char" if h["n_merges"] == 0 else "bits/token"
     for k, name in (("flt", "float"), ("qat", "QAT"), ("int", "integer")):
-        print(f"   {unit} {name:8s} {bits_per_token(L[k], L['tgt']):.4f}")
+        if k in L:
+            print(f"   {unit} {name:8s} {bits_per_token(L[k], L['tgt']):.4f}")
 
     print("== int32 headroom (largest magnitude seen / limit)")
     for k, lim in LIMITS.items():
