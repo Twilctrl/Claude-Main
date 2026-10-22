@@ -13,8 +13,8 @@ genuinely runs on the device.
 |---|---|
 | 0. Research, budget, architecture | done: [docs/budget.md](docs/budget.md) |
 | 1. PC side: data, tokenizer, model + QAT, export, verifier | done |
-| 2. Device engine running a hardcoded prompt | **done on PC/QEMU; awaiting the first PicoCalc run** ([docs/FLASHING.md](docs/FLASHING.md)) |
-| 3. Full Picoware UI | |
+| 2. Device engine running a hardcoded prompt | done on PC/QEMU; awaiting the first PicoCalc run ([docs/FLASHING.md](docs/FLASHING.md)) |
+| 3. Full Picoware UI: menu, prompt entry, settings, streaming story view | **done on PC/QEMU; awaiting the first PicoCalc run** |
 | 4. Optimisations (asm_thumb kernel, second core) | |
 
 ## How it works
@@ -57,10 +57,11 @@ train/    data.py (corpus + tokenizer training), tokenizer.py, model.py (PyTorch
           train.py, export.py (.plm writer), plm.py (format), fixedpoint.py (integer conventions)
 tools/    verify.py, sample.py, budget.py, golden.py, build_sd.py,
           intref.py (NumPy integer reference = spec for the device)
-device/   main.py (Picoware app), selftest_app.py, picolm_lib/ (engine, tokenizer, hal, selftest),
-          sim/ (PC simulator: CPython viper stand-in, fake Picoware modules, QEMU runner)
+device/   main.py (Picoware app entry), selftest_app.py,
+          picolm_lib/ (engine, ui, tokenizer, hal, selftest),
+          sim/ (PC simulator: CPython viper stand-in, fake Picoware modules, UI scenarios, QEMU runner)
 models/   picolm-s-int8.plm (trained int8 model) + golden outputs
-tests/    test_core.py (PC pipeline), test_device.py (device engine vs reference)
+tests/    test_core.py (PC pipeline), test_device.py (device engine vs reference), test_ui.py (UI walk-through)
 docs/     budget.md, format.md, FLASHING.md
 ```
 
@@ -86,6 +87,7 @@ python tools/sample.py --plm runs/s-int8/model.plm --prompt "Once upon a time"
 python tools/budget.py --plm runs/s-int8/model.plm
 python tests/test_core.py
 python tests/test_device.py
+python tests/test_ui.py
 ```
 
 `train.train` trains in float first, saves `float.pt`, then switches on

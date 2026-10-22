@@ -20,12 +20,12 @@ pip install mpy-cross
 python tools/build_sd.py
 ```
 
-This writes `build/sd/picoware/apps/` (about 287 KB):
+This writes `build/sd/picoware/apps/` (about 288 KB):
 
 ```
 PicoLM.py                    the app
 PicoLM-Test.py               the self-test
-picolm_lib/                  engine, tokenizer, hal, selftest (.mpy, compiled for the RP2040)
+picolm_lib/                  engine, ui, tokenizer, hal, selftest (.mpy, compiled for the RP2040)
 picolm_lib/model.plm         the int8 model (models/picolm-s-int8.plm)
 picolm_lib/model.golden.json what the model must generate, for the exactness check
 ```
@@ -44,21 +44,58 @@ the card back and power on.
 
 ## 3. Run PicoLM
 
-**Library → Applications → Custom → PicoLM.**
+**Library → Applications → Custom → PicoLM.** "loading model..." shows while
+the model is copied from the SD card into the PicoCalc's PSRAM (expected
+1–2 s), then the menu appears.
 
-1. "loading model..." while it copies the model from the SD card into the
-   PicoCalc's PSRAM (expected 1–2 s).
-2. "thinking (seed 1234)..." while it reads the prompt "Once upon a time"
-   (expected about 1 s).
-3. The story streams onto the screen. The bottom line shows tokens per second,
-   milliseconds per token, free heap in KB, where the weights live (PSRAM, or
-   SD as a fallback) and the exactness check. One token is one character.
-4. After 200 characters the check reads **golden OK** if the PicoCalc produced
-   exactly what the PC reference produces, or **golden FAIL@n** if it diverged
-   at character n.
+### Menu
 
-CENTER starts a new story with the next seed; BACK exits. Settings (prompt,
-temperature, top-k, length) are constants at the top of `PicoLM.py`.
+| Item | What it does |
+|---|---|
+| New story... | Opens Picoware's keyboard with the last prompt. Edit it and press Enter to start. |
+| Again: *prompt* | Starts a new story from the last prompt with the next seed. |
+| Temperature | 0.0 (greedy) to 2.0 in steps of 0.1. Default 0.8. |
+| Top-k | off, 1, 2, 3, 5, 10, 20 or 40. Default 20. |
+| Length | Maximum characters per story: 50 to 1600. Default 400. |
+| Seed | The seed for the next story; it goes up by one after each story. |
+| Debug overlay | Shows speed, free heap, storage and the exactness check on the status line. |
+| Exit | Back to Picoware. |
+
+UP/DOWN move, LEFT/RIGHT change a value (CENTER steps it up), BACK or Esc
+leaves the app. Settings and the last prompt are saved in
+`picolm_lib/settings.json`.
+
+The prompt editor is Picoware's own keyboard, so it follows Picoware's keys:
+Enter starts the story, and the exit key cancels. With Picoware's default
+"Exit Button" setting the exit key is Backspace and characters are deleted
+with Del; set Settings → Exit Button to Escape if you would rather have
+Backspace delete.
+
+### Story view
+
+The prompt appears first, then "prompt *i/n*" on the status line while the
+model reads it (one character every ~50–100 ms, estimated), then the story
+streams in with word wrap, scrolling half a page when the screen fills. One
+token is one character.
+
+| Key | While writing | When stopped or done |
+|---|---|---|
+| CENTER | stop | start the next story (next seed) |
+| UP / DOWN | | scroll back through the story |
+| BACK or Esc | back to the menu | back to the menu |
+
+With the debug overlay on, the status line reads, for example,
+`14.2t/s 70ms 48K PSRAM golden OK`: tokens per second and milliseconds per
+token while generating, free heap in KB, where the weights live (PSRAM, or SD
+as a fallback), and the exactness check.
+
+### Exactness check
+
+The default settings (prompt "Once upon a time", temperature 0.8, top-k 20,
+seed 1234) match a golden case, so the first "Again" story after installing
+is checked: after 200 characters the status line reads **golden OK** if the
+PicoCalc produced exactly what the PC reference produces, or
+**golden FAIL@n** if it diverged at character n.
 
 ## 4. Run the self-test and send the numbers back
 
@@ -93,12 +130,13 @@ can capture it as text.
 |---|---|
 | Engine output equals the PC reference token for token (int8, int4, ternary) | verified: CPython, 32-bit MicroPython, MicroPython in QEMU on an ARM core with RP2040-style (ARMv6-M) code generation |
 | No heap allocation while generating | verified (0 B per token) on 32-bit MicroPython and QEMU |
-| RAM use | measured in QEMU: engine code 12.6 KB, engine buffers 23.9 KB, whole app about 48 KB |
+| RAM use | measured in QEMU: engine code 12.6 KB, engine buffers 23.9 KB; the whole app with its UI about 48 KB, unchanged after a 400-character story |
+| UI: menu, settings, prompt entry and cancel, story view, word wrap, scrolling, stop / next story, Esc and BACK, saved settings | scripted against simulated Picoware on CPython, 32-bit MicroPython and QEMU (`tests/test_ui.py`, `device/sim/ui_scenario.py`); about 5 B of heap per generated character, all from finished lines |
 | The `.mpy` files from `pip install mpy-cross` (v1.29, .mpy v6.3) | load and pass in QEMU; Picoware's firmware is MicroPython v1.30-preview, which also uses v6.3 |
 | Picoware APIs (PSRAM, VFS, Draw, TextBox, input) | checked against Picoware's source; behaviour only on hardware |
 | Speed, free heap under Picoware, PSRAM/SD throughput | **hardware only** |
 | PSRAM contents surviving Picoware re-initialising the chip | **hardware only**; the app re-checks and reloads if needed |
-| Screen layout, fonts, key handling | **hardware only** (simulated as a text grid on the PC) |
+| Screen layout, fonts, colours, Picoware's keyboard and menu look | **hardware only** (simulated on the PC) |
 
 ## Troubleshooting
 
@@ -123,8 +161,9 @@ From `projects/picolm`:
 
 ```sh
 python tests/test_device.py                      # engine vs reference, all formats (CPython)
+python tests/test_ui.py                          # scripted UI walk-through (CPython)
 python device/sim/run_selftest.py models/picolm-s-int8.plm psram 1
-python device/sim/run_app.py models/picolm-s-int8.plm
+python device/sim/run_app.py models/picolm-s-int8.plm   # prints the menu and a story
 ```
 
 On Linux or WSL, with a MicroPython checkout, the real `viper` code runs on a
@@ -135,7 +174,8 @@ loads are not sign-extended):
 make -C mpy-cross
 make -C ports/unix CC="gcc -m32" BUILD=build-32 MICROPY_PY_FFI=0 MICROPY_PY_BTREE=0 MICROPY_PY_SSL=0
 ports/unix/build-32/micropython -X heapsize=24M device/sim/run_selftest.py models/picolm-s-int8.plm psram
-python device/sim/qemu_selftest.py --micropython ~/micropython   # see its docstring for the QEMU build
+python device/sim/qemu_selftest.py --micropython ~/micropython        # see its docstring for the QEMU build
+python device/sim/qemu_selftest.py --micropython ~/micropython --ui   # UI scenarios + heap after a story
 ```
 
 ## Picoware APIs used
@@ -146,9 +186,12 @@ PicoLM, these are the places to look.
 | API | Used in |
 |---|---|
 | `start(vm)` / `run(vm)` / `stop(vm)` app contract, `vm.back()`, `vm.alert()` | `device/main.py`, `device/selftest_app.py` |
-| `vm.draw`: `text`, `clear`, `fill_screen`, `swap`, `font_size`, `size` | `device/main.py` |
-| `vm.input_manager`: `button`, `reset()`; `BUTTON_BACK/CENTER/UP/DOWN` | `device/main.py`, `device/selftest_app.py` |
-| `picoware.system.vector.Vector` (mutable `x`, `y`) | `device/main.py` |
+| `vm.draw`: `text`, `clear`, `fill_screen`, `swap`, `font_size`, `size` | `device/picolm_lib/ui.py` |
+| `vm.input_manager.button`; `BUTTON_BACK/ESCAPE/CENTER/UP/DOWN/LEFT/RIGHT` | `ui.py`, `device/selftest_app.py` |
+| `vm.foreground_color`, `background_color`, `selected_color` | `ui.py` |
+| `picoware.gui.menu.Menu`: `add_item`, `clear`, `set_selected`, `scroll_up/down`, `selected_index`, `draw` | `ui.py` |
+| `vm.keyboard` (Picoware's Keyboard): `reset`, `title`, `response`, `run(force=, max_characters=)`, `is_finished` | `ui.py` |
+| `picoware.system.vector.Vector` (mutable `x`, `y`) | `ui.py` |
 | `picoware.gui.textbox.TextBox` | `device/selftest_app.py` |
 | `picoware.system.psram.PSRAM`: `size`, `is_ready`, `get_next_free`, `read32_bulk`, `write32_bulk` | `device/picolm_lib/hal.py` |
 | builtin `open()` on `/sd/...` (Picoware's VFS): `readinto`, `seek` | `device/picolm_lib/hal.py`, `engine.py` |

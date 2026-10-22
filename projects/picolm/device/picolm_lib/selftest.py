@@ -20,10 +20,6 @@ from . import hal
 from .engine import Engine
 
 
-def golden_path(model_path):
-    return model_path[:-4] + ".golden.json" if model_path.endswith(".plm") else model_path + ".golden.json"
-
-
 def _replay(eng, case):
     """Generate as tools/intref.py does; returns (index of first mismatch or -1, tokens, ms)."""
     eng.seed(case["seed"])
@@ -64,7 +60,7 @@ def run(model_path=None, mode="auto", log=print, bench_tokens=32, max_cases=None
     result = {"mode": eng.mode, "load_ms": load_ms, "heap_used": free0 - free1, "heap_left": free1}
 
     try:
-        with open(golden_path(model_path)) as f:
+        with open(hal.golden_path(model_path)) as f:
             cases = json.load(f)["cases"]
     except OSError:
         cases = []

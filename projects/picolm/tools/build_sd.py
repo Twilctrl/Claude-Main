@@ -7,7 +7,7 @@ Run from projects/picolm:
 Produces (under --out, default build/sd):
     picoware/apps/PicoLM.py                  the app (device/main.py)
     picoware/apps/PicoLM-Test.py             the on-device self-test (device/selftest_app.py)
-    picoware/apps/picolm_lib/*.mpy or *.py   engine, tokenizer, hal, selftest
+    picoware/apps/picolm_lib/*.mpy or *.py   engine, tokenizer, hal, selftest, ui
     picoware/apps/picolm_lib/model.plm       the model
     picoware/apps/picolm_lib/model.golden.json
 
@@ -25,7 +25,7 @@ import subprocess
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-LIB_MODULES = ("__init__", "engine", "hal", "selftest", "tokenizer")
+LIB_MODULES = ("__init__", "engine", "hal", "selftest", "tokenizer", "ui")
 
 
 def find_mpy_cross(explicit):

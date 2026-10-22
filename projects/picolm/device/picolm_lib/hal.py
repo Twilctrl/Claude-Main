@@ -54,6 +54,11 @@ def default_model_path():
     return here[:here.rfind("/") + 1] + "model.plm"
 
 
+def golden_path(model_path):
+    """<model>.golden.json next to <model>.plm (the expected outputs for the exactness check)."""
+    return (model_path[:-4] if model_path.endswith(".plm") else model_path) + ".golden.json"
+
+
 def psram_available():
     return _PSRAM is not None
 

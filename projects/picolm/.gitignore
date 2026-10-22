@@ -4,3 +4,4 @@ runs/
 !models/*.plm
 *.pt
 build/
+settings.json

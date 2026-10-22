@@ -74,6 +74,15 @@ state about 48 KB. Generation allocates 0 bytes per token, so it never
 triggers garbage collection. Free heap under Picoware itself is still
 unmeasured.
 
+**Measured in milestone 3** (same QEMU setup, full app with its UI, the
+Picoware modules simulated): the app, engine and simulator modules take
+about 49 KB after launch, and free heap is the same after a 400-character
+story. The UI module is 6.7 KB compiled. While generating, the UI allocates
+about 5 bytes per character on average (one string per finished line, the
+status line at most twice a second), so a story stays below the heap
+threshold that would trigger automatic collection; the app collects
+explicitly when a story starts and when it returns to the menu.
+
 ## Speed (all ≈ until measured)
 
 Assumptions: 200 MHz; ≈ 30 cycles per multiply-add in `viper`, ≈ 6.5 in a
