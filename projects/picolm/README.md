@@ -12,8 +12,8 @@ genuinely runs on the device.
 | Milestone | State |
 |---|---|
 | 0. Research, budget, architecture | done: [docs/budget.md](docs/budget.md) |
-| 1. PC side: data, tokenizer, model + QAT, export, verifier | **done** |
-| 2. Device engine running a hardcoded prompt | next |
+| 1. PC side: data, tokenizer, model + QAT, export, verifier | done |
+| 2. Device engine running a hardcoded prompt | **done on PC/QEMU; awaiting the first PicoCalc run** ([docs/FLASHING.md](docs/FLASHING.md)) |
 | 3. Full Picoware UI | |
 | 4. Optimisations (asm_thumb kernel, second core) | |
 
@@ -24,7 +24,7 @@ genuinely runs on the device.
   block and an embedding tied to the output head. The default "S" model has
   d = 128, 2 blocks and 240K weights. Memory per token is constant: the whole
   context is 256 numbers of recurrent state.
-- **Integer-only inference:** int4 (or int8 / ternary) weights with per-row
+- **Integer-only inference:** int8 (or int4 / ternary) weights with per-row
   scales, int8 activations, int32 accumulators, fixed-point requantisation,
   lookup tables for sigmoid, tanh and exp, integer RMSNorm, integer
   temperature/top-k sampling. No floating point on the device. The exact
@@ -53,13 +53,20 @@ caveats are in [docs/budget.md](docs/budget.md).
 ## Layout
 
 ```
-train/   data.py (corpus + tokenizer training), tokenizer.py, model.py (PyTorch + QAT),
-         train.py, export.py (.plm writer), plm.py (format), fixedpoint.py (integer conventions)
-tools/   verify.py, sample.py, budget.py, intref.py (NumPy integer reference = spec for the device)
-tests/   test_core.py
-docs/    budget.md, format.md
-device/  Picoware app (milestone 2+)
+train/    data.py (corpus + tokenizer training), tokenizer.py, model.py (PyTorch + QAT),
+          train.py, export.py (.plm writer), plm.py (format), fixedpoint.py (integer conventions)
+tools/    verify.py, sample.py, budget.py, golden.py, build_sd.py,
+          intref.py (NumPy integer reference = spec for the device)
+device/   main.py (Picoware app), selftest_app.py, picolm_lib/ (engine, tokenizer, hal, selftest),
+          sim/ (PC simulator: CPython viper stand-in, fake Picoware modules, QEMU runner)
+models/   picolm-s-int8.plm (trained int8 model) + golden outputs
+tests/    test_core.py (PC pipeline), test_device.py (device engine vs reference)
+docs/     budget.md, format.md, FLASHING.md
 ```
+
+To put it on the PicoCalc: `pip install mpy-cross`, `python tools/build_sd.py`,
+copy `build/sd/picoware` onto the SD card. Details and troubleshooting are in
+[docs/FLASHING.md](docs/FLASHING.md).
 
 ## Quick start
 
@@ -72,12 +79,13 @@ pip install numpy
 pip install torch --index-url https://download.pytorch.org/whl/cpu   # or a GPU build, see below
 
 python -m train.data --source tinystories-valid --out data/tinystories
-python -m train.train --data data/tinystories --preset s --quant int4 --out runs/s-int4
-python -m train.export --ckpt runs/s-int4/final.pt --out runs/s-int4/model.plm
-python tools/verify.py --plm runs/s-int4/model.plm
-python tools/sample.py --plm runs/s-int4/model.plm --prompt "Once upon a time"
-python tools/budget.py --plm runs/s-int4/model.plm
+python -m train.train --data data/tinystories --preset s --quant int8 --out runs/s-int8
+python -m train.export --ckpt runs/s-int8/final.pt --out runs/s-int8/model.plm
+python tools/verify.py --plm runs/s-int8/model.plm
+python tools/sample.py --plm runs/s-int8/model.plm --prompt "Once upon a time"
+python tools/budget.py --plm runs/s-int8/model.plm
 python tests/test_core.py
+python tests/test_device.py
 ```
 
 `train.train` trains in float first, saves `float.pt`, then switches on
@@ -85,7 +93,7 @@ quantisation-aware training and saves `final.pt`. To try another bit width
 without retraining the float model:
 
 ```sh
-python -m train.train --data data/tinystories --init runs/s-int4/float.pt --steps 0 --quant int8 --out runs/s-int8
+python -m train.train --data data/tinystories --init runs/s-int8/float.pt --steps 0 --quant int4 --out runs/s-int4
 ```
 
 For more data, `--source tinystories-train --max-mb 200` streams the first
@@ -112,7 +120,7 @@ float checkpoint:
 
 ```sh
 python -m train.data --source my_text/ --out data/mine --tokenizer data/tinystories/tokenizer.json
-python -m train.train --data data/mine --init runs/s-int4/float.pt --steps 2000 --quant int4 --out runs/mine
+python -m train.train --data data/mine --init runs/s-int8/float.pt --steps 2000 --quant int8 --out runs/mine
 ```
 
 ## GPU notes (AMD RX 9070 XT, Windows)

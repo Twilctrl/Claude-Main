@@ -1,7 +1,7 @@
 """Size, RAM and speed budget for a PicoLM model on the PicoCalc (RP2040 + 8 MB PSRAM).
 
 Run from projects/picolm:
-    python tools/budget.py --plm runs/s-int4/model.plm
+    python tools/budget.py --plm models/picolm-s-int8.plm
     python tools/budget.py --preset m --quant int4
 
 Sizes are exact. Speeds are estimates until measured on the device; every
@@ -36,7 +36,7 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--plm", default=None)
     ap.add_argument("--preset", default="s", choices=sorted(PRESETS))
-    ap.add_argument("--quant", default="int4", choices=["int8", "int4", "ternary"])
+    ap.add_argument("--quant", default="int8", choices=["int8", "int4", "ternary"])
     ap.add_argument("--vocab", type=int, default=85)
     ap.add_argument("--mhz", type=float, default=200, help="Picoware's RP2040 default clock")
     ap.add_argument("--asm-cycles", type=float, default=6.5, help="cycles per MAC, asm_thumb kernel (est.)")

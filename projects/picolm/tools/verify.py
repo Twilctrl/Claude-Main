@@ -1,7 +1,7 @@
 """Verify a .plm export against the PyTorch checkpoint it came from.
 
 Run from projects/picolm:
-    python tools/verify.py --plm runs/s-int4/model.plm --data data/tinystories
+    python tools/verify.py --plm runs/s-int8/model.plm --data data/tinystories
 
 1. Integrity: CRC/layout, and a bit-exact round trip (re-exporting the
    checkpoint in memory gives exactly what the file contains).

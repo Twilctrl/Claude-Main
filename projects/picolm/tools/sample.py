@@ -1,8 +1,8 @@
 """Generate text from a .plm with the integer-only reference (the device's exact algorithm).
 
 Run from projects/picolm:
-    python tools/sample.py --plm runs/s-int4/model.plm --prompt "Once upon a time" --temp 0.8 --top-k 20
-    python tools/sample.py --plm runs/s-int4/model.plm --temp 0          # greedy
+    python tools/sample.py --plm models/picolm-s-int8.plm --prompt "Once upon a time" --temp 0.8 --top-k 20
+    python tools/sample.py --plm models/picolm-s-int8.plm --temp 0          # greedy
 
 Same prompt, settings and seed give the same text as the device engine.
 """

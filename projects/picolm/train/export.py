@@ -1,7 +1,7 @@
 """Export a QAT checkpoint to a .plm file: integer weights, LUTs and requant constants.
 
 Run from projects/picolm:
-    python -m train.export --ckpt runs/s-int4/final.pt --data data/tinystories --out runs/s-int4/model.plm
+    python -m train.export --ckpt runs/s-int8/final.pt --data data/tinystories --out runs/s-int8/model.plm
 
 Also writes <out>.json with the float-side scales so tools/verify.py can
 re-export in memory and check the file bit for bit. The file is read back and

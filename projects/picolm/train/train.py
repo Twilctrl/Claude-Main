@@ -1,10 +1,10 @@
 """Train PicoLM: a float phase, then quantisation-aware training (QAT).
 
 Run from projects/picolm:
-    python -m train.train --data data/tinystories --preset s --quant int4 --out runs/s-int4
+    python -m train.train --data data/tinystories --preset s --quant int8 --out runs/s-int8
     # QAT a different bit-width from the same float model, without retraining it:
-    python -m train.train --data data/tinystories --init runs/s-int4/float.pt --steps 0 \
-        --quant int8 --out runs/s-int8
+    python -m train.train --data data/tinystories --init runs/s-int8/float.pt --steps 0 \
+        --quant int4 --out runs/s-int4
 
 Writes float.pt (end of the float phase) and final.pt (after QAT) into --out.
 Uses a GPU when torch sees one (ROCm builds report as "cuda"), else the CPU.
@@ -92,9 +92,9 @@ def load_model(path, map_location="cpu"):
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--data", default="data/tinystories")
-    ap.add_argument("--out", default="runs/s-int4")
+    ap.add_argument("--out", default="runs/s-int8")
     ap.add_argument("--preset", default="s", choices=sorted(PRESETS))
-    ap.add_argument("--quant", default="int4", choices=["int8", "int4", "ternary"])
+    ap.add_argument("--quant", default="int8", choices=["int8", "int4", "ternary"])
     ap.add_argument("--init", default=None, help="start from this checkpoint (e.g. a float.pt)")
     ap.add_argument("--steps", type=int, default=6000, help="float training steps")
     ap.add_argument("--qat-steps", type=int, default=2000)

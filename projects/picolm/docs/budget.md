@@ -66,6 +66,14 @@ is resident.
 Keeping all int4 weights resident in SRAM instead would need ≈ 177 KB, which
 does not fit next to Picoware.
 
+**Measured in milestone 2** (MicroPython in QEMU on an ARM core with
+RP2040-style code generation, the shipped `.mpy` files, ~100 KB heap):
+importing the engine takes 12.6 KB, its buffers and tables 23.9 KB
+(including the 8 KB staging buffer), and the whole app with its screen
+state about 48 KB. Generation allocates 0 bytes per token, so it never
+triggers garbage collection. Free heap under Picoware itself is still
+unmeasured.
+
 ## Speed (all ≈ until measured)
 
 Assumptions: 200 MHz; ≈ 30 cycles per multiply-add in `viper`, ≈ 6.5 in a
