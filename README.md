@@ -22,4 +22,5 @@ Personal Claude Code plugins, published as a plugin marketplace.
 | [feather-llm-keyboard](projects/feather-llm-keyboard) | Adafruit Feather RP2350 firmware that types a Raspberry Pi's local LLM output into a laptop as a USB keyboard. |
 | [cerberos](projects/cerberos) | CerberOS: a Raspberry Pi 5 + Hailo-10H distro for running AI models locally. Three model servers (NPU, CPU, remote) behind one Ollama/OpenAI-compatible gate, with a Kali-style categorized start menu. |
 | [scream-and-run](projects/scream-and-run) | tModLoader mod: an unkillable yandere-style horror stalker. Hide, stay quiet, and survive 5 minutes. |
+| [picolm](projects/picolm) | A tiny character-level language model, trained on a PC, that runs integer-only on a ClockworkPi PicoCalc (RP2040, Picoware MicroPython). |
 | [infernis](projects/infernis) | Logo and a launch edit for Infernis, a local AI hosting business: The Gate, a villain-coded fintech piece that puts the projects above on screen and lights the candle logo. |

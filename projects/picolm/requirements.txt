@@ -1,0 +1,4 @@
+# PC-side training and tools. Install torch separately if you want a GPU build
+# (see README.md "GPU notes"); the CPU wheel is enough for this model size.
+numpy>=1.24
+torch>=2.1
