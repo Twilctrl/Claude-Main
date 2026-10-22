@@ -33,6 +33,23 @@ genuinely runs on the device.
   into the PicoCalc's 8 MB PSRAM, and streams through an 8 KB buffer each
   token, so main RAM use stays around 50 KB.
 
+## Results so far (PC side)
+
+S model, 240K weights, trained here on 4 CPU cores in about 47 minutes
+(35 float + 12 QAT) on the TinyStories validation split. Held-out bits per
+character, measured by `tools/verify.py` with the integer-only engine reading
+the exported file:
+
+| Body weights | `.plm` size | float | integer engine |
+|---|---|---|---|
+| int8 | 259 KB | 1.334 | 1.321 |
+| int4 | 144 KB | 1.334 | 1.403 |
+| ternary | 144 KB | 1.334 | 1.637 |
+
+The integer engine matches the QAT model's bits/char to within 0.002 and
+stays inside the int32 limits the device code assumes. Details, speeds and
+caveats are in [docs/budget.md](docs/budget.md).
+
 ## Layout
 
 ```
@@ -101,9 +118,9 @@ python -m train.train --data data/mine --init runs/s-int4/float.pt --steps 2000 
 ## GPU notes (AMD RX 9070 XT, Windows)
 
 The model is small enough that CPU training is fine. Measured here on 4 CPU
-cores: about 37,000 tokens/s, so the default run (5,000 float + 1,500 QAT
-steps of 64 × 256 tokens, about 106M tokens) takes under an hour. A desktop
-CPU with more cores will be faster.
+cores: about 38,000 tokens/s, so the default run (5,000 float + 1,500 QAT
+steps of 64 × 256 tokens, about 106M tokens) took 47 minutes. A desktop CPU
+with more cores will be faster.
 
 If you want the GPU: AMD publishes ROCm builds of PyTorch for Windows that
 support RDNA4 (gfx1201), but reports of working setups are mixed, so follow

@@ -49,7 +49,8 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--plm", required=True)
     ap.add_argument("--ckpt", default=None, help="defaults to the checkpoint recorded in <plm>.json")
-    ap.add_argument("--float-ckpt", default=None, help="float model before QAT (default: float.pt beside --ckpt)")
+    ap.add_argument("--float-ckpt", default=None,
+                    help="float model before QAT (default: float.pt beside --ckpt, else the run's --init)")
     ap.add_argument("--data", default="data/tinystories")
     ap.add_argument("--n-seq", type=int, default=8)
     ap.add_argument("--seq-len", type=int, default=256)
@@ -71,9 +72,11 @@ def main():
           f"body {'int8' if h['quant_body'] == plm.Q_INT8 else 'int4'} ({info['quant']}), emb int8")
 
     ckpt = args.ckpt or info["ckpt"]
-    model, tok, _ = load_model(ckpt)
+    model, tok, ck = load_model(ckpt)
     model.eval()
     float_path = args.float_ckpt or os.path.join(os.path.dirname(ckpt), "float.pt")
+    if not os.path.exists(float_path) and ck["args"].get("init"):
+        float_path = ck["args"]["init"]  # QAT-only runs start from another run's float.pt
     float_model = load_model(float_path)[0].eval() if os.path.exists(float_path) else None
     diffs = plm.params_equal(export_params(model, tok, info["scales"]["s_x"]), P)
     print("== round trip: " + ("bit-exact" if not diffs else f"MISMATCH {diffs}"))
