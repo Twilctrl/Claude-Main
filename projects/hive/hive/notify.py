@@ -3,7 +3,7 @@
 Configured in hive.yaml::
 
     notify:
-      on: [finished, approval, attention]
+      events: [finished, approval, attention]
       command: notify-send Hive "{message}"      # or: espeak "{message}", or a Piper script
       url: http://192.168.1.10:8123/api/webhook/hive   # JSON POST (Home Assistant, ntfy, ...)
 
@@ -76,7 +76,7 @@ class Notifier:
 
     def __call__(self, ev: Event) -> None:
         kind = TRIGGERS.get(ev.kind)
-        if kind is None or kind not in self.config.on:
+        if kind is None or kind not in self.config.events:
             return
         run = self.app.runs.get(ev.run_id)
         fields = describe(ev, run.goal if run else "")

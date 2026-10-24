@@ -552,7 +552,7 @@ it in `hive.yaml`:
 
 ```yaml
 notify:
-  on: [finished, approval, attention]
+  events: [finished, approval, attention]
   command: notify-send Hive "{message}"            # or: espeak "{message}"; CerberOS: /usr/local/lib/cerberos/apps/piper/say.sh "{message}"
   url: http://192.168.1.10:8123/api/webhook/hive   # JSON: message, run, status, kind, goal
 ```

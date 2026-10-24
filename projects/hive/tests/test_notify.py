@@ -34,7 +34,7 @@ async def test_command_and_webhook_fire_on_finish(make_app, tmp_path):
     import yaml
 
     command = f'"{py}" -c "{script}" "{out.as_posix()}" "{{status}}: {{message}}"'
-    hive_yaml = yaml.safe_dump({"notify": {"on": ["finished"], "command": command, "url": f"http://127.0.0.1:{srv.server_address[1]}/hook"}})
+    hive_yaml = yaml.safe_dump({"notify": {"events": ["finished"], "command": command, "url": f"http://127.0.0.1:{srv.server_address[1]}/hook"}})
     app = await make_app(hive_yaml=hive_yaml)
     project = await app.create_project("write a.py")
     run = await app.start_run(project, mode="solo")

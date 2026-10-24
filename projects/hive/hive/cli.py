@@ -118,7 +118,7 @@ server:
   port: 8765
 
 notify:                      # tell you when a run finishes or needs you
-  on: [finished, approval, attention]
+  events: [finished, approval, attention]
   # command: notify-send Hive "{{message}}"        # run without a shell; also {{run}} {{status}} {{kind}} {{goal}}
   # url: http://192.168.1.10:8123/api/webhook/hive # JSON POST (Home Assistant, ntfy, ...)
 """

@@ -150,7 +150,8 @@ class WebFetchConfig(_Strict):
 class NotifyConfig(_Strict):
     """Hooks for when a run finishes or needs you (see hive/notify.py)."""
 
-    on: list[Literal["finished", "approval", "attention"]] = Field(default_factory=lambda: ["finished", "approval", "attention"])
+    # Not "on": YAML 1.1 reads an unquoted `on:` key as the boolean true.
+    events: list[Literal["finished", "approval", "attention"]] = Field(default_factory=lambda: ["finished", "approval", "attention"])
     command: str | None = None  # run without a shell; {message} {run} {status} {kind} {goal}
     url: str | None = None  # JSON POST
     timeout: float = 10.0
