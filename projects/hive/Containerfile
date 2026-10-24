@@ -1,0 +1,29 @@
+# Hive in a container: for immutable distros (Fedora Atomic, Bazzite, ...) or
+# anywhere you'd rather not install Python packages on the host.
+#
+#   podman build -t hive -f Containerfile .
+#   podman run --rm -it --network=host \
+#     -v ~/.config/hive:/config:Z -v ~/.local/share/hive:/data:Z hive init
+#   podman run --rm -it --network=host \
+#     -v ~/.config/hive:/config:Z -v ~/.local/share/hive:/data:Z hive serve
+#
+# --network=host lets Hive reach Ollama on localhost and serves the UI on
+# http://127.0.0.1:8765. To work in a folder of yours, mount it and pass it:
+#   -v ~/code/myproj:/work:Z ... hive run "..." --workspace /work
+#
+# The shell tool's bubblewrap sandbox usually can't run inside a container
+# (no user namespaces), so shell commands run unsandboxed here, inside the
+# container only. They still ask for approval.
+FROM docker.io/library/python:3.12-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 \
+    HIVE_CONFIG_DIR=/config HIVE_DATA_DIR=/data
+WORKDIR /app
+COPY pyproject.toml README.md ./
+COPY hive ./hive
+RUN pip install --no-cache-dir . && useradd --create-home --uid 1000 hive && mkdir -p /config /data && chown hive /config /data
+USER hive
+VOLUME ["/config", "/data"]
+EXPOSE 8765
+ENTRYPOINT ["hive"]
+CMD ["serve"]

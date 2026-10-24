@@ -34,7 +34,7 @@ class Store:
         self._ex = ThreadPoolExecutor(max_workers=1, thread_name_prefix="hive-db")
         self._conn: sqlite3.Connection | None = None
 
-    async def open(self) -> "Store":
+    async def open(self) -> Store:
         def _open() -> None:
             if self.path != ":memory:":
                 Path(self.path).parent.mkdir(parents=True, exist_ok=True)

@@ -44,7 +44,7 @@ def similar(a: str, b: str) -> float:
 
 
 class LoopGuard:
-    def __init__(self, run: "Run", limits: Limits):
+    def __init__(self, run: Run, limits: Limits):
         self.run = run
         self.limits = limits
         self.started = time.monotonic()
@@ -67,14 +67,14 @@ class LoopGuard:
             return f"time budget used up ({lim.max_wall_seconds}s)"
         return None
 
-    def before_turn(self, agent: "Agent") -> str | None:
+    def before_turn(self, agent: Agent) -> str | None:
         if agent.turns >= self.limits.max_turns_per_agent:
             return f"{agent.name} reached its turn limit ({self.limits.max_turns_per_agent})"
         return None
 
     # Soft rules -------------------------------------------------------------------------
 
-    def after_reply(self, agent: "Agent", text: str) -> None:
+    def after_reply(self, agent: Agent, text: str) -> None:
         self.turns_since_progress += 1
         n = max(2, self.limits.repeat_threshold)
         dq = self.replies.setdefault(agent.name, deque(maxlen=n))
@@ -86,7 +86,7 @@ class LoopGuard:
             self.turns_since_progress = 0
             self._strike(agent, "stall", f"{self.limits.stall_turns} turns without progress")
 
-    def on_tool_call(self, agent: "Agent", name: str, args: dict[str, Any]) -> None:
+    def on_tool_call(self, agent: Agent, name: str, args: dict[str, Any]) -> None:
         n = max(2, self.limits.repeat_threshold)
         dq = self.calls.setdefault(agent.name, deque(maxlen=n))
         dq.append(name + json.dumps(args, sort_keys=True, default=str))
@@ -110,12 +110,12 @@ class LoopGuard:
             agent = self.run.agents[sender]
             self._strike(agent, "pingpong", f"{self.limits.pingpong_messages} messages with {recipient} without progress", other=recipient)
 
-    def on_protocol_failure(self, agent: "Agent") -> None:
+    def on_protocol_failure(self, agent: Agent) -> None:
         if agent.protocol_failures >= self.limits.protocol_failures:
             agent.protocol_failures = 0
             self._strike(agent, "protocol", f"{self.limits.protocol_failures} malformed replies in a row")
 
-    def _strike(self, agent: "Agent", rule: str, detail: str, **fmt: str) -> None:
+    def _strike(self, agent: Agent, rule: str, detail: str, **fmt: str) -> None:
         key = (agent.name, rule)
         self.strikes[key] = self.strikes.get(key, 0) + 1
         from ..backends import ChatMessage
@@ -127,7 +127,7 @@ class LoopGuard:
             self.strikes[key] = 0
             self.run.spawn(self._pause(agent, rule, detail))
 
-    async def _pause(self, agent: "Agent", rule: str, detail: str) -> None:
+    async def _pause(self, agent: Agent, rule: str, detail: str) -> None:
         await agent.pause()
         await self.run.emit("guard.trigger", agent.name, rule=rule, action="paused", detail=detail)
         await self.run.attention(f"{agent.name} was paused by the loop guard: {detail}. Resume it, give it a hint, or stop the run.")

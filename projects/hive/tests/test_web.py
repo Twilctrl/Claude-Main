@@ -8,7 +8,7 @@ import pytest
 
 from hive.config import HiveConfig
 from hive.tools import ToolError
-from hive.tools.web import host_allowed, html_to_text, web_fetch
+from hive.tools.web import host_allowed, html_to_text
 
 
 class Handler(BaseHTTPRequestHandler):

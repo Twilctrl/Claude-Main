@@ -55,7 +55,7 @@ class Hive:
         db: Path | str | None = None,
         scheduler: Scheduler | None = None,
         start_health: bool = True,
-    ) -> "Hive":
+    ) -> Hive:
         from ..tools import builtin  # noqa: F401  (registers the built-in tools)
         from ..tools.plugins import load_extra_tools
 
@@ -160,6 +160,36 @@ class Hive:
         run = Run(self, uuid.uuid4().hex[:12], project, goal or project["goal"], mode, team, limits, approval)
         self.runs[run.id] = run
         await run.start()
+        return run
+
+    async def resume_run(
+        self, run_id: str, *, limits: dict[str, Any] | None = None, approval: Policy | None = None, checkpoint: int | None = None
+    ) -> Run:
+        """Continue an ended run from its latest checkpoint (or ``checkpoint``), optionally with bigger budgets."""
+        row = await self.store.get_run(run_id)
+        if not row:
+            raise ConfigError(f"no run {run_id!r}")
+        rid = row["id"]
+        if rid in self.runs and not self.runs[rid].done.is_set():
+            raise ConfigError("that run is already running")
+        if row["status"] == "done":
+            raise ConfigError("that run finished successfully; start a new run in the same project to continue the work")
+        cps = await self.store.checkpoints(rid)
+        if not cps:
+            raise ConfigError("that run has no checkpoint to resume from")
+        if checkpoint is not None and checkpoint not in {c["id"] for c in cps}:
+            raise ConfigError(f"run {rid} has no checkpoint {checkpoint}")
+        cp = await self.store.get_checkpoint(checkpoint if checkpoint is not None else cps[-1]["id"])
+        project = await self.store.get_project(row["project_id"])
+        if not project:
+            raise ConfigError("the run's project is gone")
+        team = [AgentSpec.model_validate(a) for a in row["config"]["team"]]
+        for spec in team:
+            self.settings.backend(spec.backend)  # still configured?
+        lim = Limits.model_validate({**row["config"]["limits"], **(limits or {})})
+        run = Run(self, rid, project, row["goal"], row["mode"], team, lim, approval or row["config"].get("approval", "ask"))
+        self.runs[rid] = run
+        await run.reopen(cp)  # type: ignore[arg-type]
         return run
 
     def subscribe(self, run_id: str | None = None):

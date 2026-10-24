@@ -34,7 +34,9 @@ def load_file(path: Path) -> list[str]:
     key = str(path.resolve())
     if key in _loaded:
         return _loaded[key]
-    before = set(all_tools())
+    from . import _REGISTERED
+
+    start = len(_REGISTERED)
     name = f"hive_plugin_{path.stem}_{abs(hash(key)) % 10_000}"
     spec = importlib.util.spec_from_file_location(name, path)
     if spec is None or spec.loader is None:
@@ -42,7 +44,7 @@ def load_file(path: Path) -> list[str]:
     module = importlib.util.module_from_spec(spec)
     sys.modules[name] = module
     spec.loader.exec_module(module)
-    added = sorted(set(all_tools()) - before)
+    added = sorted(set(_REGISTERED[start:]))
     for n in added:
         all_tools()[n].source = str(path)
     _loaded[key] = added

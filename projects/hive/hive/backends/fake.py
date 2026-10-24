@@ -98,7 +98,7 @@ def _content_for(path: str, goal: str, role: str, revised: bool) -> str:
     return f"{goal}\n{note}"
 
 
-def fake_reply(messages: list[ChatMessage], tools: list[ToolSpec] | None, native: bool) -> "MockReply":
+def fake_reply(messages: list[ChatMessage], tools: list[ToolSpec] | None, native: bool) -> MockReply:
     from .mock import MockReply
 
     def call(name: str, **args: Any) -> MockReply:

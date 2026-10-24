@@ -182,7 +182,7 @@ class Scheduler:
         self._health_task: asyncio.Task[None] | None = None
 
     @classmethod
-    def from_settings(cls, settings: Settings, client: httpx.AsyncClient | None = None) -> "Scheduler":
+    def from_settings(cls, settings: Settings, client: httpx.AsyncClient | None = None) -> Scheduler:
         return cls(
             [create_backend(b, client) for b in settings.backends],
             settings.devices,

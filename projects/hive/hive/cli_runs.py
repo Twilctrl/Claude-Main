@@ -108,6 +108,9 @@ class Printer:
             self.line(a, dim(f"{p['backend']}/{p['model']}: {p['prompt_tokens']}+{p['completion_tokens']} tokens, {p['seconds']}s{tps}"))
         elif k.startswith("backend."):
             self.line(None, yellow(f"backend {p['backend']} is {k.split('.')[1]}{': ' + p['reason'] if p.get('reason') else ''}"))
+        elif k in ("run.resumed", "checkpoint.restored"):
+            verb = "resumed from" if k == "run.resumed" else "rolled back to"
+            self.line(None, yellow(f"⏪ {verb} checkpoint {p['id']} ({p['label']})"))
         elif k == "run.attention":
             self.line(None, yellow(f"⚠ {p['message']}"))
         elif k == "checkpoint.created" and self.verbose:
@@ -196,48 +199,115 @@ async def _run(args: argparse.Namespace) -> int:
                 raise ConfigError(f"{args.team_file}: expected a list of agents (or a 'team:' list)")
             mode = data.get("mode", mode) if isinstance(data, dict) and not args.mode_given else mode
         team = app.build_team(members, backend=args.backend, model=args.model)
-        limits: dict[str, Any] = {}
-        if args.max_turns:
-            limits["max_turns_per_run"] = args.max_turns
-        if args.max_tokens:
-            limits["max_tokens_per_run"] = args.max_tokens
-        if args.max_minutes:
-            limits["max_wall_seconds"] = int(args.max_minutes * 60)
+        limits = _limit_overrides(args)
         interactive = sys.stdin.isatty()
         approval = args.approve or ("ask" if interactive else "none")
-        printer = Printer(verbose=args.verbose_events, stream=args.stream)
         sub = app.subscribe()
         run = await app.start_run(project, goal=args.goal, mode=mode, team=team, limits=limits, approval=approval)
-        console = Console(run, interactive)
         out(dim(f"run {run.id} · project {project['slug']} · Ctrl-C stops the run"))
-
-        async def pump() -> None:
-            async for ev in sub:
-                if ev.run_id != run.id:
-                    continue
-                if not args.quiet or ev.kind in ("run.finished", "run.attention", "approval.requested"):
-                    printer(ev)
-                if ev.kind == "approval.requested":
-                    run.spawn(console.approval(ev))
-                elif ev.kind == "run.attention":
-                    run.spawn(console.attention(ev))
-                elif ev.kind == "run.finished":
-                    return
-
-        pump_task = asyncio.create_task(pump())
-        try:
-            await run.wait()
-            await asyncio.wait_for(pump_task, 5)
-        finally:
-            pump_task.cancel()
-            sub.close()
-        return 0 if run.status == "done" else 1
+        return await _watch(run, sub, args, interactive)
     except asyncio.CancelledError:
         if run and not run.done.is_set():
             await run.stop("interrupted with Ctrl-C")
         raise
     finally:
         await app.close()
+
+
+async def _watch(run: Run, sub: Any, args: argparse.Namespace, interactive: bool) -> int:
+    """Print a run's events and answer its prompts until it finishes."""
+    printer = Printer(verbose=args.verbose_events, stream=args.stream)
+    console = Console(run, interactive)
+
+    async def pump() -> None:
+        async for ev in sub:
+            if ev.run_id != run.id:
+                continue
+            if not args.quiet or ev.kind in ("run.finished", "run.attention", "approval.requested"):
+                printer(ev)
+            if ev.kind == "approval.requested":
+                run.spawn(console.approval(ev))
+            elif ev.kind == "run.attention":
+                run.spawn(console.attention(ev))
+            elif ev.kind == "run.finished":
+                return
+
+    pump_task = asyncio.create_task(pump())
+    try:
+        await run.wait()
+        await asyncio.wait_for(pump_task, 5)
+    finally:
+        pump_task.cancel()
+        sub.close()
+    return 0 if run.status == "done" else 1
+
+
+def _limit_overrides(args: argparse.Namespace) -> dict[str, Any]:
+    limits: dict[str, Any] = {}
+    if getattr(args, "max_turns", None):
+        limits["max_turns_per_run"] = args.max_turns
+    if getattr(args, "max_tokens", None):
+        limits["max_tokens_per_run"] = args.max_tokens
+    if getattr(args, "max_minutes", None):
+        limits["max_wall_seconds"] = int(args.max_minutes * 60)
+    return limits
+
+
+async def _resume(args: argparse.Namespace) -> int:
+    app = await Hive.open(_settings(args))
+    run: Run | None = None
+    try:
+        interactive = sys.stdin.isatty()
+        sub = app.subscribe()
+        run = await app.resume_run(args.run, limits=_limit_overrides(args), approval=args.approve, checkpoint=args.checkpoint)
+        out(dim(f"resuming run {run.id} from its last checkpoint · Ctrl-C stops it"))
+        return await _watch(run, sub, args, interactive)
+    except asyncio.CancelledError:
+        if run and not run.done.is_set():
+            await run.stop("interrupted with Ctrl-C")
+        raise
+    finally:
+        await app.close()
+
+
+async def _replay(args: argparse.Namespace) -> int:
+    app = await Hive.open(_settings(args), start_health=False)
+    try:
+        row = await app.store.get_run(args.run)
+        if not row:
+            err(red(f"no run {args.run!r}"))
+            return 1
+        printer = Printer(verbose=args.verbose_events)
+        events = await app.events(row["id"])
+        prev = None
+        for ev in events:
+            if args.speed > 0 and prev is not None:
+                await asyncio.sleep(min(2.0, max(0.0, ev.ts - prev) / args.speed))
+            prev = ev.ts
+            printer(ev)
+    finally:
+        await app.close()
+    return 0
+
+
+async def _export(args: argparse.Namespace) -> int:
+    from .export import transcript
+
+    app = await Hive.open(_settings(args), start_health=False)
+    try:
+        row = await app.store.get_run(args.run)
+        if not row:
+            err(red(f"no run {args.run!r}"))
+            return 1
+        md = await transcript(app.store, row["id"], include_diffs=not args.no_diffs)
+        if args.output and args.output != "-":
+            Path(args.output).write_text(md, encoding="utf-8")
+            out(green("✓") + f" wrote {args.output} ({len(md)} characters)")
+        else:
+            out(md, end="")
+    finally:
+        await app.close()
+    return 0
 
 
 async def _runs(args: argparse.Namespace) -> int:
@@ -374,6 +444,30 @@ def register(sub: Any) -> None:
     s.add_argument("--token", help="access token (generated when listening beyond localhost)")
     s.add_argument("--open", action="store_true", help="open it in your browser")
     s.set_defaults(func=_serve)
+
+    s = sub.add_parser("resume", help="continue an ended or interrupted run from its last checkpoint")
+    s.add_argument("run", help="run id (a prefix is enough)")
+    s.add_argument("--approve", choices=["ask", "all", "none"], help="risky actions (default: as the run had it)")
+    s.add_argument("--checkpoint", type=int, help="checkpoint id to resume from (default: the latest)")
+    s.add_argument("--max-turns", type=int, help="new turn budget")
+    s.add_argument("--max-tokens", type=int, help="new token budget")
+    s.add_argument("--max-minutes", type=float, help="new time budget")
+    s.add_argument("--stream", action="store_true", help="print model output as it streams")
+    s.add_argument("--quiet", "-q", action="store_true", help="only print the result")
+    s.add_argument("--details", dest="verbose_events", action="store_true", help="print full tool output")
+    s.set_defaults(func=_resume)
+
+    s = sub.add_parser("replay", help="replay a run's log in the terminal")
+    s.add_argument("run", help="run id (a prefix is enough)")
+    s.add_argument("--speed", type=float, default=10.0, help="times real speed (0 = instant; default %(default)s)")
+    s.add_argument("--details", dest="verbose_events", action="store_true", help="print full tool output")
+    s.set_defaults(func=_replay)
+
+    s = sub.add_parser("export", help="export a run as a Markdown transcript")
+    s.add_argument("run", help="run id (a prefix is enough)")
+    s.add_argument("-o", "--output", help="file to write (default: print it)")
+    s.add_argument("--no-diffs", action="store_true", help="leave out the file diffs")
+    s.set_defaults(func=_export)
 
     s = sub.add_parser("runs", help="list recent runs")
     s.add_argument("--limit", type=int, default=20)

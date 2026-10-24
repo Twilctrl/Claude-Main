@@ -108,7 +108,7 @@ class BackendsFile(_Strict):
     devices: dict[str, DeviceConfig] = Field(default_factory=dict)
 
     @model_validator(mode="after")
-    def _unique(self) -> "BackendsFile":
+    def _unique(self) -> BackendsFile:
         seen: set[str] = set()
         for b in self.backends:
             if b.name in seen:

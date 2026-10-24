@@ -1,6 +1,7 @@
 # Hive: design
 
-Status: **draft for review, before any code.** Hive lives in `projects/hive/`.
+Status: **implemented** (M1–M5). Written before the code; §19 lists where
+the build differed. Hive lives in `projects/hive/`.
 CerberOS (`projects/cerberos`) is the reference small-board setup: a Pi 5 whose
 hailo-ollama NPU head, Ollama CPU head and gate all work as Hive backends.
 
@@ -558,3 +559,35 @@ The full suite runs at the end of every milestone.
   The schema is small and the queries are simple.
 
 Everything else (Python 3.11+, FastAPI, asyncio, SQLite) is as requested.
+
+## 19. What changed while building
+
+The design held. These are the places where the build added or adjusted
+something, mostly for small models or found by tests:
+
+- **Reply depth.** Agent-to-agent replies stop waking the recipient at depth
+  2: a question, its answer, then a thank-you that's only shown, not acted
+  on. Without this, two small models thank each other forever.
+- **`waits_for_user` modes.** A mode can declare that an idle team is waiting
+  for the user rather than stuck. "Idle" is reported once per quiet spell.
+- **Separate `debate_rounds` limit** (default 1), so debates on slow devices
+  don't take 11 turns by default.
+- **Restores go through the mode's event queue,** like `start`, so idle
+  checks wait until the mode has re-issued its work. Each mode has an
+  `on_restore` hook, and the tests resume a finished run from every one of
+  its checkpoints, in every mode.
+- **Checkpoints** are taken after every finished task too, not only per
+  stage, so a crash loses at most one task's work.
+- **Event payload keys can't collide with `emit()`'s own parameters.**
+  `emit(kind, agent, /, **payload)` makes those two positional-only (a field
+  called `kind` broke it twice).
+- **The run's SSE stream ends cleanly for finished runs.** The client closes
+  instead of reconnecting forever.
+- **The shell runs commands through `create_subprocess_shell` on Windows,**
+  because argv-style quoting mangles `cmd.exe` command lines. Inside
+  bubblewrap, `/tmp` is a private tmpfs.
+- **Tokens per second needs at least 4 tokens and 50 ms of generation,** so
+  pure tool-call replies don't show absurd speeds.
+- **Not built:** replaying with re-execution (replay re-renders the log, as
+  agreed) and the stretch goals.
+

@@ -60,7 +60,7 @@ class AgentSpec(BaseModel):
         return [{"backend": x} if isinstance(x, str) else x for x in (v or [])]
 
     @classmethod
-    def from_role(cls, role: Role, *, name: str | None = None, backend: str, model: str | None = None, **overrides: Any) -> "AgentSpec":
+    def from_role(cls, role: Role, *, name: str | None = None, backend: str, model: str | None = None, **overrides: Any) -> AgentSpec:
         data: dict[str, Any] = {
             "name": name or role.name,
             "role": role.name,
@@ -102,7 +102,7 @@ class AgentStopped(Exception):
 
 
 class Agent:
-    def __init__(self, spec: AgentSpec, run: "Run"):
+    def __init__(self, spec: AgentSpec, run: Run):
         self.spec = spec
         self.run = run
         self.name = spec.name

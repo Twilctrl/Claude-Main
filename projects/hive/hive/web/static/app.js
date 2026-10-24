@@ -381,7 +381,12 @@ function RunView({ id }) {
       ${s.run.finished ? html`<div class=${"banner" + (s.run.finished.status === "done" ? " done" : "")}>
         <div class="grow"><b>${s.run.finished.status === "done" ? "Done" : `Ended: ${s.run.finished.status.replace(/_/g, " ")}`}</b>
           ${s.run.finished.reason ? html`<div class="small">${s.run.finished.reason}</div>` : ""}
-          ${s.run.finished.summary ? html`<pre class="small" style="margin-top:6px">${s.run.finished.summary}</pre>` : ""}</div></div>` : ""}
+          ${s.run.finished.summary ? html`<pre class="small" style="margin-top:6px">${s.run.finished.summary}</pre>` : ""}</div>
+        ${!replay && !active && s.run.finished.status !== "done" ? html`<button onClick=${act(async () => {
+          const more = s.run.finished.status === "budget_exhausted" ? { limits: { max_tokens_per_run: (limits.max_tokens_per_run || 0) * 2,
+            max_turns_per_run: (limits.max_turns_per_run || 0) * 2, max_wall_seconds: (limits.max_wall_seconds || 0) * 2 } } : {};
+          await post("/resume-run", more); location.reload(); })}
+          title="Continue from the last checkpoint">${s.run.finished.status === "budget_exhausted" ? "Resume with double budget" : "Resume"}</button>` : ""}</div>` : ""}
     </div>
 
     <div class="run-grid">

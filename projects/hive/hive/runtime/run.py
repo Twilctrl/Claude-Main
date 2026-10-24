@@ -37,7 +37,7 @@ FINAL_STATUSES = ("done", "failed", "stopped", "needs_attention", "budget_exhaus
 class Run:
     def __init__(
         self,
-        app: "Hive",
+        app: Hive,
         run_id: str,
         project: dict[str, Any],
         goal: str,
@@ -82,7 +82,7 @@ class Run:
             if spec.name in self.agents or spec.name in ("user", "#channel", "system"):
                 raise ValueError(f"agent name {spec.name!r} is taken or reserved")
             self.agents[spec.name] = Agent(spec, self)
-        self.mode: "Mode" = create_mode(mode, self)
+        self.mode: Mode = create_mode(mode, self)
 
     # Events -------------------------------------------------------------------------------
 
@@ -342,6 +342,8 @@ class Run:
             try:
                 if kind == "start":
                     await m.start()
+                elif kind == "restore":
+                    await m.on_restore()
                 elif kind == "final":
                     await m.on_final(data["agent"], data["items"], data["text"])
                 elif kind == "task":
@@ -404,6 +406,26 @@ class Run:
         await self.approvals.reject_all("rolled back")
         while not self._mode_q.empty():
             self._mode_q.get_nowait()
+        await self._restore(cp, "checkpoint.restored")
+        await self.resume()
+
+    async def reopen(self, cp: dict[str, Any]) -> None:
+        """Continue a run that ended (crash, shutdown, stop, budget) from checkpoint ``cp``,
+        in this fresh Run object. Work after the checkpoint is rolled back."""
+        store = self.app.store
+        self.seq = await store.max_seq(self.id)
+        state = cp["state"]
+        self.tokens_used = state.get("tokens_used", 0)
+        self.turns_used = state.get("turns_used", 0)
+        await self.files.load()
+        await store.update_run(self.id, ended_at=None)
+        await self.set_status("running", "resumed")
+        for a in self.agents.values():
+            a.start()
+        self._mode_task = asyncio.create_task(self._mode_loop(), name=f"mode-{self.id}")
+        await self._restore(cp, "run.resumed")
+
+    async def _restore(self, cp: dict[str, Any], event: str) -> None:
         state = cp["state"]
         await self.files.restore(state["files"])
         self.tasks.load(state["tasks"])
@@ -415,8 +437,7 @@ class Run:
                 self.agents[name].load_state(s)
         self.mode.load_state(state.get("mode", {}))
         await self.app.store.mark_rolled_back(self.id, cp["seq"], self.seq)
-        await self.emit("checkpoint.restored", id=checkpoint_id, label=cp["label"], seq=cp["seq"],
-                        tasks=state["tasks"], board=state["board"])
+        await self.emit(event, id=cp["id"], label=cp["label"], seq=cp["seq"], tasks=state["tasks"], board=state["board"])
         self.guard.on_progress()
         # Work that was in flight at the checkpoint is handed out again.
         for t in self.tasks.tasks.values():
@@ -425,8 +446,8 @@ class Run:
                 await self.app.store.upsert_task(self.id, t.id, t.to_dict())
                 if t.owner and t.owner in self.agents and not any(i.task_id == t.id for i in self.agents[t.owner]._pending):
                     await self._deliver_task(t, "rollback")
-        await self.mode.on_restore()
-        await self.resume()
+        # Through the mode's queue, like "start", so idle checks wait until the mode has re-issued its work.
+        self._mode_q.put_nowait(("restore", {}))
 
     async def checkpoint(self, label: str) -> int:
         state = {

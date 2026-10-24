@@ -303,6 +303,11 @@ def create_app(hive: Hive, *, token: str | None = None, host: str = "127.0.0.1")
 
     # Controls -----------------------------------------------------------------------------------------
 
+    @app.post("/api/runs/{run_id}/resume-run")
+    async def resume_run(run_id: str, body: dict[str, Any] | None = None) -> dict[str, str]:
+        run = await hive.resume_run(run_id, limits=(body or {}).get("limits") or None)
+        return {"id": run.id}
+
     @app.post("/api/runs/{run_id}/pause")
     async def pause(run_id: str, body: AgentTarget) -> dict[str, str]:
         await get_run(run_id).pause(body.agent)
@@ -408,6 +413,6 @@ async def serve(hive: Hive, host: str, port: int, token: str | None) -> None:
         server.should_exit = True
         try:
             await asyncio.wait_for(task, 5)
-        except (asyncio.TimeoutError, asyncio.CancelledError):
+        except (TimeoutError, asyncio.CancelledError):
             task.cancel()
         raise

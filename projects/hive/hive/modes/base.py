@@ -25,7 +25,7 @@ class Mode:
     #: True: an idle team is waiting for the user, not stuck, so the run stays open.
     waits_for_user = False
 
-    def __init__(self, run: "Run"):
+    def __init__(self, run: Run):
         self.run = run
 
     # Hooks a mode overrides -----------------------------------------------------------------

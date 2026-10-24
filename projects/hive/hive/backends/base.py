@@ -60,7 +60,7 @@ class ChatMessage:
         return d
 
     @classmethod
-    def from_dict(cls, d: dict[str, Any]) -> "ChatMessage":
+    def from_dict(cls, d: dict[str, Any]) -> ChatMessage:
         return cls(
             role=d["role"],
             content=d.get("content", ""),
@@ -81,7 +81,7 @@ class GenParams:
     seed: int | None = None
 
     @classmethod
-    def from_dict(cls, d: dict[str, Any] | None) -> "GenParams":
+    def from_dict(cls, d: dict[str, Any] | None) -> GenParams:
         d = d or {}
         return cls(**{k: d[k] for k in ("temperature", "max_tokens", "top_p", "stop", "seed") if k in d})
 
@@ -337,7 +337,7 @@ class transport_errors:
     def __init__(self, label: str):
         self.label = label
 
-    def __enter__(self) -> "transport_errors":
+    def __enter__(self) -> transport_errors:
         return self
 
     def __exit__(self, et: type[BaseException] | None, e: BaseException | None, tb: Any) -> bool:

@@ -168,12 +168,14 @@ export function apply(s, e) {
     case "checkpoint.created":
       s.checkpoints.push({ id: p.id, label: p.label, seq: e.seq, ts: e.ts });
       break;
+    case "run.resumed":
     case "checkpoint.restored":
+      if (e.kind === "run.resumed") { s.run.finished = null; s.run.ended = null; s.run.status = "running"; }
       s.tasks = Object.fromEntries((p.tasks || []).map((t) => [t.id, t]));
       s.board = (p.board || []).slice();
       s.rolledBack.push([p.seq, e.seq]);
       for (const it of s.feed) if (it.seq > p.seq && it.seq < e.seq) it.rolledBack = true;
-      feed(s, e, { type: "sys", icon: "⏪", cls: "warn", text: `Rolled back to checkpoint ${p.id} (${p.label})` });
+      feed(s, e, { type: "sys", icon: "⏪", cls: "warn", text: e.kind === "run.resumed" ? `Resumed from checkpoint ${p.id} (${p.label})` : `Rolled back to checkpoint ${p.id} (${p.label})` });
       break;
     case "mode.stage":
       feed(s, e, { type: "sys", icon: "▶", text: `Stage: ${a} (${p.kind}${p.round > 1 ? ", round " + p.round : ""})` });

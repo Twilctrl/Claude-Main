@@ -133,6 +133,9 @@ class Debate(Mode):
         if not self.phase:
             await self.start()
             return
+        if not self.waiting:  # checkpointed between phases
+            await self._next()
+            return
         for name in sorted(self.waiting):
             await self.run.instruct(name, self.prompts.get(name, f"Continue the {self.phase} step."), sender="debate")
 

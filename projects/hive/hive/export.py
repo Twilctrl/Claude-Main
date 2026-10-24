@@ -116,6 +116,8 @@ def _event_lines(e: dict[str, Any]) -> list[str]:
         return [f"- {t} ▶ debate phase: {p['phase']}"]
     if k == "checkpoint.restored":
         return [f"- {t} ⏪ rolled back to checkpoint {p['id']} ({p['label']})"]
+    if k == "run.resumed":
+        return [f"- {t} ⏪ resumed from checkpoint {p['id']} ({p['label']})"]
     if k == "run.attention":
         return [f"- {t} ⚠ {p['message']}"]
     if k in ("backend.down", "backend.up"):

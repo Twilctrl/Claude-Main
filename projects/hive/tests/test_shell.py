@@ -3,6 +3,7 @@
 import os
 import shutil
 import sys
+import tempfile
 import time
 
 import pytest
@@ -10,6 +11,14 @@ import pytest
 from hive.tools.shell import _bwrap_works, run_command
 
 PY = f'"{sys.executable}"'
+# Inside bubblewrap /tmp is a fresh, empty tmpfs, so an interpreter living under /tmp
+# (a throwaway venv) isn't visible there; use the system one for sandboxed commands.
+_tmp = os.path.realpath(tempfile.gettempdir())
+PY_BOX = PY if not os.path.realpath(sys.executable).startswith(_tmp) and not sys.executable.startswith(_tmp) else "python3"
+
+
+def py(sandbox: str) -> str:
+    return PY_BOX if sandbox == "bwrap" else PY
 HAVE_BWRAP = sys.platform != "win32" and bool(shutil.which("bwrap")) and _bwrap_works(shutil.which("bwrap"))
 MODES = ["none"] + (["bwrap"] if HAVE_BWRAP else [])
 
@@ -28,15 +37,15 @@ async def sh(cmd, dirs, sandbox="none", **kw):
 
 @pytest.mark.parametrize("sandbox", MODES)
 async def test_output_and_exit_code(dirs, sandbox):
-    r = await sh(f"{PY} -c \"print('hello')\"", dirs, sandbox)
+    r = await sh(f"{py(sandbox)} -c \"print('hello')\"", dirs, sandbox)
     assert r.exit_code == 0 and r.output.strip() == "hello" and r.sandbox == sandbox
-    r = await sh(f"{PY} -c \"import sys; sys.exit(3)\"", dirs, sandbox)
+    r = await sh(f"{py(sandbox)} -c \"import sys; sys.exit(3)\"", dirs, sandbox)
     assert r.exit_code == 3
 
 
 @pytest.mark.parametrize("sandbox", MODES)
 async def test_runs_in_workspace(dirs, sandbox):
-    r = await sh(f"{PY} -c \"import os; print(os.getcwd())\"", dirs, sandbox)
+    r = await sh(f"{py(sandbox)} -c \"import os; print(os.getcwd())\"", dirs, sandbox)
     assert os.path.realpath(r.output.strip()) == os.path.realpath(dirs[0])
 
 
@@ -73,8 +82,8 @@ async def test_bwrap_blocks_writes_outside_and_network(dirs, tmp_path):
     ws, _ = dirs
     r = await sh(f"touch {tmp_path}/escaped.txt; touch inside.txt", dirs, "bwrap")
     assert not (tmp_path / "escaped.txt").exists() and (ws / "inside.txt").exists()
-    r = await sh(f"{PY} -c \"import socket; socket.create_connection(('1.1.1.1', 53), 2); print('connected')\"", dirs, "bwrap")
-    assert "connected" not in r.output and r.exit_code != 0
+    r = await sh(f"{PY_BOX} -c \"import socket; socket.create_connection(('1.1.1.1', 53), 2); print('connected')\"", dirs, "bwrap")
+    assert "connected" not in r.output.splitlines() and r.exit_code != 0  # (3.13 tracebacks quote the source line)
 
 
 def test_risky_unless_allowlisted_and_plain():

@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 MODES: dict[str, type[Mode]] = {"pipeline": Pipeline, "debate": Debate, "manager": Manager, "solo": Solo}
 
 
-def create_mode(name: str, run: "Run") -> Mode:
+def create_mode(name: str, run: Run) -> Mode:
     try:
         return MODES[name](run)
     except KeyError:

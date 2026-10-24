@@ -43,8 +43,8 @@ class ToolError(Exception):
 
 @dataclass
 class ToolContext:
-    run: "Run"
-    agent: "Agent"
+    run: Run
+    agent: Agent
 
 
 @dataclass
@@ -107,10 +107,12 @@ class Tool:
 
 
 _REGISTRY: dict[str, Tool] = {}
+_REGISTERED: list[str] = []  # every registration in order, so plugin loading can tell what a file added
 
 
 def register(t: Tool) -> Tool:
     _REGISTRY[t.name] = t
+    _REGISTERED.append(t.name)
     return t
 
 

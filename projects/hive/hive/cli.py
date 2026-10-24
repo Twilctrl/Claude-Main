@@ -359,6 +359,11 @@ _EXTRA_COMMANDS: list[Any] = []
 
 
 def main(argv: list[str] | None = None) -> int:
+    for stream in (sys.stdout, sys.stderr):  # never crash on a console that can't show ✓ or →
+        try:
+            stream.reconfigure(errors="replace")  # type: ignore[attr-defined]
+        except (AttributeError, ValueError):
+            pass
     parser = build_parser()
     args = parser.parse_args(argv)
     logging.basicConfig(

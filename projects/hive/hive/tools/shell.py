@@ -70,10 +70,7 @@ def _bwrap_works(bwrap: str) -> bool:
 
 
 def build_argv(command: str, cwd: Path, scratch: Path, sandbox: str) -> tuple[list[str], str]:
-    if sys.platform == "win32":
-        if sandbox == "bwrap":
-            raise ToolError("shell.sandbox is 'bwrap', which isn't available on Windows")
-        return [os.environ.get("COMSPEC", "cmd.exe"), "/d", "/s", "/c", command], "none"
+    """POSIX only: the argv for ``command``, inside bwrap when it's wanted and works."""
     shell = shutil.which("bash") or "/bin/sh"
     bwrap = shutil.which("bwrap") if sandbox in ("auto", "bwrap") else None
     if bwrap and _bwrap_works(bwrap):
@@ -105,16 +102,21 @@ def _kill_tree(proc: asyncio.subprocess.Process) -> None:
 async def run_command(command: str, cwd: Path, *, timeout: float, max_output: int, sandbox: str, scratch: Path) -> ShellResult:
     """Run ``command`` with the restrictions above. Never raises on a failing command."""
     scratch.mkdir(parents=True, exist_ok=True)
-    argv, used = build_argv(command, cwd, scratch, sandbox)
-    kwargs: dict = {}
-    if sys.platform == "win32":
-        kwargs["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP  # type: ignore[attr-defined]
-    else:
-        kwargs["start_new_session"] = True
-    proc = await asyncio.create_subprocess_exec(
-        *argv, cwd=str(cwd), env=scrubbed_env(scratch), stdin=asyncio.subprocess.DEVNULL,
-        stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.STDOUT, **kwargs,
+    common: dict = dict(
+        cwd=str(cwd), env=scrubbed_env(scratch), stdin=asyncio.subprocess.DEVNULL,
+        stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.STDOUT,
     )
+    if sys.platform == "win32":
+        if sandbox == "bwrap":
+            raise ToolError("shell.sandbox is 'bwrap', which isn't available on Windows")
+        # cmd.exe needs the raw command line; argv-style quoting would mangle it.
+        used = "none"
+        proc = await asyncio.create_subprocess_shell(
+            command, creationflags=subprocess.CREATE_NEW_PROCESS_GROUP, **common  # type: ignore[attr-defined]
+        )
+    else:
+        argv, used = build_argv(command, cwd, scratch, sandbox)
+        proc = await asyncio.create_subprocess_exec(*argv, start_new_session=True, **common)
     half = max(1000, max_output // 2)
     head = bytearray()
     tail: deque[bytes] = deque()
@@ -139,12 +141,12 @@ async def run_command(command: str, cwd: Path, *, timeout: float, max_output: in
     timed_out = False
     try:
         await asyncio.wait_for(asyncio.gather(pump(), proc.wait()), timeout)
-    except asyncio.TimeoutError:
+    except TimeoutError:
         timed_out = True
         _kill_tree(proc)
         try:
             await asyncio.wait_for(proc.wait(), 5)
-        except asyncio.TimeoutError:
+        except TimeoutError:
             pass
     except asyncio.CancelledError:
         _kill_tree(proc)

@@ -136,3 +136,15 @@ async def test_rollback_over_the_api(client):
         await client.post(f"/api/runs/{run_id}/stop", headers=H, json={})
     finally:
         MODES.pop("waiting", None)
+
+
+async def test_resume_over_the_api(client):
+    r = await client.post("/api/runs", headers=H, json={"goal": "write a.py", "mode": "pipeline",
+                                                          "team": [{"role": "coder"}, {"role": "reviewer"}], "limits": {"max_turns_per_run": 1}})
+    run_id = r.json()["id"]
+    await wait_status(client, run_id, want=("budget_exhausted",))
+    r = await client.post(f"/api/runs/{run_id}/resume-run", headers=H, json={"limits": {"max_turns_per_run": 40}})
+    assert r.status_code == 200, r.text
+    await wait_status(client, run_id)
+    r = await client.post(f"/api/runs/{run_id}/resume-run", headers=H, json={})
+    assert r.status_code == 400 and "finished successfully" in r.json()["error"]

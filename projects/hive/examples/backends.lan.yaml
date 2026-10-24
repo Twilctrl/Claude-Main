@@ -1,0 +1,66 @@
+# Two machines on a LAN: a desktop with a big GPU, and a Raspberry Pi 5 with a
+# Hailo-10H running CerberOS (projects/cerberos in this repo). Hive itself can
+# run on either; point the URLs at the other one.
+#
+# Each entry is one *device queue*: Hive never sends it more than `concurrency`
+# requests at once, so the Pi is never overloaded while the desktop works.
+
+backends:
+  # --- desktop: Ollama on the GPU -------------------------------------------------
+  - name: desktop
+    type: ollama
+    url: http://192.168.1.50:11434
+    default_model: qwen2.5-coder:14b
+    concurrency: 2              # set OLLAMA_NUM_PARALLEL=2 on the desktop to match
+    context: 16384
+    device: desktop-gpu         # the llama.cpp server below shares this GPU
+    speed: 3.0
+    timeouts: {first_token: 90, total: 600}
+
+  # Same desktop, llama.cpp server (OpenAI-compatible) for a second model.
+  - name: desktop-llamacpp
+    type: openai                # also: LM Studio (:1234/v1), vLLM (:8000/v1)
+    url: http://192.168.1.50:8080/v1
+    default_model: gpt-oss-20b
+    concurrency: 1
+    context: 32768
+    device: desktop-gpu
+
+  # --- Pi 5 + Hailo-10H via the CerberOS gate ----------------------------------------
+  # The gate listens on :11434 when CERBEROS_GATE_LAN=1 and routes by model name:
+  # "name@npu" goes to hailo-ollama on the NPU, "name@cpu" to Ollama on the CPU.
+  # Two entries with the same URL give the NPU and the CPU separate queues.
+  - name: pi-npu
+    type: ollama
+    url: http://pi5.local:11434
+    default_model: llama3.2:1b@npu
+    concurrency: 1              # the NPU runs one request at a time
+    context: 2048               # Hailo's compiled models have small windows
+    tools: false                # hailo-ollama has no native tool calling
+    speed: 0.5
+    fallbacks: [pi-cpu, desktop]
+    timeouts: {first_token: 180, idle: 90, total: 900}
+
+  - name: pi-cpu
+    type: ollama
+    url: http://pi5.local:11434
+    default_model: gemma3:1b@cpu
+    concurrency: 1              # CerberOS keeps one CPU model loaded (OLLAMA_MAX_LOADED_MODELS=1)
+    context: 4096
+    tools: false
+    speed: 0.3
+    fallbacks: [desktop]
+    timeouts: {first_token: 240, idle: 120, total: 1200}
+
+  # Without CerberOS, point straight at hailo-ollama (port 8000) instead:
+  # - name: pi-npu
+  #   type: hailo-ollama
+  #   url: http://pi5.local:8000
+  #   default_model: llama3.2:1b
+  #   concurrency: 1
+  #   context: 2048
+  #   tools: false
+  #   probe: false              # hailo-ollama has no /api/show
+
+devices:
+  desktop-gpu: {concurrency: 2} # both desktop backends together never exceed 2

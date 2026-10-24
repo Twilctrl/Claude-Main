@@ -1,0 +1,48 @@
+# Tests for projects/hive on the platforms it targets: Linux x86-64, Linux
+# ARM64 (Raspberry Pi class) and Windows, on the oldest and newest supported
+# Python. Runs only when Hive's files change.
+name: Hive
+
+on:
+  push:
+    paths: ["projects/hive/**", ".github/workflows/hive.yml"]
+  pull_request:
+    paths: ["projects/hive/**", ".github/workflows/hive.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hive-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: ${{ matrix.os }} · Python ${{ matrix.python }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, ubuntu-24.04-arm, windows-latest]
+        python: ["3.11", "3.13"]
+    defaults:
+      run:
+        working-directory: projects/hive
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install
+        run: python -m pip install -e ".[dev]"
+      - name: Tests
+        run: python -m pytest -q
+      - name: CLI smoke test (mock backend, no model)
+        run: |
+          hive --version
+          hive init
+          hive backends --check
+          hive run "write hello.py and README.md" -b mock --approve none --quiet
+          hive runs

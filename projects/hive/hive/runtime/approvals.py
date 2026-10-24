@@ -31,13 +31,13 @@ class Pending:
 
 
 class Approvals:
-    def __init__(self, run: "Run", timeout: float, policy: Policy = "ask"):
+    def __init__(self, run: Run, timeout: float, policy: Policy = "ask"):
         self.run = run
         self.timeout = timeout
         self.policy: Policy = policy
         self.pending: dict[int, Pending] = {}
 
-    async def request(self, agent: "Agent", tool: str, args: dict[str, Any]) -> Decision:
+    async def request(self, agent: Agent, tool: str, args: dict[str, Any]) -> Decision:
         store = self.run.app.store
         if self.policy == "none" or agent.spec.approval == "deny":
             return await self._auto(agent, tool, args, Decision(False, "policy", "risky actions are turned off for this run"))
@@ -50,7 +50,7 @@ class Approvals:
         await self.run.emit("approval.requested", agent.name, id=id, tool=tool, args=args)
         try:
             decision = await asyncio.wait_for(asyncio.shield(fut), self.timeout or None)
-        except asyncio.TimeoutError:
+        except TimeoutError:
             decision = Decision(False, "timeout", f"no answer within {self.timeout:g}s")
             await store.decide_approval(id, "rejected", "timeout", decision.reason)
             await self.run.emit("approval.decided", agent.name, id=id, approved=False, by="timeout", reason=decision.reason)
@@ -59,7 +59,7 @@ class Approvals:
         await agent.set_status("thinking")
         return decision
 
-    async def _auto(self, agent: "Agent", tool: str, args: dict[str, Any], d: Decision) -> Decision:
+    async def _auto(self, agent: Agent, tool: str, args: dict[str, Any], d: Decision) -> Decision:
         await self.run.emit("approval.decided", agent.name, id=None, tool=tool, args=args, approved=d.approved, by=d.by, reason=d.reason)
         return d
 

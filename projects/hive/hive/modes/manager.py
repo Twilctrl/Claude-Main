@@ -95,6 +95,8 @@ class Manager(Mode):
                 f"Board:\n{self.run.tasks.summary()}"
             )
             return
+        if task["status"] == "done" and change == "done":
+            await self.run.checkpoint(f"task #{task['id']} done")
         await self._dispatch()
         if task["status"] == "done" and self.run.tasks.all_done():
             await self._all_done()

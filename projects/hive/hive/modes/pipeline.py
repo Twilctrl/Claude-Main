@@ -172,6 +172,7 @@ class Pipeline(Mode):
             await self._stage_done()
         elif agent is self._first_make() and task["id"] in {t.id for t in self._plan_tasks()}:
             self.stage_task = None
+            await self.run.checkpoint(f"task #{task['id']} done")
             await self._next_make_task(agent)  # the next plan task, or the end of the stage
         else:
             await self._stage_done()  # a stage's single task, or a revision
@@ -222,8 +223,14 @@ class Pipeline(Mode):
     async def on_restore(self) -> None:
         if self.awaiting_verdict:
             await self._ask_check(self.run.agents[self.awaiting_verdict])
-        elif self.stage_task is None:
-            await self._advance()  # checkpoints are taken just before moving to the next stage
+            return
+        if self.stage_task is not None:
+            return  # the run re-delivers the stage's unfinished task
+        agent = self.agents[self.stage] if 0 <= self.stage < len(self.agents) else None
+        if agent is not None and agent is self._first_make() and any(t.status == "todo" for t in self._plan_tasks()):
+            await self._next_make_task(agent)  # checkpointed between two plan tasks
+        else:
+            await self._advance()  # checkpointed between stages
 
     def state(self) -> dict[str, Any]:
         keys = ("stage", "round", "stage_task", "awaiting_verdict", "work_start_seq", "last_output", "outputs", "checks", "plan_done")

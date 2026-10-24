@@ -33,7 +33,7 @@ class Subscription:
     """An async iterator of events. If the consumer falls behind, events are dropped
     and ``dropped`` is set, so the consumer can catch up from the store by seq."""
 
-    def __init__(self, bus: "EventBus", run_id: str | None, maxsize: int):
+    def __init__(self, bus: EventBus, run_id: str | None, maxsize: int):
         self.bus = bus
         self.run_id = run_id
         self.queue: asyncio.Queue[Event | None] = asyncio.Queue(maxsize)
@@ -52,7 +52,7 @@ class Subscription:
         except asyncio.QueueFull:
             pass
 
-    def __aiter__(self) -> "Subscription":
+    def __aiter__(self) -> Subscription:
         return self
 
     async def __anext__(self) -> Event:
@@ -65,7 +65,7 @@ class Subscription:
         """The next event, or None on timeout or close."""
         try:
             return await asyncio.wait_for(self.queue.get(), timeout)
-        except asyncio.TimeoutError:
+        except TimeoutError:
             return None
 
 

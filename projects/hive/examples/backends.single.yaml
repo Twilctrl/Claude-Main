@@ -1,0 +1,12 @@
+# One machine: Ollama on this computer. `hive init` writes something like this.
+backends:
+  - name: local
+    type: ollama
+    url: http://127.0.0.1:11434
+    default_model: llama3.1:8b
+    concurrency: 1        # match OLLAMA_NUM_PARALLEL (Ollama's default is 1 on most setups)
+    context: 8192         # sent to Ollama as num_ctx; Ollama's own default is smaller
+    keep_alive: 30m       # keep the model loaded between turns
+    models:               # per-model overrides, if you use more than one model here
+      llama3.2:3b: {context: 8192}
+      gemma3:4b: {tools: false}   # no native tool calling: Hive uses its JSON text protocol
