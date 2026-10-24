@@ -104,9 +104,6 @@ def fake_reply(messages: list[ChatMessage], tools: list[ToolSpec] | None, native
     def call(name: str, **args: Any) -> MockReply:
         return MockReply(tool_calls=[ToolCall(name, args)])
 
-    def final(text: str) -> MockReply:
-        return MockReply(text=text if native or not tools else text)
-
     system = messages[0].content if messages and messages[0].role == "system" else ""
     available = {t.name for t in tools} if tools else _tool_names(system)
     text_protocol = not tools and bool(available)
@@ -121,13 +118,14 @@ def fake_reply(messages: list[ChatMessage], tools: list[ToolSpec] | None, native
     files = _FILE.findall(trigger) or _FILE.findall(goal)
     lower = trigger.lower()
 
-    # Debate prompts are the same for every role.
-    if "propose" in lower and "critique" not in lower:
-        return done(f"Proposal from the {role}: do the simplest thing that meets the goal ({goal[:80]}), in one file.")
-    if "critique" in lower:
-        return done("Critique: the proposals are similar; the first is simplest. The second handles edge cases better.")
-    if "revise" in lower:
-        return done(f"Revised proposal from the {role}: keep it simple, and handle empty input.")
+    # Debate prompts are the same for every role but the judge.
+    if role != "judge":
+        if lower.startswith("[debate]\nrevise"):
+            return done(f"Revised proposal from the {role}: keep it simple, and handle empty input.")
+        if lower.startswith("[debate]\ncritique"):
+            return done("Critique: the proposals are similar; the first is simplest. The second handles edge cases better.")
+        if lower.startswith("[debate]\npropose"):
+            return done(f"Proposal from the {role}: do the simplest thing that meets the goal ({goal[:80]}), in one file.")
 
     if role == "planner":
         targets = files[:3] or ["README.md"]

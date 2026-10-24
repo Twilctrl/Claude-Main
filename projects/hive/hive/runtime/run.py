@@ -86,7 +86,7 @@ class Run:
 
     # Events -------------------------------------------------------------------------------
 
-    async def emit(self, kind: str, agent: str | None = None, **payload: Any) -> Event:
+    async def emit(self, kind: str, agent: str | None = None, /, **payload: Any) -> Event:
         """Log an event, then publish it."""
         async with self._emit_lock:
             self.seq += 1
@@ -97,7 +97,7 @@ class Run:
             self._mode_q.put_nowait(("task", {"task": payload["task"], "change": payload["change"], "actor": agent}))
         return ev
 
-    def live(self, kind: str, agent: str | None = None, **payload: Any) -> None:
+    def live(self, kind: str, agent: str | None = None, /, **payload: Any) -> None:
         """Publish without storing (token deltas)."""
         self.app.bus.publish(Event(self.id, 0, time.time(), kind, agent, payload))
 

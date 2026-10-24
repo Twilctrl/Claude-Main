@@ -20,6 +20,11 @@ from .runtime.run import Run
 # --- the live event printer -------------------------------------------------------------
 
 
+def one_line(text: str, n: int) -> str:
+    text = " ".join(text.split())
+    return text if len(text) <= n else text[: n - 1] + "…"
+
+
 class Printer:
     """Turns run events into terminal lines."""
 
@@ -61,14 +66,14 @@ class Printer:
             self.line(a, yellow(f"{p['status'].replace('_', ' ')}{': ' + p['detail'] if p['detail'] else ''}"))
         elif k == "tool.call":
             args = json.dumps(p["args"], ensure_ascii=False)
-            self.line(a, f"→ {p['tool']} {dim(clip(args, 160 if not self.verbose else 2000))}")
+            self.line(a, f"→ {p['tool']} {dim(one_line(args, 160) if not self.verbose else clip(args, 2000))}")
         elif k == "tool.result":
             res = p["output"].strip()
             mark = green("←") if p["ok"] else red("✗")
-            body = res if self.verbose else clip(res.splitlines()[0] if res else "", 140)
+            body = res if self.verbose else one_line(" · ".join(res.splitlines()[:2]), 160)
             self.line(a, f"{mark} {dim(body)}")
         elif k == "agent.reply":
-            self.line(a, f"says: {clip(p['text'].strip(), 400 if not self.verbose else 4000)}")
+            self.line(a, f"says: {one_line(p['text'], 300) if not self.verbose else clip(p['text'].strip(), 4000)}")
         elif k == "agent.protocol":
             self.line(a, yellow(f"format: {p['detail']}"))
         elif k == "agent.context":
@@ -76,7 +81,7 @@ class Printer:
         elif k == "agent.error":
             self.line(a, red(f"error: {p['error']}"))
         elif k == "message":
-            self.line(p["sender"], f"✉ to {p['recipient']}: {clip(p['content'], 300)}")
+            self.line(p["sender"], f"✉ to {p['recipient']}: {one_line(p['content'], 300)}")
         elif k == "task.updated":
             t = p["task"]
             owner = f" → {t['owner']}" if t.get("owner") else ""
@@ -88,7 +93,7 @@ class Printer:
             what = "deleted" if p["deleted"] else ("created" if p["created"] else "changed")
             self.line(a, f"✎ {p['path']} {what} (v{p['version']}, +{p['added']} -{p['removed']})")
         elif k == "approval.requested":
-            self.line(a, yellow(f"wants approval for {p['tool']}: {clip(json.dumps(p['args']), 200)}"))
+            self.line(a, yellow(f"wants approval for {p['tool']}: {one_line(json.dumps(p['args']), 200)}"))
         elif k == "approval.decided":
             verdict = green("approved") if p["approved"] else red("rejected")
             self.line(a, f"{p.get('tool', 'request')} {verdict} by {p['by']}{': ' + p['reason'] if p.get('reason') else ''}")
@@ -167,6 +172,7 @@ class Console:
 
 
 async def _run(args: argparse.Namespace) -> int:
+    args.mode_given = any(a == "--mode" or a.startswith("--mode=") for a in sys.argv)
     settings = _settings(args)
     app = await Hive.open(settings)
     run: Run | None = None
@@ -180,7 +186,15 @@ async def _run(args: argparse.Namespace) -> int:
                 raise ConfigError(f"no project {args.project!r}")
         else:
             project = await app.create_project(args.goal, name=args.name, workspace=args.workspace)
-        members = [m for m in (args.team or "").split(",") if m.strip()] or list(MODES[mode].default_team)
+        members: list[Any] = [m for m in (args.team or "").split(",") if m.strip()] or list(MODES[mode].default_team)
+        if args.team_file:
+            import yaml
+
+            data = yaml.safe_load(Path(args.team_file).read_text(encoding="utf-8"))
+            members = data.get("team", data) if isinstance(data, dict) else data
+            if not isinstance(members, list):
+                raise ConfigError(f"{args.team_file}: expected a list of agents (or a 'team:' list)")
+            mode = data.get("mode", mode) if isinstance(data, dict) and not args.mode_given else mode
         team = app.build_team(members, backend=args.backend, model=args.model)
         limits: dict[str, Any] = {}
         if args.max_turns:
@@ -311,6 +325,7 @@ def register(sub: Any) -> None:
     s.add_argument("--mode", default=next(iter(MODES)) if "pipeline" not in MODES else "pipeline", choices=sorted(MODES),
                    help="collaboration mode (default: %(default)s)")
     s.add_argument("--team", help="comma-separated: role, name=role, role@backend or role@backend:model")
+    s.add_argument("--team-file", help="YAML list of agents (role, name, backend, model, tools, system_prompt, ...)")
     s.add_argument("--backend", "-b", help="backend for agents that don't name one")
     s.add_argument("--model", "-m", help="model for agents on that backend")
     s.add_argument("--workspace", "-w", help="project folder (default: a new folder in Hive's data dir)")
@@ -323,7 +338,7 @@ def register(sub: Any) -> None:
     s.add_argument("--stream", action="store_true", help="print model output as it streams")
     s.add_argument("--quiet", "-q", action="store_true", help="only print the result")
     s.add_argument("--details", dest="verbose_events", action="store_true", help="print full tool output and model stats")
-    s.set_defaults(func=_run)
+    s.set_defaults(func=_run, mode_given=False)
 
     s = sub.add_parser("runs", help="list recent runs")
     s.add_argument("--limit", type=int, default=20)

@@ -130,7 +130,8 @@ class Limits(_Strict):
     stall_turns: int = 12
     pingpong_messages: int = 6
     protocol_failures: int = 4
-    max_rounds: int = 3
+    max_rounds: int = 3  # pipeline review rounds; manager review cycles
+    debate_rounds: int = 1  # critique + revise rounds before the judge
 
 
 class ShellConfig(_Strict):

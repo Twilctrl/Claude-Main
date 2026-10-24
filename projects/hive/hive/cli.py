@@ -100,7 +100,8 @@ limits:                      # loop protection, per run
   stall_turns: 12
   pingpong_messages: 6
   protocol_failures: 4
-  max_rounds: 3
+  max_rounds: 3              # pipeline review rounds, manager review cycles
+  debate_rounds: 1           # critique + revise rounds before the judge
 
 shell:                       # only for agents you give the run_shell tool
   timeout: 60

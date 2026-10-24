@@ -292,3 +292,33 @@ async def version_diff(store: Store, project_id: str, path: str, version: int) -
         return "(binary file)\n" if is_binary(data) else data.decode("utf-8", "replace")
 
     return unified_diff(await text(prev), await text(cur), path, max_lines=2000)
+
+
+async def changes_since(store: Store, project_id: str, run_id: str, seq: int, max_chars: int = 6000) -> tuple[list[str], str]:
+    """Files changed in ``run_id`` after event ``seq``, and one combined diff (clipped)."""
+    rows = await store.file_versions(project_id)
+    by_path: dict[str, list[dict[str, Any]]] = {}
+    for r in rows:
+        by_path.setdefault(r["path"], []).append(r)
+    changed: list[str] = []
+    parts: list[str] = []
+    for path, versions in sorted(by_path.items()):
+        after = [v for v in versions if v["run_id"] == run_id and (v["seq"] or 0) > seq and not v["agent"].startswith("external")]
+        if not after:
+            continue
+        before = [v for v in versions if v not in after and (v["run_id"] != run_id or (v["seq"] or 0) <= seq)]
+        old_row = before[-1] if before else None
+        new_row = versions[-1]
+
+        async def text(row: dict[str, Any] | None) -> str:
+            if not row or not row["hash"]:
+                return ""
+            data = await store.get_blob(row["hash"]) or b""
+            return "(binary file)\n" if is_binary(data) else data.decode("utf-8", "replace")
+
+        changed.append(path)
+        parts.append(unified_diff(await text(old_row), await text(new_row), path, max_lines=150))
+    diff = "".join(parts)
+    if len(diff) > max_chars:
+        diff = diff[:max_chars] + f"\n[... diff cut at {max_chars} characters; read the files for the rest ...]\n"
+    return changed, diff

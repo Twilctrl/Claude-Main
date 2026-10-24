@@ -26,7 +26,7 @@ NUDGES = {
     "same_tool_call": "You made the same tool call several times in a row and got the same result. Do something different.",
     "stall": "The team hasn't made progress for a while. Do one concrete thing now (write a file, finish or fail a task), or finish.",
     "pingpong": "You and {other} keep messaging without making progress. Stop messaging and do the work, or finish.",
-    "protocol": 'Your replies keep breaking the format. Reply with ONLY one JSON object, e.g. {"final": "..."}.',
+    "protocol": 'Your replies keep breaking the format. Reply with ONLY one JSON object, e.g. {{"final": "..."}}.',
 }
 
 

@@ -16,7 +16,7 @@ async def tracker(tmp_path):
     events = []
     seq = 0
 
-    async def emit(kind, agent=None, **payload):
+    async def emit(kind, agent=None, /, **payload):
         nonlocal seq
         seq += 1
         events.append((kind, agent, payload))
