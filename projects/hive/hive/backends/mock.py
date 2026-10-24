@@ -145,7 +145,7 @@ class MockBackend(ModelBackend):
             model=model,
             backend=self.name,
             total_seconds=clock.total,
-            gen_seconds=clock.gen,
+            gen_seconds=clock.gen if pieces else None,
             finish_reason="tool_calls" if calls else "stop",
         )
 

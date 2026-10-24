@@ -199,8 +199,7 @@ class Agent:
             if not self._running.is_set():
                 await self.set_status("paused")
                 await self._running.wait()
-                if self._stopped:
-                    break
+                continue  # the inbox may have changed while paused (a rollback): look again
             items, self._pending = self._pending, []
             blocked = self.run.guard.before_turn(self)
             if blocked:

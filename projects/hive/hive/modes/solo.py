@@ -38,6 +38,10 @@ class Solo(Mode):
             else:
                 await self.run.finish("failed", reason="; ".join(task["notes"]) or "the task failed")
 
+    async def on_restore(self) -> None:
+        if self.main_task is None:
+            await self.start()
+
     def state(self) -> dict[str, Any]:
         return {"main_task": self.main_task}
 

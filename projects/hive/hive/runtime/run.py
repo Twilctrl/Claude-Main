@@ -386,6 +386,48 @@ class Run:
 
     # Checkpoints ---------------------------------------------------------------------------------------------
 
+    async def rollback(self, checkpoint_id: int) -> None:
+        """Put files, tasks, board, agent histories and the mode back as they were at a checkpoint,
+        then carry on from there. Later events stay in the log, marked rolled back."""
+        cp = await self.app.store.get_checkpoint(checkpoint_id)
+        if not cp or cp["run_id"] != self.id:
+            raise BoardError(f"no checkpoint {checkpoint_id} in this run")
+        if self.done.is_set():
+            raise BoardError("the run has ended; start a new run in the same project instead")
+        for a in self.agents.values():
+            await a.pause()
+            a.interrupt()
+        for _ in range(100):  # let interrupted turns unwind
+            if not any(a.in_turn for a in self.agents.values()):
+                break
+            await asyncio.sleep(0.02)
+        await self.approvals.reject_all("rolled back")
+        while not self._mode_q.empty():
+            self._mode_q.get_nowait()
+        state = cp["state"]
+        await self.files.restore(state["files"])
+        self.tasks.load(state["tasks"])
+        await self.app.store.replace_tasks(self.id, state["tasks"])
+        self.board.load(state["board"])
+        await self.app.store.replace_board(self.id, state["board"])
+        for name, s in state["agents"].items():
+            if name in self.agents:
+                self.agents[name].load_state(s)
+        self.mode.load_state(state.get("mode", {}))
+        await self.app.store.mark_rolled_back(self.id, cp["seq"], self.seq)
+        await self.emit("checkpoint.restored", id=checkpoint_id, label=cp["label"], seq=cp["seq"],
+                        tasks=state["tasks"], board=state["board"])
+        self.guard.on_progress()
+        # Work that was in flight at the checkpoint is handed out again.
+        for t in self.tasks.tasks.values():
+            if t.status == "in_progress":
+                t.status = "todo"
+                await self.app.store.upsert_task(self.id, t.id, t.to_dict())
+                if t.owner and t.owner in self.agents and not any(i.task_id == t.id for i in self.agents[t.owner]._pending):
+                    await self._deliver_task(t, "rollback")
+        await self.mode.on_restore()
+        await self.resume()
+
     async def checkpoint(self, label: str) -> int:
         state = {
             "tasks": [t.to_dict() for t in self.tasks.tasks.values()],

@@ -29,6 +29,7 @@ class Debate(Mode):
         self.waiting: set[str] = set()
         self.answers: dict[str, str] = {}  # latest proposal per agent
         self.critiques: dict[str, str] = {}
+        self.prompts: dict[str, str] = {}  # the current phase's prompts, to re-send after a rollback
 
     def judge(self) -> Agent:
         judges = self.by_role("judge")
@@ -53,6 +54,7 @@ class Debate(Mode):
 
     async def _phase(self, phase: str, prompts: dict[str, str]) -> None:
         self.phase = phase
+        self.prompts = dict(prompts)
         self.waiting = set(prompts)
         await self.run.emit("mode.phase", phase=phase, round=self.round, agents=sorted(prompts))
         for name, text in prompts.items():
@@ -127,8 +129,16 @@ class Debate(Mode):
             return
         await super().on_error(agent, items, error)
 
+    async def on_restore(self) -> None:
+        if not self.phase:
+            await self.start()
+            return
+        for name in sorted(self.waiting):
+            await self.run.instruct(name, self.prompts.get(name, f"Continue the {self.phase} step."), sender="debate")
+
     def state(self) -> dict[str, Any]:
-        return {"phase": self.phase, "round": self.round, "waiting": sorted(self.waiting), "answers": self.answers, "critiques": self.critiques}
+        return {"phase": self.phase, "round": self.round, "waiting": sorted(self.waiting), "answers": self.answers,
+                "critiques": self.critiques, "prompts": self.prompts}
 
     def load_state(self, state: dict[str, Any]) -> None:
         self.phase = state.get("phase", "")
@@ -136,3 +146,4 @@ class Debate(Mode):
         self.waiting = set(state.get("waiting", []))
         self.answers = dict(state.get("answers", {}))
         self.critiques = dict(state.get("critiques", {}))
+        self.prompts = dict(state.get("prompts", {}))

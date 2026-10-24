@@ -125,8 +125,10 @@ class ChatResult:
 
     @property
     def tokens_per_sec(self) -> float | None:
-        if self.usage.completion_tokens and self.gen_seconds and self.gen_seconds > 0:
-            return self.usage.completion_tokens / self.gen_seconds
+        """Generation speed, or None when the reply is too short to measure meaningfully."""
+        n, t = self.usage.completion_tokens, self.gen_seconds
+        if n and n >= 4 and t and t >= 0.05:
+            return n / t
         return None
 
 

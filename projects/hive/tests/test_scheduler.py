@@ -290,9 +290,10 @@ async def test_busy_backend_not_probed():
 
 
 async def test_queued_event_and_metrics():
-    s = sched(mock_config("m", concurrency=1, options={"latency": 0.02, "tokens_per_sec": 1000}))
+    s = sched(mock_config("m", concurrency=1, options={"latency": 0.02, "tokens_per_sec": 200}))
     recs = [Recorder() for _ in range(3)]
-    await asyncio.gather(*(s.chat(Route(backend="m"), MSG, on_event=r) for r in recs))
+    long_msg = [ChatMessage("user", "a reply long enough to measure its speed " * 2)]
+    await asyncio.gather(*(s.chat(Route(backend="m"), long_msg, on_event=r) for r in recs))
     assert sum("queued" in r.kinds() for r in recs) == 2
     snap = s.snapshot()[0]
     assert snap["ok"] == 3 and snap["p50_ms"] is not None and snap["tok_s"] is not None

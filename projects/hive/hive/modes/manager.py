@@ -158,6 +158,12 @@ class Manager(Mode):
                     + self.run.tasks.summary() + "\nFix the plan (new tasks or reassignments) or call finish_run."
                 )
 
+    async def on_restore(self) -> None:
+        if not self.run.tasks.tasks:
+            await self.start()
+        else:
+            await self._dispatch()
+
     def state(self) -> dict[str, Any]:
         return {"asked_again": self.asked_again, "review_cycles": self.review_cycles, "notified_all_done": self.notified_all_done}
 

@@ -219,6 +219,12 @@ class Pipeline(Mode):
         if self.awaiting_verdict:
             await self.run.instruct(self.awaiting_verdict, "Please finish your check: call approve(notes) or request_changes(notes).")
 
+    async def on_restore(self) -> None:
+        if self.awaiting_verdict:
+            await self._ask_check(self.run.agents[self.awaiting_verdict])
+        elif self.stage_task is None:
+            await self._advance()  # checkpoints are taken just before moving to the next stage
+
     def state(self) -> dict[str, Any]:
         keys = ("stage", "round", "stage_task", "awaiting_verdict", "work_start_seq", "last_output", "outputs", "checks", "plan_done")
         return {k: getattr(self, k) for k in keys}

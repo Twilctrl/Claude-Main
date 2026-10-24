@@ -52,7 +52,7 @@ async def test_ollama_stream_text_and_usage():
                 {"message": {"role": "assistant", "content": "Hel"}, "done": False},
                 {"message": {"role": "assistant", "content": "lo"}, "done": False},
                 {"message": {"role": "assistant", "content": ""}, "done": True, "done_reason": "stop",
-                 "prompt_eval_count": 12, "eval_count": 2, "eval_duration": 500_000_000},
+                 "prompt_eval_count": 12, "eval_count": 20, "eval_duration": 5_000_000_000},
             ),
         )
 
@@ -61,7 +61,7 @@ async def test_ollama_stream_text_and_usage():
     assert [e.text for e in evs if isinstance(e, TextDelta)] == ["Hel", "lo"]
     res = evs[-1]
     assert isinstance(res, ChatResult) and res.text == "Hello"
-    assert res.usage.prompt_tokens == 12 and res.usage.completion_tokens == 2
+    assert res.usage.prompt_tokens == 12 and res.usage.completion_tokens == 20
     assert res.tokens_per_sec == pytest.approx(4.0)
     body = seen["body"]
     assert body["options"]["num_ctx"] == 2048, "num_ctx must always be sent"

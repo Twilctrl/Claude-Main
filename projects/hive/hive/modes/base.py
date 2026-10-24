@@ -65,6 +65,10 @@ class Mode:
     async def on_idle(self) -> None:
         """Every agent is idle. Hand out more work, or finish. Doing neither ends the run as needs_attention."""
 
+    async def on_restore(self) -> None:
+        """After a rollback: re-issue whatever the mode was waiting for. Tasks that were
+        in progress have already been handed back to their owners."""
+
     def state(self) -> dict[str, Any]:
         return {}
 

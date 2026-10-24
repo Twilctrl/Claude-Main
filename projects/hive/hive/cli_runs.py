@@ -317,6 +317,34 @@ def _roles(args: argparse.Namespace) -> int:
     return 0
 
 
+async def _serve(args: argparse.Namespace) -> int:
+    import secrets
+
+    from .web.app import is_loopback, serve
+
+    settings = _settings(args)
+    host = args.host or settings.hive.server.host
+    port = args.port or settings.hive.server.port
+    token = args.token or settings.hive.server.token
+    if not is_loopback(host) and not token:
+        token = secrets.token_urlsafe(18)
+    app = await Hive.open(settings)
+    shown = "127.0.0.1" if host in ("0.0.0.0", "::", "") else host
+    url = f"http://{shown}:{port}/" + (f"?token={token}" if token else "")
+    out(green("●") + f" Hive is running at {bold(url)}  (Ctrl-C stops it)")
+    if not is_loopback(host):
+        out(yellow("  Listening on your network. Anyone with that link can steer your agents and approve shell commands."))
+    if args.open:
+        import webbrowser
+
+        webbrowser.open(url)
+    try:
+        await serve(app, host, port, token)
+    finally:
+        await app.close()
+    return 0
+
+
 def register(sub: Any) -> None:
     from .modes import MODES
 
@@ -339,6 +367,13 @@ def register(sub: Any) -> None:
     s.add_argument("--quiet", "-q", action="store_true", help="only print the result")
     s.add_argument("--details", dest="verbose_events", action="store_true", help="print full tool output and model stats")
     s.set_defaults(func=_run, mode_given=False)
+
+    s = sub.add_parser("serve", help="start the web UI")
+    s.add_argument("--host", help="address to listen on (default: 127.0.0.1; anything else needs a token)")
+    s.add_argument("--port", type=int, help="port (default: 8765)")
+    s.add_argument("--token", help="access token (generated when listening beyond localhost)")
+    s.add_argument("--open", action="store_true", help="open it in your browser")
+    s.set_defaults(func=_serve)
 
     s = sub.add_parser("runs", help="list recent runs")
     s.add_argument("--limit", type=int, default=20)
