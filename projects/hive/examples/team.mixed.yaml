@@ -1,0 +1,12 @@
+# A team for `hive run --team-file team.mixed.yaml "..."` with backends.lan.yaml:
+# big models where judgement matters, the Pi where a small model is enough.
+mode: pipeline
+team:
+  - {role: planner, backend: desktop}
+  - {role: coder, backend: desktop, model: "qwen2.5-coder:14b"}
+  - {role: reviewer, backend: desktop-llamacpp}
+  - name: tester
+    role: tester
+    backend: pi-cpu
+    tools: [list_files, read_file, write_file, run_shell, approve, request_changes]
+    params: {temperature: 0}
