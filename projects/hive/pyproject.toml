@@ -27,7 +27,7 @@ hive = "hive.cli:main"
 include = ["hive*"]
 
 [tool.setuptools.package-data]
-hive = ["roles/*.yaml", "web/static/**/*"]
+hive = ["roles/*.yaml", "store/*.sql", "web/static/**/*"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

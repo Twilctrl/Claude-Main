@@ -346,6 +346,8 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--no-stream", action="store_true", help="print the reply when it's complete")
     s.set_defaults(func=_chat)
 
+    from . import cli_runs  # noqa: F401  (adds its commands to _EXTRA_COMMANDS)
+
     for register in _EXTRA_COMMANDS:
         register(sub)
     return p
