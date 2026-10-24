@@ -124,6 +124,11 @@ def _event_lines(e: dict[str, Any]) -> list[str]:
         return [f"- {t} backend {p['backend']} is {k.split('.')[1]}"]
     if k == "agent.updated":
         return [f"- {t} ✏ {a} edited: {', '.join(p['changes'])}"]
+    if k == "memory.saved" and p.get("created"):
+        label = "lesson" if p.get("kind") == "lesson" else "note"
+        return [f"- {t} 🧠 {a} saved a {label}: {clip(p['text'], 300)}{rb}"]
+    if k == "memory.recalled":
+        return [f"- {t} 🧠 {a} recalled {len(p['notes'])} note(s): " + "; ".join(clip(n["text"], 80) for n in p["notes"])]
     if k == "agent.error":
         return [f"- {t} ❌ {a}: {p['error']}"]
     return []

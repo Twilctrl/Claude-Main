@@ -134,3 +134,18 @@ CREATE TABLE IF NOT EXISTS checkpoints (
     label TEXT NOT NULL,
     state TEXT NOT NULL
 );
+
+-- Agent memory: long-term notes that outlive runs (hive/memory.py).
+CREATE TABLE IF NOT EXISTS memories (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    agent TEXT NOT NULL,           -- namespace: the agent's name unless it sets `memory`
+    project_id TEXT,               -- NULL: applies in every project
+    run_id TEXT,
+    kind TEXT NOT NULL,            -- note | lesson
+    text TEXT NOT NULL,
+    source TEXT NOT NULL,          -- agent | reflection | user
+    created_at REAL NOT NULL,
+    last_used_at REAL,
+    uses INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS memories_agent ON memories(agent);

@@ -53,6 +53,7 @@ class AgentSpec(BaseModel):
     context_budget: int | None = None
     wake_on_broadcast: bool = False
     approval: Literal["ask", "allow", "deny"] = "ask"
+    memory: bool | str = True  # False: no long-term memory; a string: use (share) that namespace
 
     @field_validator("fallbacks", mode="before")
     @classmethod
@@ -73,6 +74,7 @@ class AgentSpec(BaseModel):
             "context_budget": role.context_budget,
             "wake_on_broadcast": role.wake_on_broadcast,
             "approval": role.approval,
+            "memory": role.memory,
         }
         data.update({k: v for k, v in overrides.items() if v is not None})
         return cls.model_validate(data)
@@ -115,6 +117,7 @@ class Agent:
         self.tokens = 0
         self.protocol_failures = 0  # in a row
         self.current_task: int | None = None
+        self.recalled: list[Any] = []  # long-term notes pinned for the current turn
         self.force_text_protocol = False
         self.in_turn = False
         self._pending: list[InboxItem] = []
@@ -231,6 +234,13 @@ class Agent:
     def tools(self) -> list[Tool]:
         return self.run.tools_for(self)
 
+    @property
+    def memory_ns(self) -> str | None:
+        """This agent's long-term memory namespace, or None when memory is off for it."""
+        if not self.run.app.settings.hive.memory.enabled or self.spec.memory is False:
+            return None
+        return self.spec.memory if isinstance(self.spec.memory, str) and self.spec.memory else self.name
+
     def native_tools(self) -> bool:
         caps = self.run.app.scheduler.caps(self.spec.route)
         return caps.tool_calling and not self.force_text_protocol
@@ -266,6 +276,17 @@ class Agent:
                     parts.append(f"Result of #{dep.id} ({dep.title}): {clip(dep.result, 600)}")
             if t.notes:
                 parts.append("Notes: " + " | ".join(t.notes[-3:]))
+        if self.recalled:
+            cap = int(self.budget() * self.est.chars_per_token * self.run.app.settings.hive.memory.share)
+            lines: list[str] = []
+            used = 0
+            for n in self.recalled:
+                line = f"- {n.text}"
+                if lines and used + len(line) > cap:
+                    break
+                lines.append(clip(line, max(80, cap)))
+                used += len(line)
+            parts += ["", "## From your notes on earlier runs (they may be out of date)", *lines]
         if self.summary:
             parts += ["", "## Your notes from earlier in this run", self.summary]
         if text_tools:
@@ -304,6 +325,7 @@ class Agent:
         trigger = self.render_trigger(items)
         self.history.append(ChatMessage("user", trigger))
         await self.run.emit("agent.turn", self.name, turn=self.turns, trigger=clip(trigger, 4000), items=[i.to_dict() for i in items])
+        await self._recall(trigger)
         await self.set_status("thinking")
 
         final: str | None = None
@@ -375,6 +397,39 @@ class Agent:
         await self.run.emit("agent.reply", self.name, text=clip(final, 8000))
         self.run.guard.after_reply(self, final)
         await self.run.on_final(self, items, final)
+
+    async def _recall(self, trigger: str) -> None:
+        """Pin the most relevant long-term notes for this turn."""
+        self.recalled = []
+        cfg = self.run.app.settings.hive.memory
+        if not self.memory_ns or cfg.recall <= 0:
+            return
+        query = [trigger, self.run.goal]
+        t = self.run.tasks.tasks.get(self.current_task) if self.current_task is not None else None
+        if t:
+            query += [t.title, t.description]
+        notes = await self.run.recall(self, " ".join(query), limit=cfg.recall)
+        if notes:
+            self.recalled = notes
+            await self.run.emit("memory.recalled", self.name, notes=[{"id": n.id, "text": clip(n.text, 300), "score": n.score} for n in notes])
+
+    async def reflect(self, outcome: str) -> list[str]:
+        """One model call at the end of a run: up to three lessons for next time."""
+        from ..context import transcript
+        from ..memory import REFLECT_PROMPT, parse_lessons
+
+        room = int(self.budget() * self.est.chars_per_token * 0.6)
+        seen = (f"Your notes:\n{self.summary}\n\n" if self.summary else "") + transcript(self.history, room)
+        msgs = [
+            ChatMessage("system", f'You are "{self.name}" ({self.spec.role}). {self.spec.description}'.strip()),
+            ChatMessage("user", f"What happened, as you saw it:\n{seen}\n\n{REFLECT_PROMPT.format(goal=self.run.goal, outcome=outcome)}"),
+        ]
+        res = await self.run.app.scheduler.chat(
+            self.spec.route, msgs, params=GenParams(temperature=0.2, max_tokens=200),
+            fallbacks=self.spec.fallbacks or self.run.app.scheduler.backend(self.spec.backend).config.fallbacks,
+        )
+        await self._record_call(res, ok=True, purpose="reflect")
+        return parse_lessons(res.text)
 
     async def _wait_if_paused(self) -> None:
         if not self._running.is_set():

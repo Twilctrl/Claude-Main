@@ -111,6 +111,10 @@ class Printer:
         elif k in ("run.resumed", "checkpoint.restored"):
             verb = "resumed from" if k == "run.resumed" else "rolled back to"
             self.line(None, yellow(f"⏪ {verb} checkpoint {p['id']} ({p['label']})"))
+        elif k == "memory.recalled":
+            self.line(a, dim(f"🧠 recalled {len(p['notes'])} note(s): " + "; ".join(one_line(n["text"], 60) for n in p["notes"])))
+        elif k == "memory.saved" and p.get("created"):
+            self.line(a, f"🧠 {'lesson' if p.get('kind') == 'lesson' else 'remembered'}: {one_line(p['text'], 200)}")
         elif k == "run.attention":
             self.line(None, yellow(f"⚠ {p['message']}"))
         elif k == "checkpoint.created" and self.verbose:
@@ -415,6 +419,55 @@ async def _serve(args: argparse.Namespace) -> int:
     return 0
 
 
+async def _memory(args: argparse.Namespace) -> int:
+    app = await Hive.open(_settings(args), start_health=False)
+    mem = app.memory
+    try:
+        project_id = None
+        if getattr(args, "project", None):
+            p = await app.store.get_project(args.project)
+            if not p:
+                err(red(f"no project {args.project!r}"))
+                return 1
+            project_id = p["id"]
+        projects = {p["id"]: p["slug"] for p in await app.store.list_projects()}
+        action = args.mem_action or "list"
+        if action == "list":
+            if args.search and args.agent:
+                notes = await mem.search(args.agent, args.search, project_id=project_id, limit=args.limit)
+            else:
+                notes = await mem.notes(args.agent, project_id)
+                if args.search:
+                    needle = args.search.lower()
+                    notes = [n for n in notes if needle in n.text.lower()]
+                notes = notes[-args.limit:]
+            if not notes:
+                spaces = await mem.namespaces()
+                out("No notes." + (f" Agents with notes: {', '.join(s['agent'] for s in spaces)}" if spaces else ""))
+            for n in notes:
+                where = projects.get(n.project_id, "?") if n.project_id else "all projects"
+                score = f" score {n.score}" if n.score else ""
+                out(f"{bold(str(n.id)):>6} {n.agent:<12} {dim(n.kind + '/' + n.source):<18} {n.text}")
+                out(dim(f"{'':7}{where} · used {n.uses}x{score}"))
+        elif action == "add":
+            note, created = await mem.add(args.agent, args.text, kind="note", source="user", project_id=project_id)
+            out((green("✓") + f" saved note {note.id}") if created else dim(f"already there (note {note.id})"))
+        elif action == "forget":
+            for i in args.ids:
+                out((green("✓") + f" forgot {i}") if await mem.delete(i) else yellow(f"no note {i}"))
+        elif action == "clear":
+            if not args.yes:
+                err(yellow(f"This deletes every note {args.agent!r} has. Add --yes to confirm."))
+                return 1
+            out(green("✓") + f" forgot {await mem.clear(args.agent)} notes")
+        elif action == "agents":
+            for s in await mem.namespaces():
+                out(f"{bold(s['agent']):<20} {s['notes']} notes")
+    finally:
+        await app.close()
+    return 0
+
+
 def register(sub: Any) -> None:
     from .modes import MODES
 
@@ -468,6 +521,25 @@ def register(sub: Any) -> None:
     s.add_argument("-o", "--output", help="file to write (default: print it)")
     s.add_argument("--no-diffs", action="store_true", help="leave out the file diffs")
     s.set_defaults(func=_export)
+
+    s = sub.add_parser("memory", help="agents' long-term notes: list, search, add, forget")
+    ms = s.add_subparsers(dest="mem_action", metavar="action")
+    m = ms.add_parser("list", help="list notes (the default)")
+    m.add_argument("agent", nargs="?", help="only this agent's notes")
+    m.add_argument("-s", "--search", help="rank by relevance to this text (with an agent) or filter by it")
+    m.add_argument("--project", help="only notes from this project (plus global ones)")
+    m.add_argument("--limit", type=int, default=50)
+    m = ms.add_parser("add", help="teach an agent something it should know in every run")
+    m.add_argument("agent")
+    m.add_argument("text")
+    m.add_argument("--project", help="only for this project (default: all projects)")
+    m = ms.add_parser("forget", help="delete notes by id")
+    m.add_argument("ids", nargs="+", type=int)
+    m = ms.add_parser("clear", help="delete all of one agent's notes")
+    m.add_argument("agent")
+    m.add_argument("--yes", action="store_true")
+    ms.add_parser("agents", help="which agents have notes")
+    s.set_defaults(func=_memory, agent=None, search=None, project=None, limit=50)
 
     s = sub.add_parser("runs", help="list recent runs")
     s.add_argument("--limit", type=int, default=20)

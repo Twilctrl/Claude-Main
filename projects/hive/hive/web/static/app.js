@@ -90,6 +90,7 @@ function App() {
   if (route[0] === "new") page = html`<${NewRun} info=${info} />`;
   else if (route[0] === "runs" && route[1]) page = html`<${RunView} key=${route[1]} id=${route[1]} info=${info} />`;
   else if (route[0] === "backends") page = html`<${BackendsPage} />`;
+  else if (route[0] === "memory") page = html`<${MemoryPage} />`;
   else page = html`<${Home} info=${info} />`;
   const on = (r) => (route[0] || "") === r ? "on" : "";
   return html`
@@ -99,6 +100,7 @@ function App() {
         <a class=${on("")} href="#/">Runs</a>
         <a class=${on("new")} href="#/new">New run</a>
         <a class=${on("backends")} href="#/backends">Backends</a>
+        <a class=${on("memory")} href="#/memory">Memory</a>
       </nav>
       <span class="spacer"></span>
       <span class="muted small">${info ? `v${info.version}` : ""}</span>
@@ -157,6 +159,65 @@ function BackendsPage() {
         </tr>`)}</tbody>
       </table></div>
     </section>
+  </div>`;
+}
+
+function MemoryPage() {
+  const [data, setData] = useState({ agents: [], notes: [] });
+  const [agent, setAgent] = useState("");
+  const [q, setQ] = useState("");
+  const [projects, setProjects] = useState([]);
+  const [draft, setDraft] = useState({ agent: "", text: "", project: "" });
+  const load = act(async () => {
+    const qs = new URLSearchParams();
+    if (agent) qs.set("agent", agent);
+    if (q.trim()) qs.set("q", q.trim());
+    setData(await api(`/memory?${qs}`));
+  });
+  useEffect(() => { load(); }, [agent, q]);
+  useEffect(() => { api("/projects").then(setProjects).catch(() => {}); }, []);
+  const forget = act(async (n) => { if (confirm(`Forget note ${n.id}?`)) { await api(`/memory/${n.id}`, { method: "DELETE" }); load(); } });
+  const add = act(async (e) => {
+    e.preventDefault();
+    if (!draft.agent.trim() || !draft.text.trim()) return toast("Pick an agent and write the note.");
+    await api("/memory", { method: "POST", body: { agent: draft.agent.trim(), text: draft.text, project: draft.project || null } });
+    setDraft({ ...draft, text: "" });
+    load();
+  });
+  return html`<div class="stack" style="max-width: 1000px">
+    <section class="panel">
+      <header><h2>Agent memory</h2><span class="muted small">${data.notes.length} shown</span></header>
+      <p class="muted small">Notes agents keep across runs: facts about a project, conventions, lessons they wrote when a run ended.
+        Each turn, an agent's most relevant notes are added to its prompt. Notes are written by models, so delete anything wrong.</p>
+      <div class="row">
+        <select value=${agent} onChange=${(e) => setAgent(e.target.value)} aria-label="Agent">
+          <option value="">All agents</option>${data.agents.map((a) => html`<option value=${a.agent}>${a.agent} (${a.notes})</option>`)}</select>
+        <input class="grow" placeholder=${agent ? "Search: ranks this agent's notes by relevance" : "Filter by text"} value=${q} onInput=${(e) => setQ(e.target.value)} />
+      </div>
+    </section>
+    <section class="panel">
+      ${data.notes.length === 0 ? html`<div class="empty">No notes yet. Agents write some at the end of each run.</div>` : html`<div class="tablewrap"><table>
+        <thead><tr><th>Agent</th><th>Note</th><th>Where</th><th>Used</th><th></th></tr></thead>
+        <tbody>${data.notes.map((n) => html`<tr key=${n.id}>
+          <td class="nowrap"><b>${n.agent}</b><div class="muted small">${n.kind} · ${n.source}</div></td>
+          <td>${n.text}${n.score ? html`<div class="muted small">relevance ${n.score}</div>` : ""}</td>
+          <td class="small">${n.project || html`<span class="muted">all projects</span>`}<div class="muted">${fmtDate(n.created_at)}</div></td>
+          <td class="small">${n.uses}×</td>
+          <td><button class="small danger" onClick=${() => forget(n)}>Forget</button></td>
+        </tr>`)}</tbody></table></div>`}
+    </section>
+    <form class="panel stack" onSubmit=${add}>
+      <h2>Teach an agent</h2>
+      <p class="muted small">A note you add here is pinned whenever it's relevant, in every run of that agent (by name).</p>
+      <div class="row">
+        <input list="mem-agents" placeholder="agent name, e.g. coder" value=${draft.agent} onInput=${(e) => setDraft({ ...draft, agent: e.target.value })} aria-label="Agent" />
+        <datalist id="mem-agents">${data.agents.map((a) => html`<option value=${a.agent} />`)}</datalist>
+        <select value=${draft.project} onChange=${(e) => setDraft({ ...draft, project: e.target.value })} aria-label="Project">
+          <option value="">All projects</option>${projects.map((p) => html`<option value=${p.slug}>${p.slug}</option>`)}</select>
+      </div>
+      <textarea rows="2" placeholder="e.g. This project uses tabs, not spaces, and pytest for tests." value=${draft.text} onInput=${(e) => setDraft({ ...draft, text: e.target.value })}></textarea>
+      <div><button class="primary" type="submit">Save note</button></div>
+    </form>
   </div>`;
 }
 
@@ -476,6 +537,9 @@ function FeedItem({ it }) {
     body = html`<span class="who">${it.from} → ${it.to}</span>${it.text}`;
   } else if (it.type === "turn") {
     body = html`<span class="who">${it.agent}</span><span class="muted">turn ${it.turn}</span><details><summary class="small">${clip(it.text.split("\n")[0], 100)}</summary><pre>${it.text}</pre></details>`;
+  } else if (it.type === "memory") {
+    body = html`<span class="who">${it.agent}</span>${it.text}<details><summary class="small">notes</summary>
+      <ul class="small" style="margin:4px 0; padding-left: 18px">${it.notes.map((n) => html`<li key=${n.id}>${n.text}</li>`)}</ul></details>`;
   } else if (it.type === "reply") {
     body = html`<span class="who">${it.agent}</span><pre>${it.text}</pre>`;
   } else {

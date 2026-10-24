@@ -42,6 +42,7 @@ The design, with the reasoning behind each choice, is in
 - [Adding a backend, tool, role or mode](#adding-a-backend-tool-role-or-mode)
 - [Security](#security)
 - [Running on different hardware](#running-on-different-hardware)
+- [Agent memory](#agent-memory)
 - [Notifications](#notifications)
 - [Persistence, replay and checkpoints](#persistence-replay-and-checkpoints)
 - [Development](#development)
@@ -340,6 +341,7 @@ Node, and nothing loaded from the internet.
 | `hive replay RUN [--speed X]` | Replay the log in the terminal (`--speed 0` is instant) |
 | `hive export RUN [-o FILE] [--no-diffs]` | Markdown transcript: team, deliverable, tasks, timeline, diffs |
 | `hive roles [NAME]` | List roles, or print one as YAML |
+| `hive memory [list [AGENT] [-s QUERY]] / add AGENT TEXT / forget ID... / clear AGENT --yes / agents` | Agents' long-term notes |
 
 Run ids can be shortened to any unique prefix. `--workspace DIR` works in a
 folder of yours instead of a new one in the data dir. `--project SLUG`
@@ -505,6 +507,12 @@ reverse proxy in front. Against attacks from other websites:
   can't send (CSRF);
 - on localhost, the server answers only to localhost names (DNS rebinding).
 
+**Agent memory** keeps model-written text and feeds it into later prompts.
+A note planted by prompt injection, or just a wrong lesson, would keep coming
+back. The feed shows every note recalled and saved; review them with
+`hive memory` or the Memory page, delete anything wrong, and set
+`memory.enabled: false` for untrusted work.
+
 **Data.**
 - Prompts, outputs and every file version are stored unencrypted in
   `hive.db` in the data folder. Delete it to forget everything.
@@ -543,6 +551,57 @@ podman run --rm -it --network=host -v ~/.config/hive:/config:Z -v ~/.local/share
 `--network=host` lets the container reach Ollama on localhost. To work in one
 of your folders, mount it (`-v ~/code/x:/work:Z`) and pass
 `--workspace /work`.
+
+## Agent memory
+
+Agents keep notes across runs, so they don't relearn the same project every
+time. Each agent has its own memory, keyed by its name: a `coder` in one run
+remembers what a `coder` learned in the last. Notes record the project they
+came from, and notes you add by hand can apply everywhere.
+
+- **Writing notes.**
+  - At the end of a run that finished, needs attention, or failed, each agent
+    that worked writes up to three lessons for next time: project facts,
+    conventions, commands that worked, mistakes to avoid. This costs one short
+    model call per agent. Runs that were stopped, interrupted, or ran out of
+    budget skip it.
+  - Agents also get a `remember` tool for saving a note mid-run.
+  - You can teach an agent directly: `hive memory add coder "This project uses tabs and pytest"`,
+    or **Teach an agent** on the **Memory** page.
+- **Using notes.** At the start of every turn, the agent's most relevant notes
+  are added to its prompt (at most `recall` notes, within `share` of its
+  context). This project's notes and global notes count; other projects' notes
+  don't. Relevance is a BM25 ranking over the turn's message, the goal and the
+  current task, with this project's notes ranked higher. Agents can also
+  search on purpose with `recall`. The feed shows what was recalled and saved.
+- **Housekeeping.**
+  - Repeats aren't stored twice: a note with the same meaningful words as an
+    existing one just counts as used.
+  - Each agent keeps at most `max_per_agent` notes; the least used are dropped
+    first, never ones you wrote.
+  - Rolling back a run also forgets the notes it saved after that checkpoint.
+
+```yaml
+# hive.yaml
+memory:
+  enabled: true
+  recall: 4          # notes pinned per turn
+  share: 0.1         # at most this share of the context window
+  reflect: true      # lessons at the end of a run
+  max_per_agent: 300
+```
+
+Per agent (in a role or team file), `memory: false` switches it off, which
+is worth doing for 2k-context NPU models, and `memory: team` shares a
+namespace between agents.
+
+```
+hive memory                          # every note
+hive memory list coder -s "how to run the tests"   # ranked by relevance
+hive memory add coder "Tests run with python -m pytest -q" [--project SLUG]
+hive memory forget 12 13
+hive memory clear coder --yes
+```
 
 ## Notifications
 
@@ -629,6 +688,8 @@ hive/
   servers finish generating anyway.
 - **No users or roles in the UI.** It has a single shared token, and you can't
   delete runs or projects from it (delete `hive.db` or the workspace folder).
-- **Stretch goals not built:** agent long-term memory, small-to-big model
-  routing (beyond fallbacks for a backend that's down), and MCP client
-  support. Notification hooks are built.
+- **Stretch goals not built:** small-to-big model routing (beyond fallbacks
+  for a backend that's down) and MCP client support. Notification hooks and
+  agent memory are built. Memory retrieval is keyword-based (BM25), not
+  semantic: a note about "unit tests" won't match a turn that only says
+  "pytest".

@@ -117,6 +117,12 @@ server:
   host: 127.0.0.1            # anything else requires a token
   port: 8765
 
+memory:                      # agents keep notes across runs (hive memory to see them)
+  enabled: true
+  recall: 4                  # notes pinned in an agent's prompt each turn
+  reflect: true              # each agent writes up to 3 lessons when a run ends
+  max_per_agent: 300
+
 notify:                      # tell you when a run finishes or needs you
   events: [finished, approval, attention]
   # command: notify-send Hive "{{message}}"        # run without a shell; also {{run}} {{status}} {{kind}} {{goal}}
