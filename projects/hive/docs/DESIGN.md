@@ -589,5 +589,7 @@ something, mostly for small models or found by tests:
 - **Tokens per second needs at least 4 tokens and 50 ms of generation,** so
   pure tool-call replies don't show absurd speeds.
 - **Not built:** replaying with re-execution (replay re-renders the log, as
-  agreed) and the stretch goals.
+  agreed), and the stretch goals except notification hooks (`hive/notify.py`:
+  a command run without a shell, and/or a JSON webhook, when a run finishes or
+  needs you).
 

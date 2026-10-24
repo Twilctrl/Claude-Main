@@ -147,6 +147,15 @@ class WebFetchConfig(_Strict):
     timeout: float = 20.0
 
 
+class NotifyConfig(_Strict):
+    """Hooks for when a run finishes or needs you (see hive/notify.py)."""
+
+    on: list[Literal["finished", "approval", "attention"]] = Field(default_factory=lambda: ["finished", "approval", "attention"])
+    command: str | None = None  # run without a shell; {message} {run} {status} {kind} {goal}
+    url: str | None = None  # JSON POST
+    timeout: float = 10.0
+
+
 class ServerConfig(_Strict):
     host: str = "127.0.0.1"
     port: int = 8765
@@ -160,6 +169,7 @@ class HiveConfig(_Strict):
     shell: ShellConfig = Field(default_factory=ShellConfig)
     web_fetch: WebFetchConfig = Field(default_factory=WebFetchConfig)
     server: ServerConfig = Field(default_factory=ServerConfig)
+    notify: NotifyConfig = Field(default_factory=NotifyConfig)
     approval_timeout: float = 900.0
     backend_down_timeout: float = 600.0
     health_interval: float = 10.0

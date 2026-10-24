@@ -116,6 +116,11 @@ web_fetch:                   # only for agents you give the web_fetch tool
 server:
   host: 127.0.0.1            # anything else requires a token
   port: 8765
+
+notify:                      # tell you when a run finishes or needs you
+  on: [finished, approval, attention]
+  # command: notify-send Hive "{{message}}"        # run without a shell; also {{run}} {{status}} {{kind}} {{goal}}
+  # url: http://192.168.1.10:8123/api/webhook/hive # JSON POST (Home Assistant, ntfy, ...)
 """
 
 

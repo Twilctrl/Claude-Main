@@ -47,6 +47,13 @@ class Hive:
         self.bus = EventBus()
         self.runs: dict[str, Run] = {}
         scheduler.listeners.append(self._backend_event)
+        self.notifier = None
+        n = settings.hive.notify
+        if n.command or n.url:
+            from ..notify import Notifier
+
+            self.notifier = Notifier(self, n)
+            self.bus.listen(self.notifier)
 
     @classmethod
     async def open(
@@ -73,6 +80,8 @@ class Hive:
         for run in list(self.runs.values()):
             if not run.done.is_set():
                 await run.finish("interrupted", reason="Hive was shut down")
+        if self.notifier:
+            await self.notifier.drain()
         await self.scheduler.close()
         await self.store.close()
 

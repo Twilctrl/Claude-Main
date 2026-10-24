@@ -42,6 +42,8 @@ The design, with the reasoning behind each choice, is in
 - [Adding a backend, tool, role or mode](#adding-a-backend-tool-role-or-mode)
 - [Security](#security)
 - [Running on different hardware](#running-on-different-hardware)
+- [Notifications](#notifications)
+- [Persistence, replay and checkpoints](#persistence-replay-and-checkpoints)
 - [Development](#development)
 - [What's not done](#whats-not-done)
 
@@ -542,6 +544,25 @@ podman run --rm -it --network=host -v ~/.config/hive:/config:Z -v ~/.local/share
 of your folders, mount it (`-v ~/code/x:/work:Z`) and pass
 `--workspace /work`.
 
+## Notifications
+
+A long run on a Pi can take a while. Hive can run a command or POST to a URL
+when a run finishes, needs an approval, or needs your attention. Configure
+it in `hive.yaml`:
+
+```yaml
+notify:
+  on: [finished, approval, attention]
+  command: notify-send Hive "{message}"            # or: espeak "{message}"; CerberOS: /usr/local/lib/cerberos/apps/piper/say.sh "{message}"
+  url: http://192.168.1.10:8123/api/webhook/hive   # JSON: message, run, status, kind, goal
+```
+
+The command runs **without a shell**. `{message}`, `{run}`, `{status}`,
+`{kind}` and `{goal}` are filled in argument by argument. Messages can quote
+model output (an approval request includes the command an agent wants to
+run), and with no shell that text can't inject commands. A failing hook is
+logged and never affects the run.
+
 ## Persistence, replay and checkpoints
 
 - **Every event is written before it's shown.** If Hive is killed, the run
@@ -609,4 +630,5 @@ hive/
 - **No users or roles in the UI.** It has a single shared token, and you can't
   delete runs or projects from it (delete `hive.db` or the workspace folder).
 - **Stretch goals not built:** agent long-term memory, small-to-big model
-  routing beyond fallbacks, notification hooks, MCP client support.
+  routing (beyond fallbacks for a backend that's down), and MCP client
+  support. Notification hooks are built.
