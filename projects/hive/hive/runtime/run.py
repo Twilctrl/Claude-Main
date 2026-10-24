@@ -17,7 +17,7 @@ from typing import TYPE_CHECKING, Any
 from ..agents.agent import Agent, AgentSpec, AgentStopped, InboxItem
 from ..config import Limits
 from ..context import clip
-from ..tools import Tool, all_tools
+from ..tools import Tool, ToolError, all_tools
 from .approvals import Approvals, Policy
 from .board import Blackboard, BoardError, Task, TaskBoard
 from .events import Event
@@ -166,6 +166,8 @@ class Run:
             await a.stop()
         if self._mode_task and asyncio.current_task() is not self._mode_task:
             self._mode_task.cancel()
+        if status in ("done", "needs_attention", "failed"):  # not when stopped, interrupted or out of budget
+            await self._reflect(status, reason)
         for a in self.agents.values():
             await self.save_agent(a)
         stats = self.stats()
@@ -291,8 +293,49 @@ class Run:
 
     def tools_for(self, agent: Agent) -> list[Tool]:
         registry = all_tools()
-        names = list(dict.fromkeys([*agent.spec.tools, *self.mode.extra_tools(agent)]))
+        memory = ["remember", "recall"] if agent.memory_ns else []
+        names = list(dict.fromkeys([*agent.spec.tools, *self.mode.extra_tools(agent), *memory]))
         return [registry[n] for n in names if n in registry]
+
+    # Long-term memory --------------------------------------------------------------------------------------
+
+    async def remember(self, agent: Agent, text: str, kind: str = "note", source: str = "agent") -> tuple[Any, bool]:
+        ns = agent.memory_ns
+        if ns is None:
+            raise ToolError("long-term memory is off for you")
+        note, created = await self.app.memory.add(ns, text, kind=kind, source=source, project_id=self.project["id"], run_id=self.id)
+        await self.emit("memory.saved", agent.name, id=note.id, text=note.text, kind=kind, source=source, created=created, namespace=ns)
+        return note, created
+
+    async def recall(self, agent: Agent, query: str, limit: int = 6) -> list[Any]:
+        ns = agent.memory_ns
+        if ns is None:
+            return []
+        notes = await self.app.memory.search(ns, query, project_id=self.project["id"], limit=limit)
+        if notes:
+            await self.app.memory.touch([n.id for n in notes])
+        return notes
+
+    async def _reflect(self, status: str, reason: str) -> None:
+        """Each agent that worked writes up to three lessons for next time."""
+        cfg = self.app.settings.hive.memory
+        agents = [a for a in self.agents.values() if a.turns > 0 and a.memory_ns]
+        if not (cfg.enabled and cfg.reflect and agents):
+            return
+        outcome = status.replace("_", " ") + (f" ({clip(reason, 300)})" if reason else "")
+        if self.summary:
+            outcome += f". Result: {clip(self.summary, 600)}"
+        await self.emit("memory.reflecting", agents=[a.name for a in agents])
+
+        async def one(a: Agent) -> None:
+            try:
+                async with asyncio.timeout(cfg.reflect_timeout):
+                    for lesson in await a.reflect(outcome):
+                        await self.remember(a, lesson, kind="lesson", source="reflection")
+            except Exception as e:  # reflection is a bonus; never fail the run over it
+                log.info("reflection by %s failed: %s", a.name, e)
+
+        await asyncio.gather(*(one(a) for a in agents))
 
     # Mode plumbing ---------------------------------------------------------------------------------------
 
@@ -436,6 +479,9 @@ class Run:
             if name in self.agents:
                 self.agents[name].load_state(s)
         self.mode.load_state(state.get("mode", {}))
+        forgotten = await self.app.memory.forget_run_after(self.id, cp["ts"])
+        if forgotten:
+            await self.emit("memory.forgotten", count=forgotten, reason=f"rolled back to checkpoint {cp['id']}")
         await self.app.store.mark_rolled_back(self.id, cp["seq"], self.seq)
         await self.emit(event, id=cp["id"], label=cp["label"], seq=cp["seq"], tasks=state["tasks"], board=state["board"])
         self.guard.on_progress()

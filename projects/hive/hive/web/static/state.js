@@ -192,6 +192,18 @@ export function apply(s, e) {
     case "mode.error":
       feed(s, e, { type: "sys", icon: "✗", cls: "bad", text: `Mode error: ${p.error}` });
       break;
+    case "memory.recalled":
+      feed(s, e, { type: "memory", icon: "🧠", text: `Recalled ${p.notes.length} note${p.notes.length === 1 ? "" : "s"} from earlier runs`, notes: p.notes });
+      break;
+    case "memory.saved":
+      if (p.created) feed(s, e, { type: "sys", icon: "🧠", text: `${p.kind === "lesson" ? "Lesson for next time" : "Remembered"}: ${p.text}` });
+      break;
+    case "memory.reflecting":
+      feed(s, e, { type: "sys", icon: "🧠", text: `Writing lessons for next time: ${p.agents.join(", ")}` });
+      break;
+    case "memory.forgotten":
+      feed(s, e, { type: "sys", icon: "🧠", cls: "warn", text: `Forgot ${p.count} note${p.count === 1 ? "" : "s"} (${p.reason})` });
+      break;
     case "backend.down":
     case "backend.up":
       feed(s, e, { type: "sys", icon: e.kind === "backend.up" ? "●" : "○", cls: e.kind === "backend.up" ? "" : "bad", text: `Backend ${p.backend} is ${e.kind.split(".")[1]}${p.reason ? ": " + clip(p.reason, 160) : ""}` });

@@ -118,6 +118,11 @@ def fake_reply(messages: list[ChatMessage], tools: list[ToolSpec] | None, native
     files = _FILE.findall(trigger) or _FILE.findall(goal)
     lower = trigger.lower()
 
+    if "write up to 3 short lessons" in lower:  # end-of-run reflection (hive/memory.py)
+        g = re.search(r"^Goal: (.+)$", trigger, re.M)
+        where = f" ({', '.join(sorted(set(_FILE.findall(trigger)))[:3])})" if _FILE.findall(trigger) else ""
+        return MockReply(text=f"- The {role} worked on: {g.group(1).strip() if g else 'the goal'}{where}.\n- Read a file before rewriting it.")
+
     # Debate prompts are the same for every role but the judge.
     if role != "judge":
         if lower.startswith("[debate]\nrevise"):

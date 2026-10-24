@@ -102,6 +102,12 @@ class RollbackReq(BaseModel):
     checkpoint: int
 
 
+class NewMemory(BaseModel):
+    agent: str = Field(min_length=1)
+    text: str = Field(min_length=1)
+    project: str | None = None
+
+
 # --- the app ------------------------------------------------------------------------------------
 
 
@@ -354,6 +360,46 @@ def create_app(hive: Hive, *, token: str | None = None, host: str = "127.0.0.1")
     async def rollback(run_id: str, body: RollbackReq) -> dict[str, str]:
         await get_run(run_id).rollback(body.checkpoint)
         return {"ok": "rolled back"}
+
+    # Memory --------------------------------------------------------------------------------------------
+
+    @app.get("/api/memory")
+    async def memory_list(agent: str | None = None, q: str | None = None, project: str | None = None, limit: int = 200) -> dict[str, Any]:
+        project_id = None
+        if project:
+            p = await hive.store.get_project(project)
+            if not p:
+                raise HTTPException(404, "no such project")
+            project_id = p["id"]
+        if agent and q:
+            notes = await hive.memory.search(agent, q, project_id=project_id, limit=limit)
+        else:
+            notes = await hive.memory.notes(agent, project_id)
+            if q:
+                notes = [n for n in notes if q.lower() in n.text.lower()]
+            notes = list(reversed(notes))[:limit]
+        projects = {p["id"]: p["slug"] for p in await hive.store.list_projects()}
+        return {
+            "agents": await hive.memory.namespaces(),
+            "notes": [{**n.to_dict(), "project": projects.get(n.project_id) if n.project_id else None} for n in notes],
+        }
+
+    @app.post("/api/memory")
+    async def memory_add(body: NewMemory) -> dict[str, Any]:
+        project_id = None
+        if body.project:
+            p = await hive.store.get_project(body.project)
+            if not p:
+                raise HTTPException(404, "no such project")
+            project_id = p["id"]
+        note, created = await hive.memory.add(body.agent.strip(), body.text, source="user", project_id=project_id)
+        return {"id": note.id, "created": created}
+
+    @app.delete("/api/memory/{note_id}")
+    async def memory_delete(note_id: int) -> dict[str, bool]:
+        if not await hive.memory.delete(note_id):
+            raise HTTPException(404, "no such note")
+        return {"ok": True}
 
     # Files ---------------------------------------------------------------------------------------------
 
