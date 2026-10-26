@@ -147,6 +147,17 @@ class WebFetchConfig(_Strict):
     timeout: float = 20.0
 
 
+class MemoryConfig(_Strict):
+    """Agent memory across runs (see hive/memory.py)."""
+
+    enabled: bool = True
+    recall: int = Field(4, ge=0)  # notes pinned in an agent's prompt each turn
+    share: float = Field(0.1, gt=0, le=0.5)  # most of the context budget recalled notes may use
+    reflect: bool = True  # each agent writes up to 3 lessons when a run ends
+    reflect_timeout: float = 300.0
+    max_per_agent: int = Field(300, ge=10)
+
+
 class NotifyConfig(_Strict):
     """Hooks for when a run finishes or needs you (see hive/notify.py)."""
 
@@ -171,6 +182,7 @@ class HiveConfig(_Strict):
     web_fetch: WebFetchConfig = Field(default_factory=WebFetchConfig)
     server: ServerConfig = Field(default_factory=ServerConfig)
     notify: NotifyConfig = Field(default_factory=NotifyConfig)
+    memory: MemoryConfig = Field(default_factory=MemoryConfig)
     approval_timeout: float = 900.0
     backend_down_timeout: float = 600.0
     health_interval: float = 10.0

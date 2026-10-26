@@ -588,8 +588,22 @@ something, mostly for small models or found by tests:
   bubblewrap, `/tmp` is a private tmpfs.
 - **Tokens per second needs at least 4 tokens and 50 ms of generation,** so
   pure tool-call replies don't show absurd speeds.
+- **Notification hooks** (`hive/notify.py`): a command run without a shell,
+  and/or a JSON webhook, when a run finishes or needs you.
+- **Agent memory** (`hive/memory.py`), built after the main milestones:
+  - **Storage:** per-agent notes in a `memories` table, tagged with their
+    project.
+  - **Writing:** each agent writes up to three lessons when a run ends; agents
+    also have `remember` and `recall` tools.
+  - **Recall:** BM25 recall at the start of every turn, pinned in the prompt
+    within a share of the context.
+  - **Duplicates:** notes with the same meaningful words count as one. An
+    earlier draft used text similarity, which merged notes that differed only
+    in a file name.
+  - **Rollback** forgets notes saved after the checkpoint.
+
+  Retrieval is plain Python rather than SQLite FTS5, which isn't compiled into
+  every Python's sqlite3.
 - **Not built:** replaying with re-execution (replay re-renders the log, as
-  agreed), and the stretch goals except notification hooks (`hive/notify.py`:
-  a command run without a shell, and/or a JSON webhook, when a run finishes or
-  needs you).
+  agreed), small-to-big model routing, and MCP client support.
 

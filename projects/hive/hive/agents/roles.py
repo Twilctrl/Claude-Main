@@ -27,6 +27,7 @@ class Role(BaseModel):
     context_budget: int | None = None
     wake_on_broadcast: bool = False
     approval: Literal["ask", "allow", "deny"] = "ask"
+    memory: bool | str = True  # False: no long-term memory; a string: share that namespace
 
 
 def _load_file(path: Path) -> Role:

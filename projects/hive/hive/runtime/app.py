@@ -46,6 +46,9 @@ class Hive:
         self.scheduler = scheduler
         self.bus = EventBus()
         self.runs: dict[str, Run] = {}
+        from ..memory import MemoryStore
+
+        self.memory = MemoryStore(store, settings.hive.memory.max_per_agent)
         scheduler.listeners.append(self._backend_event)
         self.notifier = None
         n = settings.hive.notify

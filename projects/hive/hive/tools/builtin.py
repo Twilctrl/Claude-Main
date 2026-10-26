@@ -306,3 +306,31 @@ async def finish_run(ctx: ToolContext, summary: str) -> ToolResult:
     """
     await ctx.run.mode_event("finish", agent=ctx.agent.name, summary=summary)
     return ToolResult(f"Finishing the run: {summary}", progress=True, end_turn=True)
+
+
+# --- long-term memory (added to every agent while memory is on) -------------------------------------------
+
+
+@tool(group="memory")
+async def remember(ctx: ToolContext, text: str) -> ToolResult:
+    """Save a note for your future self: a fact about this project, a convention, or a lesson. Relevant notes come back to you in later runs.
+
+    Args:
+        text: the note, one or two plain sentences
+    """
+    note, created = await ctx.run.remember(ctx.agent, text)
+    return ToolResult(f"Saved as note {note.id}." if created else f"You already had that (note {note.id}).")
+
+
+@tool(group="memory")
+async def recall(ctx: ToolContext, query: str) -> str:
+    """Search your notes from earlier runs.
+
+    Args:
+        query: words to look for
+    """
+    notes = await ctx.run.recall(ctx.agent, query, limit=6)
+    if not notes:
+        return "(nothing in your notes matches)"
+    return "\n".join(f"- {n.text}" for n in notes)
+
